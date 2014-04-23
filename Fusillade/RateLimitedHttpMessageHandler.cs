@@ -9,7 +9,7 @@ using Punchclock;
 
 namespace Fusillade
 {
-    public class RateLimitedHttpMessageHandler : SpeculativeHttpScheduler
+    public class RateLimitedHttpMessageHandler : SpeculativeHttpMessageHandler
     {
         readonly int priority;
         readonly OperationQueue opQueue;

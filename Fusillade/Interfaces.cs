@@ -22,10 +22,10 @@ namespace Fusillade
     /// reading data that may or may not be used by the user later, in order
     /// to improve response times should the user later request the data.
     /// </summary>
-    public abstract class SpeculativeHttpScheduler : DelegatingHandler
+    public abstract class SpeculativeHttpMessageHandler : DelegatingHandler
     {
-        public SpeculativeHttpScheduler(HttpMessageHandler innerHandler) : base(innerHandler) { }
-        public SpeculativeHttpScheduler() : base() { }
+        public SpeculativeHttpMessageHandler(HttpMessageHandler innerHandler) : base(innerHandler) { }
+        public SpeculativeHttpMessageHandler() : base() { }
 
         /// <summary>
         /// Resets the total limit of bytes to read. This is usually called
@@ -38,8 +38,8 @@ namespace Fusillade
 
     public static class NetCache 
     {
-        static SpeculativeHttpScheduler speculative;
-        [ThreadStatic] static SpeculativeHttpScheduler unitTestSpeculative;
+        static SpeculativeHttpMessageHandler speculative;
+        [ThreadStatic] static SpeculativeHttpMessageHandler unitTestSpeculative;
 
         /// <summary>
         /// Speculative HTTP schedulers only allow a certain number of bytes to be
@@ -47,9 +47,9 @@ namespace Fusillade
         /// reading data that may or may not be used by the user later, in order
         /// to improve response times should the user later request the data.
         /// </summary>
-        public static SpeculativeHttpScheduler Speculative
+        public static SpeculativeHttpMessageHandler Speculative
         {
-            get { return unitTestSpeculative ?? speculative ?? Locator.Current.GetService<SpeculativeHttpScheduler>("Speculative"); }
+            get { return unitTestSpeculative ?? speculative ?? Locator.Current.GetService<SpeculativeHttpMessageHandler>("Speculative"); }
             set 
             {
                 if (ModeDetector.InUnitTestRunner())

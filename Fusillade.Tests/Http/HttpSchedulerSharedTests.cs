@@ -22,7 +22,7 @@ namespace Fusillade.Tests
 {
     public abstract class HttpSchedulerSharedTests
     {
-        protected abstract HttpMessageHandler CreateFixture(HttpMessageHandler innerHandler = null);
+        protected abstract SpeculativeHttpMessageHandler CreateFixture(HttpMessageHandler innerHandler = null);
 
         [Fact]
         public async Task HttpSchedulerShouldCompleteADummyRequest()
@@ -108,6 +108,40 @@ namespace Fusillade.Tests
                 Assert.Equal(5, scheduledCount);
                 Assert.Equal(5, completedCount);
             });
+        }
+
+        [Fact]
+        public async Task RateLimitedSchedulerShouldStopAfterContentLimitReached()
+        {
+            var fixture = CreateFixture(new TestHttpMessageHandler(_ => {
+                var ret = new HttpResponseMessage() {
+                    Content = new StringContent("foo", Encoding.UTF8),
+                    StatusCode = HttpStatusCode.OK,
+                };
+            
+                ret.Headers.ETag = new EntityTagHeaderValue("\"worifjw\"");
+                return Observable.Return(ret);
+            }));
+
+            var client = new HttpClient(fixture) {
+                BaseAddress = new Uri("http://example"),
+            };
+
+            fixture.ResetLimit(5);
+
+            // Under the limit => succeed
+            var rq = new HttpRequestMessage(HttpMethod.Get, "/");
+            var resp = await client.SendAsync(rq);
+            Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+
+            // Crossing the limit => succeed
+            rq = new HttpRequestMessage(HttpMethod.Get, "/");
+            resp = await client.SendAsync(rq);
+            Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+
+            // Over the limit => cancelled
+            rq = new HttpRequestMessage(HttpMethod.Get, "/");
+            await Assert.ThrowsAsync<TaskCanceledException>(() => client.SendAsync(rq));
         }
 
         /*
@@ -205,7 +239,7 @@ namespace Fusillade.Tests
 
     public class BaseHttpSchedulerSharedTests : HttpSchedulerSharedTests
     {
-        protected override HttpMessageHandler CreateFixture(HttpMessageHandler innerHandler)
+        protected override SpeculativeHttpMessageHandler CreateFixture(HttpMessageHandler innerHandler)
         {
             return new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, opQueue: new OperationQueue(4));
         }

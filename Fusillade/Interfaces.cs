@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net.Http;
+using Punchclock;
 using Splat;
 
 namespace Fusillade
@@ -8,10 +9,11 @@ namespace Fusillade
     /// This enumeration defines the default base priorities associated with the
     /// different NetCache instances
     /// </summary>
-    public enum Priorities {
+    public enum Priority {
         Speculative = 10,
         UserInitiated = 100,
         Background = 20,
+        Explicit = 0,
     }
 
     /// <summary>
@@ -20,8 +22,10 @@ namespace Fusillade
     /// reading data that may or may not be used by the user later, in order
     /// to improve response times should the user later request the data.
     /// </summary>
-    public abstract class SpeculativeHttpScheduler : HttpMessageHandler
+    public abstract class SpeculativeHttpScheduler : DelegatingHandler
     {
+        public SpeculativeHttpScheduler(HttpMessageHandler innerHandler) : base(innerHandler) { }
+
         /// <summary>
         /// Resets the total limit of bytes to read. This is usually called
         /// when the app resumes from suspend, to indicate that we should
@@ -103,6 +107,30 @@ namespace Fusillade
                 else
                 {
                     background = value;
+                }
+            }
+        }
+
+        static OperationQueue operationQueue;
+        [ThreadStatic] static OperationQueue unitTestOperationQueue;
+
+        /// <summary>
+        /// This scheduler should be used for requests initiated in the
+        /// operationQueue, and are scheduled at a lower priority.
+        /// </summary>
+        public static OperationQueue OperationQueue
+        {
+            get { return unitTestOperationQueue ?? operationQueue ?? Locator.Current.GetService<OperationQueue>("OperationQueue"); }
+            set 
+            {
+                if (ModeDetector.InUnitTestRunner())
+                {
+                    unitTestOperationQueue = value;
+                    operationQueue = operationQueue ?? value;
+                }
+                else
+                {
+                    operationQueue = value;
                 }
             }
         }

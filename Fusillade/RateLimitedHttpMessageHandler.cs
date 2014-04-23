@@ -12,12 +12,21 @@ namespace Fusillade
     public class RateLimitedHttpMessageHandler : SpeculativeHttpScheduler
     {
         readonly int priority;
+        readonly OperationQueue opQueue;
         long? maxBytesToRead = null;
 
-        public RateLimitedHttpMessageHandler(HttpMessageHandler handler, Priority basePriority, int priority = 0, long? maxBytesToRead = null) : base(handler)
+        public RateLimitedHttpMessageHandler(Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue opQueue = null) : base()
         {
             this.priority = (int)basePriority + priority;
             this.maxBytesToRead = maxBytesToRead;
+            this.opQueue = opQueue;
+        }
+
+        public RateLimitedHttpMessageHandler(HttpMessageHandler handler, Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue opQueue = null) : base(handler)
+        {
+            this.priority = (int)basePriority + priority;
+            this.maxBytesToRead = maxBytesToRead;
+            this.opQueue = opQueue;
         }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -28,7 +37,8 @@ namespace Fusillade
                 cancellationToken = ct.Token;
             }
 
-            return NetCache.OperationQueue.Enqueue(priority, null, cancellationToken, async () => {
+            var queue = this.opQueue ?? NetCache.OperationQueue;
+            return queue.Enqueue(priority, null, cancellationToken, async () => {
                 var ret = await base.SendAsync(request, cancellationToken);
 
                 if (maxBytesToRead != null && ret.Content != null && ret.Content.Headers.ContentLength != null) {

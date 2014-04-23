@@ -25,6 +25,7 @@ namespace Fusillade
     public abstract class SpeculativeHttpScheduler : DelegatingHandler
     {
         public SpeculativeHttpScheduler(HttpMessageHandler innerHandler) : base(innerHandler) { }
+        public SpeculativeHttpScheduler() : base() { }
 
         /// <summary>
         /// Resets the total limit of bytes to read. This is usually called

@@ -117,7 +117,8 @@ namespace Fusillade
 
         /// <summary>
         /// This scheduler should be used for requests initiated in the
-        /// operationQueue, and are scheduled at a lower priority.
+        /// operationQueue, and are scheduled at a lower priority. You don't
+        /// need to mess with this.
         /// </summary>
         public static OperationQueue OperationQueue
         {

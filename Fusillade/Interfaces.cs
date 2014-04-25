@@ -38,6 +38,24 @@ namespace Fusillade
 
     public static class NetCache 
     {
+        static NetCache()
+        {
+            var innerHandler = Locator.Current.GetService<HttpMessageHandler>();
+
+            // NB: In vNext this value will be adjusted based on the user's
+            // network connection, but that requires us to go fully platformy
+            // like Splat.
+            if (innerHandler != null) {
+                speculative = new RateLimitedHttpMessageHandler(Priority.Speculative, 0, 1048576 * 5);
+                userInitiated = new RateLimitedHttpMessageHandler(Priority.UserInitiated, 0);
+                background = new RateLimitedHttpMessageHandler(Priority.Background, 0);
+            } else {
+                speculative = new RateLimitedHttpMessageHandler(innerHandler, Priority.Speculative, 0, 1048576 * 5);
+                userInitiated = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, 0);
+                background = new RateLimitedHttpMessageHandler(innerHandler, Priority.Background, 0);
+            }
+        }
+
         static LimitingHttpMessageHandler speculative;
         [ThreadStatic] static LimitingHttpMessageHandler unitTestSpeculative;
 
@@ -50,15 +68,11 @@ namespace Fusillade
         public static LimitingHttpMessageHandler Speculative
         {
             get { return unitTestSpeculative ?? speculative ?? Locator.Current.GetService<LimitingHttpMessageHandler>("Speculative"); }
-            set 
-            {
-                if (ModeDetector.InUnitTestRunner())
-                {
+            set {
+                if (ModeDetector.InUnitTestRunner()) {
                     unitTestSpeculative = value;
                     speculative = speculative ?? value;
-                }
-                else
-                {
+                } else {
                     speculative = value;
                 }
             }
@@ -74,15 +88,11 @@ namespace Fusillade
         public static HttpMessageHandler UserInitiated
         {
             get { return unitTestUserInitiated ?? userInitiated ?? Locator.Current.GetService<HttpMessageHandler>("UserInitiated"); }
-            set 
-            {
-                if (ModeDetector.InUnitTestRunner())
-                {
+            set {
+                if (ModeDetector.InUnitTestRunner()) {
                     unitTestUserInitiated = value;
                     userInitiated = userInitiated ?? value;
-                }
-                else
-                {
+                } else {
                     userInitiated = value;
                 }
             }
@@ -98,21 +108,17 @@ namespace Fusillade
         public static HttpMessageHandler Background
         {
             get { return unitTestBackground ?? background ?? Locator.Current.GetService<HttpMessageHandler>("Background"); }
-            set 
-            {
-                if (ModeDetector.InUnitTestRunner())
-                {
+            set {
+                if (ModeDetector.InUnitTestRunner()) {
                     unitTestBackground = value;
                     background = background ?? value;
-                }
-                else
-                {
+                } else {
                     background = value;
                 }
             }
         }
 
-        static OperationQueue operationQueue;
+        static OperationQueue operationQueue = new OperationQueue(4);
         [ThreadStatic] static OperationQueue unitTestOperationQueue;
 
         /// <summary>
@@ -123,15 +129,11 @@ namespace Fusillade
         public static OperationQueue OperationQueue
         {
             get { return unitTestOperationQueue ?? operationQueue ?? Locator.Current.GetService<OperationQueue>("OperationQueue"); }
-            set 
-            {
-                if (ModeDetector.InUnitTestRunner())
-                {
+            set {
+                if (ModeDetector.InUnitTestRunner()) {
                     unitTestOperationQueue = value;
                     operationQueue = operationQueue ?? value;
-                }
-                else
-                {
+                } else {
                     operationQueue = value;
                 }
             }

@@ -45,7 +45,8 @@
     <Reference Include="ReactiveUI.Testing">
       <HintPath>..\packages\reactiveui-testing.5.99.5-beta\lib\net45\ReactiveUI.Testing.dll</HintPath>
     </Reference>
-    <Reference Include="Splat">
+    <Reference Include="Splat, Version=1.3.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\Splat.1.3.0\lib\Net45\Splat.dll</HintPath>
     </Reference>
     <Reference Include="System" />

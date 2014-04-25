@@ -241,6 +241,50 @@ namespace Fusillade.Tests
         }
 
         [Fact]
+        public async Task RequestsToDifferentPathsArentDebounced()
+        {
+            int messageCount = 0;
+            Subject<Unit> gate = new Subject<Unit>();
+
+            var fixture = CreateFixture(new TestHttpMessageHandler(_ => {
+                var ret = new HttpResponseMessage() {
+                    Content = new StringContent("foo", Encoding.UTF8),
+                    StatusCode = HttpStatusCode.OK,
+                };
+            
+                ret.Headers.ETag = new EntityTagHeaderValue("\"worifjw\"");
+                messageCount++;
+
+                return gate.Take(1).Select(__ => ret);
+            }));
+
+            var client = new HttpClient(fixture) {
+                BaseAddress = new Uri("http://example"),
+            };
+
+            var rq1 = new HttpRequestMessage(HttpMethod.Get, "/foo");
+            var rq2 = new HttpRequestMessage(HttpMethod.Get, "/bar");
+
+            Assert.Equal(0, messageCount);
+
+            var resp1Task = client.SendAsync(rq1);
+            var resp2Task = client.SendAsync(rq2);
+            Assert.Equal(2, messageCount);
+
+            gate.OnNext(Unit.Default);
+            gate.OnNext(Unit.Default);
+
+            var resp1 = await resp1Task;
+            var resp2 = await resp2Task;
+
+            Assert.Equal(HttpStatusCode.OK, resp1.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, resp2.StatusCode);
+            Assert.Equal(2, messageCount);
+        }
+
+
+
+        [Fact]
         public async Task FullyCancelledDebouncedRequestsGetForRealCancelled()
         {
             int messageCount = 0;

@@ -144,6 +144,207 @@ namespace Fusillade.Tests
             await Assert.ThrowsAsync<TaskCanceledException>(() => client.SendAsync(rq));
         }
 
+        [Fact]
+        public async Task ConcurrentRequestsToTheSameResourceAreDebounced()
+        {
+            int messageCount = 0;
+            Subject<Unit> gate = new Subject<Unit>();
+
+            var fixture = CreateFixture(new TestHttpMessageHandler(_ => {
+                var ret = new HttpResponseMessage() {
+                    Content = new StringContent("foo", Encoding.UTF8),
+                    StatusCode = HttpStatusCode.OK,
+                };
+            
+                ret.Headers.ETag = new EntityTagHeaderValue("\"worifjw\"");
+                messageCount++;
+
+                return gate.Take(1).Select(__ => ret);
+            }));
+
+            var client = new HttpClient(fixture) {
+                BaseAddress = new Uri("http://example"),
+            };
+
+            var rq1 = new HttpRequestMessage(HttpMethod.Get, "/");
+            var rq2 = new HttpRequestMessage(HttpMethod.Get, "/");
+
+            Assert.Equal(0, messageCount);
+
+            var resp1Task = client.SendAsync(rq1);
+            var resp2Task = client.SendAsync(rq2);
+            Assert.Equal(1, messageCount);
+
+            gate.OnNext(Unit.Default);
+            gate.OnNext(Unit.Default);
+
+            var resp1 = await resp1Task;
+            var resp2 = await resp2Task;
+
+            Assert.Equal(HttpStatusCode.OK, resp1.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, resp2.StatusCode);
+            Assert.Equal(1, messageCount);
+        }
+
+        [Fact]
+        public async Task DebouncedRequestsDontGetUnfairlyCancelled()
+        {
+            int messageCount = 0;
+            Subject<Unit> gate = new Subject<Unit>();
+
+            var fixture = CreateFixture(new TestHttpMessageHandler(_ => {
+                var ret = new HttpResponseMessage() {
+                    Content = new StringContent("foo", Encoding.UTF8),
+                    StatusCode = HttpStatusCode.OK,
+                };
+            
+                ret.Headers.ETag = new EntityTagHeaderValue("\"worifjw\"");
+                messageCount++;
+
+                return gate.Take(1).Select(__ => ret);
+            }));
+
+            var client = new HttpClient(fixture) {
+                BaseAddress = new Uri("http://example"),
+            };
+
+            var rq1 = new HttpRequestMessage(HttpMethod.Get, "/");
+            var rq2 = new HttpRequestMessage(HttpMethod.Get, "/");
+
+            Assert.Equal(0, messageCount);
+
+            /* NB: Here's the thing we're testing for
+             * 
+             * When we issue concurrent requests to the same resource, one of them
+             * will actually do the request, and one of them will wait on the other.
+             * In this case, rq1 will do the request, and rq2 will just return 
+             * whatever rq1 will return.
+             *
+             * The key then, is to only truly cancel rq1 if both rq1 *and* rq2
+             * are cancelled, but rq1 should *appear* to be cancelled */
+            var cts = new CancellationTokenSource();
+
+            var resp1Task = client.SendAsync(rq1, cts.Token);
+            var resp2Task = client.SendAsync(rq2);
+            Assert.Equal(1, messageCount);
+
+            cts.Cancel();
+
+            gate.OnNext(Unit.Default);
+            gate.OnNext(Unit.Default);
+
+            await Assert.ThrowsAsync<TaskCanceledException>(() => resp1Task);
+            var resp2 = await resp2Task;
+
+            Assert.Equal(HttpStatusCode.OK, resp2.StatusCode);
+            Assert.Equal(1, messageCount);
+        }
+
+        [Fact]
+        public async Task RequestsToDifferentPathsArentDebounced()
+        {
+            int messageCount = 0;
+            Subject<Unit> gate = new Subject<Unit>();
+
+            var fixture = CreateFixture(new TestHttpMessageHandler(_ => {
+                var ret = new HttpResponseMessage() {
+                    Content = new StringContent("foo", Encoding.UTF8),
+                    StatusCode = HttpStatusCode.OK,
+                };
+            
+                ret.Headers.ETag = new EntityTagHeaderValue("\"worifjw\"");
+                messageCount++;
+
+                return gate.Take(1).Select(__ => ret);
+            }));
+
+            var client = new HttpClient(fixture) {
+                BaseAddress = new Uri("http://example"),
+            };
+
+            var rq1 = new HttpRequestMessage(HttpMethod.Get, "/foo");
+            var rq2 = new HttpRequestMessage(HttpMethod.Get, "/bar");
+
+            Assert.Equal(0, messageCount);
+
+            var resp1Task = client.SendAsync(rq1);
+            var resp2Task = client.SendAsync(rq2);
+            Assert.Equal(2, messageCount);
+
+            gate.OnNext(Unit.Default);
+            gate.OnNext(Unit.Default);
+
+            var resp1 = await resp1Task;
+            var resp2 = await resp2Task;
+
+            Assert.Equal(HttpStatusCode.OK, resp1.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, resp2.StatusCode);
+            Assert.Equal(2, messageCount);
+        }
+
+
+
+        [Fact]
+        public async Task FullyCancelledDebouncedRequestsGetForRealCancelled()
+        {
+            int messageCount = 0;
+            int finalMessageCount = 0;
+            Subject<Unit> gate = new Subject<Unit>();
+
+            var fixture = CreateFixture(new TestHttpMessageHandler(_ => {
+                var ret = new HttpResponseMessage() {
+                    Content = new StringContent("foo", Encoding.UTF8),
+                    StatusCode = HttpStatusCode.OK,
+                };
+            
+                ret.Headers.ETag = new EntityTagHeaderValue("\"worifjw\"");
+                messageCount++;
+
+                return gate.Take(1)
+                    .Do(__ => finalMessageCount++)
+                    .Select(__ => ret);
+            }));
+
+            var client = new HttpClient(fixture) {
+                BaseAddress = new Uri("http://example"),
+            };
+
+            var rq1 = new HttpRequestMessage(HttpMethod.Get, "/");
+            var rq2 = new HttpRequestMessage(HttpMethod.Get, "/");
+
+            Assert.Equal(0, messageCount);
+
+            /* NB: Here's the thing we're testing for
+             * 
+             * When we issue concurrent requests to the same resource, one of them
+             * will actually do the request, and one of them will wait on the other.
+             * In this case, rq1 will do the request, and rq2 will just return 
+             * whatever rq1 will return.
+             *
+             * The key then, is to only truly cancel rq1 if both rq1 *and* rq2
+             * are cancelled, but rq1 should *appear* to be cancelled. This test
+             * cancels both requests then makes sure we actually cancel the 
+             * underlying result */
+            var cts = new CancellationTokenSource();
+
+            var resp1Task = client.SendAsync(rq1, cts.Token);
+            var resp2Task = client.SendAsync(rq2, cts.Token);
+            Assert.Equal(1, messageCount);
+            Assert.Equal(0, finalMessageCount);
+
+            cts.Cancel();
+
+            gate.OnNext(Unit.Default);
+            gate.OnNext(Unit.Default);
+
+            await Assert.ThrowsAsync<TaskCanceledException>(() => resp1Task);
+            await Assert.ThrowsAsync<TaskCanceledException>(() => resp2Task);
+
+            Assert.Equal(1, messageCount);
+            Assert.Equal(0, finalMessageCount);
+        }
+
+
         /*
         [Fact]
         public void CancelAllShouldCancelAllInflightRequests()

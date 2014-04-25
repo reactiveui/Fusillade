@@ -57,6 +57,17 @@ var str = await client.Content.ReadAsStringAsync();
 Console.WriteLine(str);
 ```
 
+### Where does it work?
+
+Everywhere! Fusillade is a Portable Library, it works on:
+
+* Xamarin.Android
+* Xamarin.iOS
+* Xamarin.Mac
+* Windows Desktop apps
+* WinRT / Windows Phone 8.1 apps
+* Windows Phone 8
+
 ### More on speculative requests
 
 Generally, on a mobile app, you'll want to *reset* the Speculative limit every

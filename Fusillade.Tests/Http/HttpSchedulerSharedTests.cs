@@ -22,7 +22,7 @@ namespace Fusillade.Tests
 {
     public abstract class HttpSchedulerSharedTests
     {
-        protected abstract SpeculativeHttpMessageHandler CreateFixture(HttpMessageHandler innerHandler = null);
+        protected abstract LimitingHttpMessageHandler CreateFixture(HttpMessageHandler innerHandler = null);
 
         [Fact]
         public async Task HttpSchedulerShouldCompleteADummyRequest()
@@ -239,7 +239,7 @@ namespace Fusillade.Tests
 
     public class BaseHttpSchedulerSharedTests : HttpSchedulerSharedTests
     {
-        protected override SpeculativeHttpMessageHandler CreateFixture(HttpMessageHandler innerHandler)
+        protected override LimitingHttpMessageHandler CreateFixture(HttpMessageHandler innerHandler)
         {
             return new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, opQueue: new OperationQueue(4));
         }

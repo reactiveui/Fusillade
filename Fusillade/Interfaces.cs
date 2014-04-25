@@ -17,15 +17,15 @@ namespace Fusillade
     }
 
     /// <summary>
-    /// Speculative HTTP schedulers only allow a certain number of bytes to be
+    /// Limiting HTTP schedulers only allow a certain number of bytes to be
     /// read before cancelling all future requests. This is designed for
     /// reading data that may or may not be used by the user later, in order
     /// to improve response times should the user later request the data.
     /// </summary>
-    public abstract class SpeculativeHttpMessageHandler : DelegatingHandler
+    public abstract class LimitingHttpMessageHandler : DelegatingHandler
     {
-        public SpeculativeHttpMessageHandler(HttpMessageHandler innerHandler) : base(innerHandler) { }
-        public SpeculativeHttpMessageHandler() : base() { }
+        public LimitingHttpMessageHandler(HttpMessageHandler innerHandler) : base(innerHandler) { }
+        public LimitingHttpMessageHandler() : base() { }
 
         /// <summary>
         /// Resets the total limit of bytes to read. This is usually called
@@ -38,8 +38,8 @@ namespace Fusillade
 
     public static class NetCache 
     {
-        static SpeculativeHttpMessageHandler speculative;
-        [ThreadStatic] static SpeculativeHttpMessageHandler unitTestSpeculative;
+        static LimitingHttpMessageHandler speculative;
+        [ThreadStatic] static LimitingHttpMessageHandler unitTestSpeculative;
 
         /// <summary>
         /// Speculative HTTP schedulers only allow a certain number of bytes to be
@@ -47,9 +47,9 @@ namespace Fusillade
         /// reading data that may or may not be used by the user later, in order
         /// to improve response times should the user later request the data.
         /// </summary>
-        public static SpeculativeHttpMessageHandler Speculative
+        public static LimitingHttpMessageHandler Speculative
         {
-            get { return unitTestSpeculative ?? speculative ?? Locator.Current.GetService<SpeculativeHttpMessageHandler>("Speculative"); }
+            get { return unitTestSpeculative ?? speculative ?? Locator.Current.GetService<LimitingHttpMessageHandler>("Speculative"); }
             set 
             {
                 if (ModeDetector.InUnitTestRunner())

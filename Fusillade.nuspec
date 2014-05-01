@@ -20,6 +20,6 @@
     <copyright>Copyright Paul Betts© 2014</copyright>
   </metadata>
   <files>
-    <file src="Fusillade\bin\Release\Portable-Net45+WinRT45+WP8\Fussilade.???" target="lib\Portable-Net45+WinRT45+WP8" />
+    <file src="Fusillade\bin\Release\Portable-Net45+WinRT45+WP8\Fusillade.???" target="lib\Portable-Net45+WinRT45+WP8" />
   </files>
 </package>

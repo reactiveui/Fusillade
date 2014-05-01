@@ -20,7 +20,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\Portable-Net45+WinRT45+WP8</OutputPath>
+    <OutputPath>bin\Debug\Portable-net45+win+wpa81+wp80\</OutputPath>
     <IntermediateOutputPath>bin\Debug\Portable-Net45+WinRT45+WP8</IntermediateOutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
@@ -29,7 +29,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\Portable-Net45+WinRT45+WP8</OutputPath>
+    <OutputPath>bin\Release\Portable-net45+win+wpa81+wp80\</OutputPath>
     <IntermediateOutputPath>bin\Release\Portable-Net45+WinRT45+WP8</IntermediateOutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>

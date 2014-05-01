@@ -7,10 +7,10 @@
     <licenseUrl>https://github.com/paulcbetts/Fusillade/blob/master/COPYING</licenseUrl>
     <projectUrl>https://github.com/paulcbetts/Fusillade</projectUrl>
     <dependencies>
-      <dependency id="Splat" version="1.2.0" />
+      <dependency id="Splat" version="1.3.1" />
       <dependency id="Newtonsoft.Json" version="6.0.1" />
-      <dependency id="Punchclock" version="1.1.0" />
-      <dependency id="Rx-Main" version="2.2.2" />
+      <dependency id="Punchclock" version="1.1.1" />
+      <dependency id="Rx-Main" version="2.2.4" />
     </dependencies>
     <id>fusillade</id>
     <title>Fusillade: An Opinionated HTTP Library for Mobile</title>

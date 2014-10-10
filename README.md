@@ -85,11 +85,7 @@ Add this line to a **static constructor** of your app's startup class:
 ```cs
 using Splat;
 
-// Android
-Locator.CurrentMutable.Register(() => new OkHttpNetworkHandler(), typeof(HttpMessageHandler));
-
-// iOS
-Locator.CurrentMutable.Register(() => new NSUrlSessionHandler(), typeof(HttpMessageHandler));
+Locator.CurrentMutable.RegisterConstant(new NativeMessageHandler(), typeof(HttpMessageHandler));
 ```
 
 ### Statics? That sucks! I like $OTHER_THING! Your priorities suck, I want to come up with my own scheme!

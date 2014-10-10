@@ -1,4 +1,4 @@
-## Fusillade: An opinionated HTTP library for Mobile Development 
+## Fusillade: An opinionated HTTP library for Mobile Development
 
 Fusillade helps you to write more efficient code in mobile and desktop
 applications written in C#. Its design goals and feature set are inspired by
@@ -31,10 +31,13 @@ make your mobile applications more efficient and responsive:
 
 ### How do I use it?
 
+The easiest way to interact with Fusillade is via a class called `NetCache`,
+which has a number of built-in scenarios:
+
 ```cs
 public static class NetCache
 {
-    // Use to fetch data into a cache when a page loads. Expect that 
+    // Use to fetch data into a cache when a page loads. Expect that
     // these requests will only get so far then give up and start failing
     public static HttpMessageHandler Speculative { get; set; }
 
@@ -47,7 +50,7 @@ public static class NetCache
 }
 ```
 
-Then, create an `HttpClient` with the given handler:
+To use them, just create an `HttpClient` with the given handler:
 
 ```cs
 var client = new HttpClient(NetCache.UserInitiated);

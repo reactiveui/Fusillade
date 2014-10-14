@@ -1,11 +1,11 @@
 ## Fusillade: An opinionated HTTP library for Mobile Development
 
-Fusillade helps you to write more efficient code in mobile and desktop
-applications written in C#. Its design goals and feature set are inspired by
+Fusillade helps you write efficient code in mobile and desktop
+applications, written in C#. Its design goals and feature set are inspired by
 [Volley](http://arnab.ch/blog/2013/08/asynchronous-http-requests-in-android-using-volley/)
 as well as [Picasso](http://square.github.io/picasso/).
 
-### What even does this do for me?
+### What does this do for me?
 
 Fusillade is a set of HttpMessageHandlers (i.e. "drivers" for HttpClient) that
 make your mobile applications more efficient and responsive:

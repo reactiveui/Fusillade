@@ -55,7 +55,7 @@ To use them, just create an `HttpClient` with the given handler:
 ```cs
 var client = new HttpClient(NetCache.UserInitiated);
 var response = await client.GetAsync("http://httpbin.org/get");
-var str = await client.Content.ReadAsStringAsync();
+var str = await response.Content.ReadAsStringAsync();
 
 Console.WriteLine(str);
 ```

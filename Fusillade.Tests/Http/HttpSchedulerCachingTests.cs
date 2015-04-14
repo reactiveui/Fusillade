@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Akavache;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -60,6 +61,42 @@ namespace Fusillade.Tests.Http
             var client = new HttpClient(fixture);
             var resp = await client.GetAsync("http://lol/bar");
             Assert.Equal("\"worifjw\"", etagResponses[0]);
+        }
+
+        [Fact]
+        public async Task RoundTripIntegrationTest()
+        {
+            var cache = new InMemoryBlobCache();
+
+            var cachingHandler = new RateLimitedHttpMessageHandler(new HttpClientHandler(), Priority.UserInitiated, cacheResultFunc: async (rq, resp, key) => {
+                var data = await resp.Content.ReadAsByteArrayAsync();
+                await cache.Insert(key, data);
+            });
+
+            var client = new HttpClient(cachingHandler);
+            var origData = await client.GetStringAsync("http://httpbin.org/get");
+
+            Assert.True(origData.Contains("origin"));
+            Assert.Equal(1, (await cache.GetAllKeys()).Count());
+
+            var offlineHandler = new OfflineHttpMessageHandler(async (rq, key, ct) => {
+                return await cache.Get(key);
+            });
+
+            client = new HttpClient(offlineHandler);
+            var newData = await client.GetStringAsync("http://httpbin.org/get");
+
+            Assert.Equal(origData, newData);
+
+            bool shouldDie = true;
+            try {
+                await client.GetStringAsync("http://httpbin.org/gzip");
+            } catch (Exception ex) {
+                shouldDie = false;
+                Console.WriteLine(ex);
+            }
+
+            Assert.False(shouldDie);
         }
     }
 }

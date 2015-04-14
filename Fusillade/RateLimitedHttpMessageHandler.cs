@@ -47,11 +47,11 @@ namespace Fusillade
         readonly Dictionary<string, InflightRequest> inflightResponses = 
             new Dictionary<string, InflightRequest>();
 
-        readonly Func<HttpResponseMessage, string, Task> cacheResult;
+        readonly Func<HttpRequestMessage, HttpResponseMessage, string, Task> cacheResult;
 
         long? maxBytesToRead = null;
 
-        public RateLimitedHttpMessageHandler(Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue opQueue = null, Func<HttpResponseMessage, string, Task> cacheResultFunc = null) : base()
+        public RateLimitedHttpMessageHandler(Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue opQueue = null, Func<HttpRequestMessage, HttpResponseMessage, string, Task> cacheResultFunc = null) : base()
         {
             this.priority = (int)basePriority + priority;
             this.maxBytesToRead = maxBytesToRead;
@@ -119,7 +119,7 @@ namespace Fusillade
                     newResp.Content = newContent;
 
                     resp = newResp;
-                    await cacheResult(resp, key);
+                    await cacheResult(request, resp, key);
                 }
 
                 lock(inflightResponses) inflightResponses.Remove(key);

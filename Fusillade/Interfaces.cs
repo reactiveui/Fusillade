@@ -40,20 +40,14 @@ namespace Fusillade
     {
         static NetCache()
         {
-            var innerHandler = Locator.Current.GetService<HttpMessageHandler>();
+            var innerHandler = Locator.Current.GetService<HttpMessageHandler>() ?? new HttpClientHandler();
 
             // NB: In vNext this value will be adjusted based on the user's
             // network connection, but that requires us to go fully platformy
             // like Splat.
-            if (innerHandler == null) {
-                speculative = new RateLimitedHttpMessageHandler(Priority.Speculative, 0, 1048576 * 5);
-                userInitiated = new RateLimitedHttpMessageHandler(Priority.UserInitiated, 0);
-                background = new RateLimitedHttpMessageHandler(Priority.Background, 0);
-            } else {
-                speculative = new RateLimitedHttpMessageHandler(innerHandler, Priority.Speculative, 0, 1048576 * 5);
-                userInitiated = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, 0);
-                background = new RateLimitedHttpMessageHandler(innerHandler, Priority.Background, 0);
-            }
+            speculative = new RateLimitedHttpMessageHandler(innerHandler, Priority.Speculative, 0, 1048576 * 5);
+            userInitiated = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, 0);
+            background = new RateLimitedHttpMessageHandler(innerHandler, Priority.Background, 0);
         }
 
         static LimitingHttpMessageHandler speculative;

@@ -51,19 +51,12 @@ namespace Fusillade
 
         long? maxBytesToRead = null;
 
-        public RateLimitedHttpMessageHandler(Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue opQueue = null, Func<HttpRequestMessage, HttpResponseMessage, string, Task> cacheResultFunc = null) : base()
+        public RateLimitedHttpMessageHandler(HttpMessageHandler handler, Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue opQueue = null, Func<HttpRequestMessage, HttpResponseMessage, string, Task> cacheResultFunc = null) : base(handler)
         {
             this.priority = (int)basePriority + priority;
             this.maxBytesToRead = maxBytesToRead;
             this.opQueue = opQueue;
             this.cacheResult = cacheResultFunc;
-        }
-
-        public RateLimitedHttpMessageHandler(HttpMessageHandler handler, Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue opQueue = null) : base(handler)
-        {
-            this.priority = (int)basePriority + priority;
-            this.maxBytesToRead = maxBytesToRead;
-            this.opQueue = opQueue;
         }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)

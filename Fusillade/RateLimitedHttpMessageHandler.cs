@@ -71,7 +71,7 @@ namespace Fusillade
                 return tcs.Task;
             }
 
-            var key = uniqueKeyForRequest(request);
+            var key = UniqueKeyForRequest(request);
             var realToken = new CancellationTokenSource();
             var ret = new InflightRequest(() => { 
                 lock (inflightResponses) inflightResponses.Remove(key);
@@ -113,7 +113,7 @@ namespace Fusillade
             this.maxBytesToRead = maxBytesToRead;
         }
 
-        static string uniqueKeyForRequest(HttpRequestMessage request)
+        public static string UniqueKeyForRequest(HttpRequestMessage request)
         {
             var ret = new[] {
                 request.RequestUri.ToString(),

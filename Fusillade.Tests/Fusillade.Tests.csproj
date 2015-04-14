@@ -89,6 +89,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Http\HttpSchedulerCachingTests.cs" />
     <Compile Include="Http\HttpSchedulerSharedTests.cs" />
     <Compile Include="Http\TestHttpMessageHandler.cs" />
     <Compile Include="IntegrationTestHelper.cs" />

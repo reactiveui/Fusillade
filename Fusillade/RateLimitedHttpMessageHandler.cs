@@ -47,13 +47,16 @@ namespace Fusillade
         readonly Dictionary<string, InflightRequest> inflightResponses = 
             new Dictionary<string, InflightRequest>();
 
+        readonly Func<HttpResponseMessage, string, Task> cacheResult;
+
         long? maxBytesToRead = null;
 
-        public RateLimitedHttpMessageHandler(Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue opQueue = null) : base()
+        public RateLimitedHttpMessageHandler(Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue opQueue = null, Func<HttpResponseMessage, string, Task> cacheResultFunc = null) : base()
         {
             this.priority = (int)basePriority + priority;
             this.maxBytesToRead = maxBytesToRead;
             this.opQueue = opQueue;
+            this.cacheResult = cacheResultFunc;
         }
 
         public RateLimitedHttpMessageHandler(HttpMessageHandler handler, Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue opQueue = null) : base(handler)
@@ -99,6 +102,24 @@ namespace Fusillade
 
                 if (maxBytesToRead != null && resp.Content != null && resp.Content.Headers.ContentLength != null) {
                     maxBytesToRead -= resp.Content.Headers.ContentLength;
+                }
+
+                if (cacheResult != null && resp.Content != null) {
+                    var ms = new MemoryStream();
+                    var stream = await resp.Content.ReadAsStreamAsync();
+                    await stream.CopyToAsync(ms, 32 * 1024, realToken.Token);
+
+                    realToken.Token.ThrowIfCancellationRequested();
+
+                    var newResp = new HttpResponseMessage();
+                    foreach (var kvp in resp.Headers) { newResp.Headers.Add(kvp.Key, kvp.Value); }
+
+                    var newContent = new ByteArrayContent(ms.ToArray());
+                    foreach (var kvp in resp.Content.Headers) { newContent.Headers.Add(kvp.Key, kvp.Value); }
+                    newResp.Content = newContent;
+
+                    resp = newResp;
+                    await cacheResult(resp, key);
                 }
 
                 lock(inflightResponses) inflightResponses.Remove(key);

@@ -2,6 +2,8 @@
 using System.Net.Http;
 using Punchclock;
 using Splat;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Fusillade
 {
@@ -36,24 +38,50 @@ namespace Fusillade
         public abstract void ResetLimit(long? maxBytesToRead = null);
     }
 
+    /// <summary>
+    /// This Interface is a simple cache for HTTP requests - it is intentionally
+    /// *not* designed to conform to HTTP caching rules since you most likely want
+    /// to override those rules in a client app anyways.
+    /// </summary>
+    public interface IRequestCache
+    {
+        /// <summary>
+        /// Implement this method by saving the Body of the response. The 
+        /// response is already downloaded as a ByteArrayContent so you don't
+        /// have to worry about consuming the stream.
+        /// </summary>
+        /// <param name="request">The originating request.</param>
+        /// <param name="response">The response whose body you should save.</param>
+        /// <param name="key">A unique key used to identify the request details.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>Completion.</returns>
+        Task Save(HttpRequestMessage request, HttpResponseMessage response, string key, CancellationToken ct);
+
+        /// <summary>
+        /// Implement this by loading the Body of the given request / key.
+        /// </summary>
+        /// <param name="request">The originating request.</param>
+        /// <param name="key">A unique key used to identify the request details, 
+        /// that was given in Save().</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>The Body of the given request, or null if the search 
+        /// completed successfully but the response was not found.</returns>
+        Task<byte[]> Fetch(HttpRequestMessage request, string key, CancellationToken ct);
+    }
+
     public static class NetCache
     {
         static NetCache()
         {
-            var innerHandler = Locator.Current.GetService<HttpMessageHandler>();
+            var innerHandler = Locator.Current.GetService<HttpMessageHandler>() ?? new HttpClientHandler();
 
             // NB: In vNext this value will be adjusted based on the user's
             // network connection, but that requires us to go fully platformy
             // like Splat.
-            if (innerHandler == null) {
-                speculative = new RateLimitedHttpMessageHandler(Priority.Speculative, 0, 1048576 * 5);
-                userInitiated = new RateLimitedHttpMessageHandler(Priority.UserInitiated, 0);
-                background = new RateLimitedHttpMessageHandler(Priority.Background, 0);
-            } else {
-                speculative = new RateLimitedHttpMessageHandler(innerHandler, Priority.Speculative, 0, 1048576 * 5);
-                userInitiated = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, 0);
-                background = new RateLimitedHttpMessageHandler(innerHandler, Priority.Background, 0);
-            }
+            speculative = new RateLimitedHttpMessageHandler(innerHandler, Priority.Speculative, 0, 1048576 * 5);
+            userInitiated = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, 0);
+            background = new RateLimitedHttpMessageHandler(innerHandler, Priority.Background, 0);
+            offline = new OfflineHttpMessageHandler(null);
         }
 
         static LimitingHttpMessageHandler speculative;
@@ -118,6 +146,25 @@ namespace Fusillade
             }
         }
 
+        static HttpMessageHandler offline;
+        [ThreadStatic] static HttpMessageHandler unitTestOffline;
+
+        /// <summary>
+        /// This scheduler fetches results solely from the cache specified in
+        /// RequestCache.
+        /// </summary>
+        public static HttpMessageHandler Offline {
+            get { return unitTestOffline ?? offline ?? Locator.Current.GetService<HttpMessageHandler>("Offline"); }
+            set {
+                if (ModeDetector.InUnitTestRunner()) {
+                    unitTestOffline = value;
+                    offline = offline ?? value;
+                } else {
+                    offline = value;
+                }
+            }
+        }
+
         static OperationQueue operationQueue = new OperationQueue(4);
         [ThreadStatic] static OperationQueue unitTestOperationQueue;
 
@@ -135,6 +182,26 @@ namespace Fusillade
                     operationQueue = operationQueue ?? value;
                 } else {
                     operationQueue = value;
+                }
+            }
+        }
+
+        static IRequestCache requestCache;
+        [ThreadStatic] static IRequestCache unitTestRequestCache;
+
+        /// <summary>
+        /// If set, this indicates that HTTP handlers should save and load 
+        /// requests from a cached source.
+        /// </summary>
+        public static IRequestCache RequestCache
+        {
+            get { return unitTestRequestCache ?? requestCache; } 
+            set {
+                if (ModeDetector.InUnitTestRunner()) {
+                    unitTestRequestCache = value;
+                    requestCache = requestCache ?? value;
+                } else {
+                    requestCache = value;
                 }
             }
         }

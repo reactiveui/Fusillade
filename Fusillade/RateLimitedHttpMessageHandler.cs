@@ -47,31 +47,32 @@ namespace Fusillade
         readonly Dictionary<string, InflightRequest> inflightResponses = 
             new Dictionary<string, InflightRequest>();
 
+        readonly Func<HttpRequestMessage, HttpResponseMessage, string, CancellationToken, Task> cacheResult;
+
         long? maxBytesToRead = null;
 
-        public RateLimitedHttpMessageHandler(Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue opQueue = null) : base()
+        public RateLimitedHttpMessageHandler(HttpMessageHandler handler, Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue opQueue = null, Func<HttpRequestMessage, HttpResponseMessage, string, CancellationToken, Task> cacheResultFunc = null) : base(handler)
         {
             this.priority = (int)basePriority + priority;
             this.maxBytesToRead = maxBytesToRead;
             this.opQueue = opQueue;
-        }
-
-        public RateLimitedHttpMessageHandler(HttpMessageHandler handler, Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue opQueue = null) : base(handler)
-        {
-            this.priority = (int)basePriority + priority;
-            this.maxBytesToRead = maxBytesToRead;
-            this.opQueue = opQueue;
+            this.cacheResult = cacheResultFunc;
         }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            var cacheResult = this.cacheResult;
+            if (cacheResult == null && NetCache.RequestCache != null) {
+                cacheResult = NetCache.RequestCache.Save;
+            }
+
             if (maxBytesToRead != null && maxBytesToRead.Value < 0) {
                 var tcs = new TaskCompletionSource<HttpResponseMessage>();
                 tcs.SetCanceled();
                 return tcs.Task;
             }
 
-            var key = uniqueKeyForRequest(request);
+            var key = UniqueKeyForRequest(request);
             var realToken = new CancellationTokenSource();
             var ret = new InflightRequest(() => { 
                 lock (inflightResponses) inflightResponses.Remove(key);
@@ -101,6 +102,24 @@ namespace Fusillade
                     maxBytesToRead -= resp.Content.Headers.ContentLength;
                 }
 
+                if (cacheResult != null && resp.Content != null) {
+                    var ms = new MemoryStream();
+                    var stream = await resp.Content.ReadAsStreamAsync();
+                    await stream.CopyToAsync(ms, 32 * 1024, realToken.Token);
+
+                    realToken.Token.ThrowIfCancellationRequested();
+
+                    var newResp = new HttpResponseMessage();
+                    foreach (var kvp in resp.Headers) { newResp.Headers.Add(kvp.Key, kvp.Value); }
+
+                    var newContent = new ByteArrayContent(ms.ToArray());
+                    foreach (var kvp in resp.Content.Headers) { newContent.Headers.Add(kvp.Key, kvp.Value); }
+                    newResp.Content = newContent;
+
+                    resp = newResp;
+                    await cacheResult(request, resp, key, realToken.Token);
+                }
+
                 lock(inflightResponses) inflightResponses.Remove(key);
                 return resp;
             }).ToObservable().Subscribe(ret.Response);
@@ -113,7 +132,7 @@ namespace Fusillade
             this.maxBytesToRead = maxBytesToRead;
         }
 
-        static string uniqueKeyForRequest(HttpRequestMessage request)
+        public static string UniqueKeyForRequest(HttpRequestMessage request)
         {
             var ret = new[] {
                 request.RequestUri.ToString(),

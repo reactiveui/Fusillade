@@ -81,6 +81,59 @@ but in that callback, you need to call:
 NetCache.Speculative.ResetLimit(1048576 * 5/*MB*/);
 ```
 
+### Offline Support
+
+Fusillade can optionally cache responses that it sees, then play them back to
+you when your app is offline (or you just want to speed up your app by fetching
+cached data). Here's how to set it up:
+
+* Implement the IRequestCache interface:
+
+```cs
+public interface IRequestCache
+{
+    /// <summary>
+    /// Implement this method by saving the Body of the response. The
+    /// response is already downloaded as a ByteArrayContent so you don't
+    /// have to worry about consuming the stream.
+    /// <param name="request">The originating request.</param>
+    /// <param name="response">The response whose body you should save.</param>
+    /// <param name="key">A unique key used to identify the request details.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Completion.</returns>
+    Task Save(HttpRequestMessage request, HttpResponseMessage response, string key, CancellationToken ct);
+
+    /// <summary>
+    /// Implement this by loading the Body of the given request / key.
+    /// </summary>
+    /// <param name="request">The originating request.</param>
+    /// <param name="key">A unique key used to identify the request details,
+    /// that was given in Save().</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The Body of the given request, or null if the search
+    /// completed successfully but the response was not found.</returns>
+    Task<byte[]> Fetch(HttpRequestMessage request, string key, CancellationToken ct);
+}
+```
+
+* Set an instance to `NetCache.RequestCache`, and make some requests:
+
+```cs
+NetCache.RequestCache = new MyCoolCache();
+
+var client = new HttpClient(NetCache.UserInitiated);
+await client.GetStringAsync("https://httpbin.org/get");
+```
+
+* Now you can use `NetCache.Offline` to get data even when the Internet is disconnected:
+
+```cs
+// This will never actually make an HTTP request, it will either succeed via
+// reading from disk, or return an HttpResponseMessage with a 503 Status code.
+var client = new HttpClient(NetCache.Offline);
+await client.GetStringAsync("https://httpbin.org/get");
+```
+
 ### How do I use this with ModernHttpClient?
 
 Add this line to a **static constructor** of your app's startup class:

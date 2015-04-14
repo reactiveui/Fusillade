@@ -2,6 +2,8 @@
 using System.Net.Http;
 using Punchclock;
 using Splat;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Fusillade
 {
@@ -36,6 +38,12 @@ namespace Fusillade
         public abstract void ResetLimit(long? maxBytesToRead = null);
     }
 
+    public interface IRequestCache
+    {
+        Task Save(HttpRequestMessage request, HttpResponseMessage response, string key, CancellationToken ct);
+        Task<byte[]> Fetch(HttpRequestMessage request, string key, CancellationToken ct);
+    }
+
     public static class NetCache
     {
         static NetCache()
@@ -48,6 +56,7 @@ namespace Fusillade
             speculative = new RateLimitedHttpMessageHandler(innerHandler, Priority.Speculative, 0, 1048576 * 5);
             userInitiated = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, 0);
             background = new RateLimitedHttpMessageHandler(innerHandler, Priority.Background, 0);
+            offline = new OfflineHttpMessageHandler(null);
         }
 
         static LimitingHttpMessageHandler speculative;
@@ -112,6 +121,25 @@ namespace Fusillade
             }
         }
 
+        static HttpMessageHandler offline;
+        [ThreadStatic] static HttpMessageHandler unitTestOffline;
+
+        /// <summary>
+        /// This scheduler fetches results solely from the cache specified in
+        /// RequestCache.
+        /// </summary>
+        public static HttpMessageHandler Offline {
+            get { return unitTestOffline ?? offline ?? Locator.Current.GetService<HttpMessageHandler>("Offline"); }
+            set {
+                if (ModeDetector.InUnitTestRunner()) {
+                    unitTestOffline = value;
+                    offline = offline ?? value;
+                } else {
+                    offline = value;
+                }
+            }
+        }
+
         static OperationQueue operationQueue = new OperationQueue(4);
         [ThreadStatic] static OperationQueue unitTestOperationQueue;
 
@@ -129,6 +157,26 @@ namespace Fusillade
                     operationQueue = operationQueue ?? value;
                 } else {
                     operationQueue = value;
+                }
+            }
+        }
+
+        static IRequestCache requestCache;
+        [ThreadStatic] static IRequestCache unitTestRequestCache;
+
+        /// <summary>
+        /// If set, this indicates that HTTP handlers should save and load 
+        /// requests from a cached source.
+        /// </summary>
+        public static IRequestCache RequestCache
+        {
+            get { return unitTestRequestCache ?? requestCache; } 
+            set {
+                if (ModeDetector.InUnitTestRunner()) {
+                    unitTestRequestCache = value;
+                    requestCache = requestCache ?? value;
+                } else {
+                    requestCache = value;
                 }
             }
         }

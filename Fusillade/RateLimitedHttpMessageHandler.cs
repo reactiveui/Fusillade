@@ -47,11 +47,11 @@ namespace Fusillade
         readonly Dictionary<string, InflightRequest> inflightResponses = 
             new Dictionary<string, InflightRequest>();
 
-        readonly Func<HttpRequestMessage, HttpResponseMessage, string, Task> cacheResult;
+        readonly Func<HttpRequestMessage, HttpResponseMessage, string, CancellationToken, Task> cacheResult;
 
         long? maxBytesToRead = null;
 
-        public RateLimitedHttpMessageHandler(HttpMessageHandler handler, Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue opQueue = null, Func<HttpRequestMessage, HttpResponseMessage, string, Task> cacheResultFunc = null) : base(handler)
+        public RateLimitedHttpMessageHandler(HttpMessageHandler handler, Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue opQueue = null, Func<HttpRequestMessage, HttpResponseMessage, string, CancellationToken, Task> cacheResultFunc = null) : base(handler)
         {
             this.priority = (int)basePriority + priority;
             this.maxBytesToRead = maxBytesToRead;
@@ -61,6 +61,11 @@ namespace Fusillade
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            var cacheResult = this.cacheResult;
+            if (cacheResult == null && NetCache.RequestCache != null) {
+                cacheResult = NetCache.RequestCache.Save;
+            }
+
             if (maxBytesToRead != null && maxBytesToRead.Value < 0) {
                 var tcs = new TaskCompletionSource<HttpResponseMessage>();
                 tcs.SetCanceled();
@@ -112,7 +117,7 @@ namespace Fusillade
                     newResp.Content = newContent;
 
                     resp = newResp;
-                    await cacheResult(request, resp, key);
+                    await cacheResult(request, resp, key, realToken.Token);
                 }
 
                 lock(inflightResponses) inflightResponses.Remove(key);

@@ -28,7 +28,7 @@ namespace Fusillade.Tests.Http
             });
               
             var contentResponses = new List<byte[]>();
-            var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: async (rq, re, key) => {
+            var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: async (rq, re, key, ct) => {
                 contentResponses.Add(await re.Content.ReadAsByteArrayAsync());
             });
 
@@ -54,8 +54,9 @@ namespace Fusillade.Tests.Http
             });
               
             var etagResponses = new List<string>();
-            var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: async (rq, re, key) => {
+            var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: (rq, re, key, ct) => {
                 etagResponses.Add(re.Headers.ETag.Tag);
+                return Task.FromResult(true);
             });
 
             var client = new HttpClient(fixture);
@@ -68,7 +69,7 @@ namespace Fusillade.Tests.Http
         {
             var cache = new InMemoryBlobCache();
 
-            var cachingHandler = new RateLimitedHttpMessageHandler(new HttpClientHandler(), Priority.UserInitiated, cacheResultFunc: async (rq, resp, key) => {
+            var cachingHandler = new RateLimitedHttpMessageHandler(new HttpClientHandler(), Priority.UserInitiated, cacheResultFunc: async (rq, resp, key, ct) => {
                 var data = await resp.Content.ReadAsByteArrayAsync();
                 await cache.Insert(key, data);
             });

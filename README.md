@@ -129,7 +129,7 @@ await client.GetStringAsync("https://httpbin.org/get");
 
 ```cs
 // This will never actually make an HTTP request, it will either succeed via
-// reading from disk, or return an HttpResponseMessage with a 503 Status code.
+// reading from MyCoolCache, or return an HttpResponseMessage with a 503 Status code.
 var client = new HttpClient(NetCache.Offline);
 await client.GetStringAsync("https://httpbin.org/get");
 ```

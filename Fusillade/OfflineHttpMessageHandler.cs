@@ -29,7 +29,7 @@ namespace Fusillade
                 throw new Exception("Configure NetCache.RequestCache before calling this!");
             }
 
-            var body = await this.retrieveBody(request, RateLimitedHttpMessageHandler.UniqueKeyForRequest(request), cancellationToken);
+            var body = await retrieveBody(request, RateLimitedHttpMessageHandler.UniqueKeyForRequest(request), cancellationToken);
             if (body == null) {
                 return new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable);
             }

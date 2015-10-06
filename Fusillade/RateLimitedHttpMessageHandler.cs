@@ -122,8 +122,7 @@ namespace Fusillade
                     }
 
                     return resp;
-                }
-                finally {
+                } finally {
                     lock(inflightResponses) inflightResponses.Remove(key);
                 }
             }).ToObservable().Subscribe(ret.Response);

@@ -96,32 +96,35 @@ namespace Fusillade
             var queue = this.opQueue ?? NetCache.OperationQueue;
 
             queue.Enqueue(priority, null, realToken.Token, async () => {
-                var resp = await base.SendAsync(request, realToken.Token);
+                try {
+                    var resp = await base.SendAsync(request, realToken.Token);
 
-                if (maxBytesToRead != null && resp.Content != null && resp.Content.Headers.ContentLength != null) {
-                    maxBytesToRead -= resp.Content.Headers.ContentLength;
+                    if (maxBytesToRead != null && resp.Content != null && resp.Content.Headers.ContentLength != null) {
+                        maxBytesToRead -= resp.Content.Headers.ContentLength;
+                    }
+
+                    if (cacheResult != null && resp.Content != null) {
+                        var ms = new MemoryStream();
+                        var stream = await resp.Content.ReadAsStreamAsync();
+                        await stream.CopyToAsync(ms, 32 * 1024, realToken.Token);
+
+                        realToken.Token.ThrowIfCancellationRequested();
+
+                        var newResp = new HttpResponseMessage();
+                        foreach (var kvp in resp.Headers) { newResp.Headers.Add(kvp.Key, kvp.Value); }
+
+                        var newContent = new ByteArrayContent(ms.ToArray());
+                        foreach (var kvp in resp.Content.Headers) { newContent.Headers.Add(kvp.Key, kvp.Value); }
+                        newResp.Content = newContent;
+
+                        resp = newResp;
+                        await cacheResult(request, resp, key, realToken.Token);
+                    }
+
+                    return resp;
+                } finally {
+                    lock(inflightResponses) inflightResponses.Remove(key);
                 }
-
-                if (cacheResult != null && resp.Content != null) {
-                    var ms = new MemoryStream();
-                    var stream = await resp.Content.ReadAsStreamAsync();
-                    await stream.CopyToAsync(ms, 32 * 1024, realToken.Token);
-
-                    realToken.Token.ThrowIfCancellationRequested();
-
-                    var newResp = new HttpResponseMessage();
-                    foreach (var kvp in resp.Headers) { newResp.Headers.Add(kvp.Key, kvp.Value); }
-
-                    var newContent = new ByteArrayContent(ms.ToArray());
-                    foreach (var kvp in resp.Content.Headers) { newContent.Headers.Add(kvp.Key, kvp.Value); }
-                    newResp.Content = newContent;
-
-                    resp = newResp;
-                    await cacheResult(request, resp, key, realToken.Token);
-                }
-
-                lock(inflightResponses) inflightResponses.Remove(key);
-                return resp;
             }).ToObservable().Subscribe(ret.Response);
 
             return ret.Response.ToTask(cancellationToken);

@@ -20,7 +20,7 @@
 
 
 
-**Which versions of Fusillade, and which platform / OS are affected by this issue? Did this work in previous versions of ReativeUI? Please also test with the latest stable and snapshot (https://www.myget.org/feed/Akavache/package/nuget/Fusillade) versions.**
+**Which versions of Fusillade, and which platform / OS are affected by this issue? Did this work in previous versions of ReativeUI? Please also test with the latest stable and snapshot (https://www.myget.org/feed/Fusillade/package/nuget/Fusillade) versions.**
 
 
 

@@ -10,9 +10,9 @@ as well as [Picasso](http://square.github.io/picasso/).
 Fusillade is a set of HttpMessageHandlers (i.e. "drivers" for HttpClient) that
 make your mobile applications more efficient and responsive:
 
-* **Auto-deduplication of requests** - if every instance of your TweetView
+* **Auto-deduplication of relevant requests** - if every instance of your TweetView
   class requests the same avatar image, Fusillade will only do *one* request
-  and give the result to every instance.
+  and give the result to every instance. All `GET`, `HEAD`, and `OPTIONS` requests are deduplicated.
 
 * **Request Limiting** - Requests are always dispatched 4 at a time (the
   Volley default) - issue lots of requests without overwhelming the network

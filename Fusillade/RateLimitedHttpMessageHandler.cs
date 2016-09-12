@@ -44,7 +44,7 @@ namespace Fusillade
     {
         readonly int priority;
         readonly OperationQueue opQueue;
-        readonly Dictionary<string, InflightRequest> inflightResponses = 
+        readonly Dictionary<string, InflightRequest> inflightResponses =
             new Dictionary<string, InflightRequest>();
 
         readonly Func<HttpRequestMessage, HttpResponseMessage, string, CancellationToken, Task> cacheResult;
@@ -61,6 +61,11 @@ namespace Fusillade
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            var method = request.Method;
+            if (method != HttpMethod.Get && method != HttpMethod.Head && method != HttpMethod.Options) {
+                return base.SendAsync(request, cancellationToken);
+            }
+
             var cacheResult = this.cacheResult;
             if (cacheResult == null && NetCache.RequestCache != null) {
                 cacheResult = NetCache.RequestCache.Save;
@@ -74,7 +79,7 @@ namespace Fusillade
 
             var key = UniqueKeyForRequest(request);
             var realToken = new CancellationTokenSource();
-            var ret = new InflightRequest(() => { 
+            var ret = new InflightRequest(() => {
                 lock (inflightResponses) inflightResponses.Remove(key);
                 realToken.Cancel();
             });
@@ -158,7 +163,7 @@ namespace Fusillade
     {
         public static string ConcatenateAll<T>(this IEnumerable<T> This, Func<T, string> selector, char separator = '|')
         {
-            return This.Aggregate(new StringBuilder(), (acc, x) => 
+            return This.Aggregate(new StringBuilder(), (acc, x) =>
             {
                 acc.Append(selector(x));
                 acc.Append(separator);

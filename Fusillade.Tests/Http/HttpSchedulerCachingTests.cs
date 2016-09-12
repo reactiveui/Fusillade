@@ -22,11 +22,11 @@ namespace Fusillade.Tests.Http
                     Content = new StringContent("foo", Encoding.UTF8),
                     StatusCode = HttpStatusCode.OK,
                 };
-            
+
                 ret.Headers.ETag = new EntityTagHeaderValue("\"worifjw\"");
                 return Observable.Return(ret);
             });
-              
+
             var contentResponses = new List<byte[]>();
             var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: async (rq, re, key, ct) => {
                 contentResponses.Add(await re.Content.ReadAsByteArrayAsync());
@@ -48,11 +48,11 @@ namespace Fusillade.Tests.Http
                     Content = new StringContent("foo", Encoding.UTF8),
                     StatusCode = HttpStatusCode.OK,
                 };
-            
+
                 ret.Headers.ETag = new EntityTagHeaderValue("\"worifjw\"");
                 return Observable.Return(ret);
             });
-              
+
             var etagResponses = new List<string>();
             var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: (rq, re, key, ct) => {
                 etagResponses.Add(re.Headers.ETag.Tag);
@@ -98,6 +98,39 @@ namespace Fusillade.Tests.Http
             }
 
             Assert.False(shouldDie);
+        }
+
+        [Theory]
+        [InlineData("GET", true)]
+        [InlineData("HEAD", true)]
+        [InlineData("OPTIONS", true)]
+        [InlineData("POST", false)]
+        [InlineData("DELETE", false)]
+        [InlineData("PUT", false)]
+        [InlineData("WHATEVER", false)]
+        public async Task OnlyCacheRelevantMethods(string method, bool shouldCache)
+        {
+            var innerHandler = new TestHttpMessageHandler(_ => {
+                var ret = new HttpResponseMessage()
+                {
+                    Content = new StringContent("foo", Encoding.UTF8),
+                    StatusCode = HttpStatusCode.OK,
+                };
+
+                return Observable.Return(ret);
+            });
+
+            var cached = false;
+            var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: (rq, re, key, ct) => {
+                cached = true;
+                return Task.FromResult(true);
+            });
+
+            var client = new HttpClient(fixture);
+            var request = new HttpRequestMessage(new HttpMethod(method), "http://lol/bar");
+            await client.SendAsync(request);
+
+            Assert.Equal(shouldCache, cached);
         }
     }
 }

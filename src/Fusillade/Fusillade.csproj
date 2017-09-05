@@ -6,6 +6,13 @@
   <PropertyGroup>
     <TargetFramework>netstandard1.4</TargetFramework>
     <PackageId>fusillade</PackageId>
+    <Description>An HttpClient implementation for mobile apps that efficiently schedules and prioritizes requests</Description>
+    <PackageIconUrl>https://avatars0.githubusercontent.com/u/5924219?v=3&amp;s=200</PackageIconUrl>
+    <RepositoryUrl />
+    <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
+    <Copyright>Copyright (c) Paul Betts</Copyright>
+    <PackageTags>fusillade, cache, xamarin</PackageTags>
+    <PackageProjectUrl>https://github.com/paulcbetts/Fusillade</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>

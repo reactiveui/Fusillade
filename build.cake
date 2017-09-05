@@ -3,6 +3,8 @@
 //////////////////////////////////////////////////////////////////////
 
 #addin "Cake.FileHelpers"
+#addin "Cake.Coveralls"
+#addin "Cake.PinNuGetDependency"
 
 //////////////////////////////////////////////////////////////////////
 // TOOLS
@@ -10,7 +12,10 @@
 
 #tool "GitReleaseManager"
 #tool "GitVersion.CommandLine"
-#tool "GitLink"
+#tool "coveralls.io"
+#tool "OpenCover"
+#tool "ReportGenerator"
+#tool nuget:?package=vswhere
 
 //////////////////////////////////////////////////////////////////////
 // ARGUMENTS
@@ -31,87 +36,40 @@ var treatWarningsAsErrors = false;
 
 // Build configuration
 var local = BuildSystem.IsLocalBuild;
-var isRunningOnUnix = IsRunningOnUnix();
-var isRunningOnWindows = IsRunningOnWindows();
-
-var isRunningOnAppVeyor = AppVeyor.IsRunningOnAppVeyor;
 var isPullRequest = AppVeyor.Environment.PullRequest.IsPullRequest;
 var isRepository = StringComparer.OrdinalIgnoreCase.Equals("paulcbetts/fusillade", AppVeyor.Environment.Repository.Name);
 
+var isDevelopBranch = StringComparer.OrdinalIgnoreCase.Equals("develop", AppVeyor.Environment.Repository.Branch);
 var isReleaseBranch = StringComparer.OrdinalIgnoreCase.Equals("master", AppVeyor.Environment.Repository.Branch);
 var isTagged = AppVeyor.Environment.Repository.Tag.IsTag;
 
 var githubOwner = "paulcbetts";
 var githubRepository = "fusillade";
 var githubUrl = string.Format("https://github.com/{0}/{1}", githubOwner, githubRepository);
+var msBuildPath = VSWhereLatest().CombineWithFilePath("./MSBuild/15.0/Bin/MSBuild.exe");
 
 // Version
 var gitVersion = GitVersion();
 var majorMinorPatch = gitVersion.MajorMinorPatch;
-var semVersion = gitVersion.SemVer;
 var informationalVersion = gitVersion.InformationalVersion;
 var nugetVersion = gitVersion.NuGetVersion;
 var buildVersion = gitVersion.FullBuildMetaData;
 
 // Artifacts
 var artifactDirectory = "./artifacts/";
-var packageWhitelist = new[] { "fusillade" };
+var packageWhitelist = new[] { "Fusillade" };
+var testCoverageOutputFile = artifactDirectory + "OpenCover.xml";
 
 // Macros
 Action Abort = () => { throw new Exception("a non-recoverable fatal error occurred."); };
-
-Action<string> RestorePackages = (solution) =>
-{
-    NuGetRestore(solution);
-};
-
-Action<string, string> Package = (nuspec, basePath) =>
-{
-    CreateDirectory(artifactDirectory);
-
-    Information("Packaging {0} using {1} as the BasePath.", nuspec, basePath);
-
-    NuGetPack(nuspec, new NuGetPackSettings {
-        Authors                  = new [] { "Paul Betts" },
-        Owners                   = new [] { "paulcbetts" },
-
-        ProjectUrl               = new Uri(githubUrl),
-        IconUrl                  = new Uri("https://avatars0.githubusercontent.com/u/5924219?v=3&s=200"),
-        LicenseUrl               = new Uri("https://opensource.org/licenses/MIT"),
-        Copyright                = "Copyright (c) Paul Betts",
-        RequireLicenseAcceptance = false,
-
-        Version                  = nugetVersion,
-        Tags                     = new [] {  "fusillade", "Cache", "Xamarin", "Sqlite3", "Magic" },
-        ReleaseNotes             = new [] { string.Format("{0}/releases", githubUrl) },
-
-        Symbols                  = false,
-        Verbosity                = NuGetVerbosity.Detailed,
-        OutputDirectory          = artifactDirectory,
-        BasePath                 = basePath,
-    });
-};
-
-Action<string> SourceLink = (solutionFileName) =>
-{
-    GitLink("./", new GitLinkSettings() {
-        RepositoryUrl = githubUrl,
-        SolutionFileName = solutionFileName,
-        
-        // nb: I would love to set this to `treatErrorsAsWarnings` which defaults to `false` but GitLink trips over fusillade.Tests :/
-        // Handling project 'fusillade.Tests'
-        //   No pdb file found for 'fusillade.Tests', is project built in 'Release' mode with pdb files enabled? Expected file is 'C:\Dropbox\OSS\fusillade\fusillade\src\fusillade.Tests\fusillade.Tests.pdb'
-        ErrorsAsWarnings = true, 
-    });
-};
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // SETUP / TEARDOWN
 ///////////////////////////////////////////////////////////////////////////////
 Setup((context) =>
 {
-    Information("Building version {0} of fusillade. (isTagged: {1})", informationalVersion, isTagged);
+    Information("Building version {0} of Fusillade. (isTagged: {1}) Nuget Version {2}", informationalVersion, isTagged, nugetVersion);
+    CreateDirectory(artifactDirectory);
 });
 
 Teardown((context) =>
@@ -122,76 +80,99 @@ Teardown((context) =>
 //////////////////////////////////////////////////////////////////////
 // TASKS
 //////////////////////////////////////////////////////////////////////
+Task("UpdateAppVeyorBuildNumber")
+    .WithCriteria(() => AppVeyor.IsRunningOnAppVeyor)
+    .Does(() =>
+{
+    AppVeyor.UpdateBuildVersion(buildVersion);
+
+}).ReportError(exception =>
+{  
+    // When a build starts, the initial identifier is an auto-incremented value supplied by AppVeyor. 
+    // As part of the build script, this version in AppVeyor is changed to be the version obtained from
+    // GitVersion. This identifier is purely cosmetic and is used by the core team to correlate a build
+    // with the pull-request. In some circumstances, such as restarting a failed/cancelled build the
+    // identifier in AppVeyor will be already updated and default behaviour is to throw an
+    // exception/cancel the build when in fact it is safe to swallow.
+    // See https://github.com/reactiveui/ReactiveUI/issues/1262
+
+    Warning("Build with version {0} already exists.", buildVersion);
+});
+
 
 Task("Build")
-    .IsDependentOn("RestorePackages")
-    .IsDependentOn("UpdateAssemblyInfo")
     .Does (() =>
 {
     Action<string> build = (solution) =>
     {
-        // UWP (project.json) needs to be restored before it will build.
-        RestorePackages(solution);
-
         Information("Building {0}", solution);
 
-        MSBuild(solution, new MSBuildSettings()
-            .SetConfiguration("Release")
-            .WithProperty("NoWarn", "1591") // ignore missing XML doc warnings
+
+        MSBuild(solution, new MSBuildSettings() {
+                ToolPath= msBuildPath
+            }
+            .WithTarget("restore;build;pack")
+            .WithProperty("PackageOutputPath",  MakeAbsolute(Directory(artifactDirectory)).ToString())
             .WithProperty("TreatWarningsAsErrors", treatWarningsAsErrors.ToString())
+            .SetConfiguration("Release")          
+            // Due to https://github.com/NuGet/Home/issues/4790 and https://github.com/NuGet/Home/issues/4337 we
+            // have to pass a version explicitly
+            .WithProperty("Version", nugetVersion.ToString())
             .SetVerbosity(Verbosity.Minimal)
             .SetNodeReuse(false));
-
-        SourceLink(solution);
+			 
     };
 
-    build("./src/fusillade.sln");
-});
-
-Task("UpdateAppVeyorBuildNumber")
-    .WithCriteria(() => isRunningOnAppVeyor)
-    .Does(() =>
-{
-    AppVeyor.UpdateBuildVersion(buildVersion);
-});
-
-Task("UpdateAssemblyInfo")
-    .IsDependentOn("UpdateAppVeyorBuildNumber")
-    .Does (() =>
-{
-    var file = "./src/CommonAssemblyInfo.cs";
-
-    CreateAssemblyInfo(file, new AssemblyInfoSettings {
-        Product = "fusillade",
-        Version = majorMinorPatch,
-        FileVersion = majorMinorPatch,
-        InformationalVersion = informationalVersion,
-        Copyright = "Copyright (c) Paul Betts"
-    });
-});
-
-Task("RestorePackages").Does (() =>
-{
-    RestorePackages("./src/fusillade.sln");
+    build("./src/Fusillade.sln");
 });
 
 Task("RunUnitTests")
     .IsDependentOn("Build")
     .Does(() =>
 {
-    XUnit2("./src/fusillade.Tests/bin/x64/Release/fusillade.Tests.dll", new XUnit2Settings {
-        OutputDirectory = artifactDirectory,
-        XmlReportV1 = false,
-        NoAppDomain = false // fusillade.Tests requires AppDomain otherwise it does not resolve System.Reactive.*
-    });
+	//  Action<ICakeContext> testAction = tool => {
+
+    //     tool.XUnit2("./src/Fusillade.Tests/bin/Release/**/*.Tests.dll", new XUnit2Settings {
+	// 		OutputDirectory = artifactDirectory,
+	// 		XmlReportV1 = true,
+	// 		NoAppDomain = false
+	// 	});
+    // };
+
+    // OpenCover(testAction,
+    //     testCoverageOutputFile,
+    //     new OpenCoverSettings {
+    //         ReturnTargetCodeOffset = 0,
+    //         ArgumentCustomization = args => args.Append("-mergeoutput")
+    //     }
+    //     .WithFilter("+[*]* -[*.Tests*]* -[Splat*]*")
+    //     .ExcludeByAttribute("*.ExcludeFromCodeCoverage*")
+    //     .ExcludeByFile("*/*Designer.cs;*/*.g.cs;*/*.g.i.cs;*splat/splat*"));
+
+    // ReportGenerator(testCoverageOutputFile, artifactDirectory);
 });
 
 Task("Package")
-    .IsDependentOn("Build")
-    .IsDependentOn("RunUnitTests")
+   .IsDependentOn("Build")
+   .IsDependentOn("RunUnitTests")
+   .IsDependentOn("PinNuGetDependencies")
     .Does (() =>
 {
-    Package("./src/fusillade.nuspec", "./src/fusillade");
+
+});
+
+Task("PinNuGetDependencies")
+    .Does (() =>
+{
+    // only pin whitelisted packages.
+    foreach(var package in packageWhitelist)
+    {
+        // only pin the package which was created during this build run.
+        var packagePath = artifactDirectory + File(string.Concat(package, ".", nugetVersion, ".nupkg"));
+
+        // see https://github.com/cake-contrib/Cake.PinNuGetDependency
+        PinNuGetDependency(packagePath, "Fusillade");
+    }
 });
 
 Task("PublishPackages")
@@ -200,6 +181,7 @@ Task("PublishPackages")
     .WithCriteria(() => !local)
     .WithCriteria(() => !isPullRequest)
     .WithCriteria(() => isRepository)
+    .WithCriteria(() => isDevelopBranch || isReleaseBranch)
     .Does (() =>
 {
     if (isReleaseBranch && !isTagged)
@@ -304,6 +286,7 @@ Task("PublishRelease")
 //////////////////////////////////////////////////////////////////////
 
 Task("Default")
+    .IsDependentOn("UpdateAppVeyorBuildNumber")
     .IsDependentOn("CreateRelease")
     .IsDependentOn("PublishPackages")
     .IsDependentOn("PublishRelease")

@@ -26,10 +26,8 @@ namespace Fusillade.Tests
             // XXX: This is an evil hack, but it's okay for a unit test
             // We can't use Assembly.Location because unit test runners love
             // to move stuff to temp directories
-            var st = new StackFrame(true);
-            var di = new DirectoryInfo(Path.Combine(Path.GetDirectoryName(st.GetFileName())));
 
-            return di.FullName;
+            return Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName;
         }
 
         public static HttpResponseMessage GetResponse(params string[] paths)

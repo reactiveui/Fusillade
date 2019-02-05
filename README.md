@@ -153,3 +153,16 @@ configure it as-needed.
 ### What's with the name?
 
 The word 'Fusillade' is a synonym for Volley :)
+
+## Contribute
+
+Fusillade is developed under an OSI-approved open source license, making it freely usable and distributable, even for commercial use. Because of our Open Collective model for funding and transparency, we are able to funnel support and funds through to our contributors and community. We ❤ the people who are involved in this project, and we’d love to have you on board, especially if you are just getting started or have never contributed to open-source before.
+
+So here's to you, lovely person who wants to join us — this is how you can support us:
+
+* [Responding to questions on StackOverflow](https://stackoverflow.com/questions/tagged/fusillade)
+* [Passing on knowledge and teaching the next generation of developers](http://ericsink.com/entries/dont_use_rxui.html)
+* [Donations](https://reactiveui.net/donate) and [Corporate Sponsorships](https://reactiveui.net/sponsorship)
+* [Asking your employer to reciprocate and contribute to open-source](https://github.com/github/balanced-employee-ip-agreement)
+* Submitting documentation updates where you see fit or lacking.
+* Making contributions to the code base.

@@ -38,17 +38,17 @@
 // CONSTANTS
 //////////////////////////////////////////////////////////////////////
 
-const string project = "Punchclock";
+const string project = "Fusillade";
 
 // Whitelisted Packages
 var packageWhitelist = new[] 
 { 
-    "Punchclock",
+    "Fusillade",
 };
 
 var packageTestWhitelist = new[]
 {
-    "Punchclock.Tests", 
+    "Fusillade.Tests", 
 };
 
 var testFrameworks = new[] { "netcoreapp2.1" };

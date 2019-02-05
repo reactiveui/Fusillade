@@ -1,15 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿// Copyright (c) 2019 .NET Foundation and Contributors. All rights reserved.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for full license information.
+
+using System;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Reactive;
-using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Text;
-using System.Threading;
 
 namespace Fusillade.Tests
 {
@@ -18,7 +18,7 @@ namespace Fusillade.Tests
         public static string GetPath(params string[] paths)
         {
             var ret = GetIntegrationTestRootDirectory();
-            return (new FileInfo(paths.Aggregate(ret, Path.Combine))).FullName;
+            return new FileInfo(paths.Aggregate(ret, Path.Combine)).FullName;
         }
 
         public static string GetIntegrationTestRootDirectory()
@@ -26,7 +26,6 @@ namespace Fusillade.Tests
             // XXX: This is an evil hack, but it's okay for a unit test
             // We can't use Assembly.Location because unit test runners love
             // to move stuff to temp directories
-
             return Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName;
         }
 
@@ -53,7 +52,7 @@ namespace Fusillade.Tests
 
             var headerText = Encoding.UTF8.GetString(bytes, 0, bodyIndex);
             var lines = headerText.Split('\n');
-            var statusCode = (HttpStatusCode)Int32.Parse(lines[0].Split(' ')[1]);
+            var statusCode = (HttpStatusCode)int.Parse(lines[0].Split(' ')[1]);
             var ret = new HttpResponseMessage(statusCode);
 
             ret.Content = new ByteArrayContent(bytes, bodyIndex + 2, bytes.Length - bodyIndex - 2);
@@ -64,7 +63,10 @@ namespace Fusillade.Tests
                 var key = line.Substring(0, separatorIndex);
                 var val = line.Substring(separatorIndex + 2).TrimEnd();
 
-                if (String.IsNullOrWhiteSpace(line)) continue;
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    continue;
+                }
 
                 ret.Headers.TryAddWithoutValidation(key, val);
                 ret.Content.Headers.TryAddWithoutValidation(key, val);

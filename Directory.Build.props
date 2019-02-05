@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <Authors>.NET Foundation and Contributors</Authors>
+    <Copyright>Copyright (c) .NET Foundation and Contributors</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/reactiveui/Fusillade</PackageProjectUrl>
+    <PackageIconUrl>https://github.com/reactiveui/styleguide/blob/master/logo/main.png?raw=true</PackageIconUrl>
+    <Owners>xpaulbettsx;ghuntley;reactiveui</Owners>
+    <PackageTags>fusillade, cache, xamarin</PackageTags>
+    <PackageReleaseNotes>https://github.com/reactiveui/Fusillade/releases</PackageReleaseNotes>
+    <RepositoryUrl>https://github.com/reactiveui/Fusillade</RepositoryUrl>
+    <PackageIconUrl>https://avatars0.githubusercontent.com/u/5924219?v=3&amp;s=200</PackageIconUrl>
+    <Description>An HttpClient implementation for mobile apps that efficiently schedules and prioritizes requests</Description>
+    <RepositoryType>git</RepositoryType>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+</Project>

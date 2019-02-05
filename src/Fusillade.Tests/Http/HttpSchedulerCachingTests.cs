@@ -1,4 +1,9 @@
-﻿using Akavache;
+﻿// Copyright (c) 2019 .NET Foundation and Contributors. All rights reserved.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for full license information.
+
+using Akavache;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,8 +22,10 @@ namespace Fusillade.Tests.Http
         [Fact]
         public async Task CachingFunctionShouldBeCalledWithContent()
         {
-            var innerHandler = new TestHttpMessageHandler(_ => {
-                var ret = new HttpResponseMessage() {
+            var innerHandler = new TestHttpMessageHandler(_ =>
+            {
+                var ret = new HttpResponseMessage()
+                {
                     Content = new StringContent("foo", Encoding.UTF8),
                     StatusCode = HttpStatusCode.OK,
                 };
@@ -28,12 +35,10 @@ namespace Fusillade.Tests.Http
             });
 
             var contentResponses = new List<byte[]>();
-            var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: async (rq, re, key, ct) => {
-                contentResponses.Add(await re.Content.ReadAsByteArrayAsync());
-            });
+            var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: async (rq, re, key, ct) => contentResponses.Add(await re.Content.ReadAsByteArrayAsync().ConfigureAwait(false)));
 
             var client = new HttpClient(fixture);
-            var str = await client.GetStringAsync("http://lol/bar");
+            var str = await client.GetStringAsync(new Uri("http://lol/bar")).ConfigureAwait(false);
 
             Assert.Equal("foo", str);
             Assert.Equal(1, contentResponses.Count);
@@ -43,8 +48,10 @@ namespace Fusillade.Tests.Http
         [Fact]
         public async Task CachingFunctionShouldPreserveHeaders()
         {
-            var innerHandler = new TestHttpMessageHandler(_ => {
-                var ret = new HttpResponseMessage() {
+            var innerHandler = new TestHttpMessageHandler(_ =>
+            {
+                var ret = new HttpResponseMessage()
+                {
                     Content = new StringContent("foo", Encoding.UTF8),
                     StatusCode = HttpStatusCode.OK,
                 };
@@ -54,13 +61,14 @@ namespace Fusillade.Tests.Http
             });
 
             var etagResponses = new List<string>();
-            var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: (rq, re, key, ct) => {
+            var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: (rq, re, key, ct) =>
+            {
                 etagResponses.Add(re.Headers.ETag.Tag);
                 return Task.FromResult(true);
             });
 
             var client = new HttpClient(fixture);
-            var resp = await client.GetAsync("http://lol/bar");
+            var resp = await client.GetAsync(new Uri("http://lol/bar")).ConfigureAwait(false);
             Assert.Equal("\"worifjw\"", etagResponses[0]);
         }
 
@@ -69,30 +77,32 @@ namespace Fusillade.Tests.Http
         {
             var cache = new InMemoryBlobCache();
 
-            var cachingHandler = new RateLimitedHttpMessageHandler(new HttpClientHandler(), Priority.UserInitiated, cacheResultFunc: async (rq, resp, key, ct) => {
-                var data = await resp.Content.ReadAsByteArrayAsync();
+            var cachingHandler = new RateLimitedHttpMessageHandler(new HttpClientHandler(), Priority.UserInitiated, cacheResultFunc: async (rq, resp, key, ct) =>
+            {
+                var data = await resp.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
                 await cache.Insert(key, data);
             });
 
             var client = new HttpClient(cachingHandler);
-            var origData = await client.GetStringAsync("http://httpbin.org/get");
+            var origData = await client.GetStringAsync(new Uri("http://httpbin.org/get")).ConfigureAwait(false);
 
             Assert.True(origData.Contains("origin"));
             Assert.Equal(1, (await cache.GetAllKeys()).Count());
 
-            var offlineHandler = new OfflineHttpMessageHandler(async (rq, key, ct) => {
-                return await cache.Get(key);
-            });
+            var offlineHandler = new OfflineHttpMessageHandler(async (rq, key, ct) => await cache.Get(key));
 
             client = new HttpClient(offlineHandler);
-            var newData = await client.GetStringAsync("http://httpbin.org/get");
+            var newData = await client.GetStringAsync(new Uri("http://httpbin.org/get")).ConfigureAwait(false);
 
             Assert.Equal(origData, newData);
 
             bool shouldDie = true;
-            try {
-                await client.GetStringAsync("http://httpbin.org/gzip");
-            } catch (Exception ex) {
+            try
+            {
+                await client.GetStringAsync(new Uri("http://httpbin.org/gzip")).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
                 shouldDie = false;
                 Console.WriteLine(ex);
             }
@@ -110,7 +120,8 @@ namespace Fusillade.Tests.Http
         [InlineData("WHATEVER", false)]
         public async Task OnlyCacheRelevantMethods(string method, bool shouldCache)
         {
-            var innerHandler = new TestHttpMessageHandler(_ => {
+            var innerHandler = new TestHttpMessageHandler(_ =>
+            {
                 var ret = new HttpResponseMessage()
                 {
                     Content = new StringContent("foo", Encoding.UTF8),
@@ -121,14 +132,15 @@ namespace Fusillade.Tests.Http
             });
 
             var cached = false;
-            var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: (rq, re, key, ct) => {
+            var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: (rq, re, key, ct) =>
+            {
                 cached = true;
                 return Task.FromResult(true);
             });
 
             var client = new HttpClient(fixture);
             var request = new HttpRequestMessage(new HttpMethod(method), "http://lol/bar");
-            await client.SendAsync(request);
+            await client.SendAsync(request).ConfigureAwait(false);
 
             Assert.Equal(shouldCache, cached);
         }

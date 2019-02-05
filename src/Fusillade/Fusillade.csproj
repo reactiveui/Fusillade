@@ -1,24 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <TargetFramework>netstandard1.4</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <PackageId>fusillade</PackageId>
-    <Description>An HttpClient implementation for mobile apps that efficiently schedules and prioritizes requests</Description>
-    <PackageIconUrl>https://avatars0.githubusercontent.com/u/5924219?v=3&amp;s=200</PackageIconUrl>
-    <RepositoryUrl />
-    <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
-    <Copyright>Copyright (c) Paul Betts</Copyright>
-    <PackageTags>fusillade, cache, xamarin</PackageTags>
-    <PackageProjectUrl>https://github.com/paulcbetts/Fusillade</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="punchclock" Version="2.1.0" />
-    <PackageReference Include="Splat" Version="2.0.0" />
-    <PackageReference Include="System.Reactive" Version="[3.1.1,4)" />
+    <PackageReference Include="punchclock" Version="3.0.17" />
+    <PackageReference Include="Splat" Version="6.1.7" />
+    <PackageReference Include="System.Reactive" Version="4.0.0" />
   </ItemGroup>
-
 </Project>

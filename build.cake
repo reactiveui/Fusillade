@@ -1,21 +1,57 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 //////////////////////////////////////////////////////////////////////
 // ADDINS
 //////////////////////////////////////////////////////////////////////
 
-#addin "Cake.FileHelpers"
-#addin "Cake.Coveralls"
-#addin "Cake.PinNuGetDependency"
+#addin "nuget:?package=Cake.FileHelpers&version=3.1.0"
+#addin "nuget:?package=Cake.Codecov&version=0.5.0"
+#addin "nuget:?package=Cake.Coverlet&version=2.2.1"
+#addin "nuget:?package=Cake.GitVersioning&version=2.3.38"
+
+//////////////////////////////////////////////////////////////////////
+// MODULES
+//////////////////////////////////////////////////////////////////////
+
+#module nuget:?package=Cake.DotNetTool.Module&version=0.1.0
 
 //////////////////////////////////////////////////////////////////////
 // TOOLS
 //////////////////////////////////////////////////////////////////////
 
-#tool "GitReleaseManager"
-#tool "GitVersion.CommandLine"
-#tool "coveralls.io"
-#tool "OpenCover"
-#tool "ReportGenerator"
-#tool nuget:?package=vswhere
+#tool "nuget:?package=vswhere&version=2.5.9"
+#tool "nuget:?package=xunit.runner.console&version=2.4.1"
+#tool "nuget:?package=Codecov&version=1.1.0"
+#tool "nuget:?package=ReportGenerator&version=4.0.9"
+
+//////////////////////////////////////////////////////////////////////
+// DOTNET TOOLS
+//////////////////////////////////////////////////////////////////////
+
+#tool "dotnet:?package=SignClient&version=1.0.82"
+#tool "dotnet:?package=coverlet.console&version=1.4.1"
+#tool "dotnet:?package=nbgv&version=2.3.38"
+
+//////////////////////////////////////////////////////////////////////
+// CONSTANTS
+//////////////////////////////////////////////////////////////////////
+
+const string project = "Punchclock";
+
+// Whitelisted Packages
+var packageWhitelist = new[] 
+{ 
+    "Punchclock",
+};
+
+var packageTestWhitelist = new[]
+{
+    "Punchclock.Tests", 
+};
+
+var testFrameworks = new[] { "netcoreapp2.1" };
 
 //////////////////////////////////////////////////////////////////////
 // ARGUMENTS
@@ -27,258 +63,233 @@ if (string.IsNullOrWhiteSpace(target))
     target = "Default";
 }
 
+var configuration = Argument("configuration", "Release");
+if (string.IsNullOrWhiteSpace(configuration))
+{
+    configuration = "Release";
+}
+
 //////////////////////////////////////////////////////////////////////
 // PREPARATION
 //////////////////////////////////////////////////////////////////////
 
-// Should MSBuild & GitLink treat any errors as warnings?
+// Should MSBuild treat any errors as warnings?
 var treatWarningsAsErrors = false;
 
 // Build configuration
 var local = BuildSystem.IsLocalBuild;
-var isPullRequest = AppVeyor.Environment.PullRequest.IsPullRequest;
-var isRepository = StringComparer.OrdinalIgnoreCase.Equals("paulcbetts/fusillade", AppVeyor.Environment.Repository.Name);
+var isPullRequest = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SYSTEM_PULLREQUEST_PULLREQUESTNUMBER"));
+var isRepository = StringComparer.OrdinalIgnoreCase.Equals($"reactiveui/{project}", TFBuild.Environment.Repository.RepoName);
 
-var isDevelopBranch = StringComparer.OrdinalIgnoreCase.Equals("develop", AppVeyor.Environment.Repository.Branch);
-var isReleaseBranch = StringComparer.OrdinalIgnoreCase.Equals("master", AppVeyor.Environment.Repository.Branch);
-var isTagged = AppVeyor.Environment.Repository.Tag.IsTag;
-
-var githubOwner = "paulcbetts";
-var githubRepository = "fusillade";
-var githubUrl = string.Format("https://github.com/{0}/{1}", githubOwner, githubRepository);
 var msBuildPath = VSWhereLatest().CombineWithFilePath("./MSBuild/15.0/Bin/MSBuild.exe");
 
-// Version
-var gitVersion = GitVersion();
-var majorMinorPatch = gitVersion.MajorMinorPatch;
-var informationalVersion = gitVersion.InformationalVersion;
-var nugetVersion = gitVersion.NuGetVersion;
-var buildVersion = gitVersion.FullBuildMetaData;
+var informationalVersion = EnvironmentVariable("GitAssemblyInformationalVersion");
+
+//////////////////////////////////////////////////////////////////////
+// FOLDERS
+//////////////////////////////////////////////////////////////////////
 
 // Artifacts
 var artifactDirectory = "./artifacts/";
-var packageWhitelist = new[] { "Fusillade" };
-var testCoverageOutputFile = artifactDirectory + "OpenCover.xml";
+var testsArtifactDirectory = artifactDirectory + "tests/";
+var binariesArtifactDirectory = artifactDirectory + "binaries/";
+var packagesArtifactDirectory = artifactDirectory + "packages/";
 
-// Macros
-Action Abort = () => { throw new Exception("a non-recoverable fatal error occurred."); };
+// OpenCover file location
+var testCoverageOutputFile = MakeAbsolute(File(testsArtifactDirectory + "TestCoverage.xml"));
 
 ///////////////////////////////////////////////////////////////////////////////
 // SETUP / TEARDOWN
 ///////////////////////////////////////////////////////////////////////////////
-Setup((context) =>
+Setup(context =>
 {
-    Information("Building version {0} of Fusillade. (isTagged: {1}) Nuget Version {2}", informationalVersion, isTagged, nugetVersion);
-    CreateDirectory(artifactDirectory);
+    if (!IsRunningOnWindows())
+    {
+        throw new NotImplementedException($"{project} will only build on Windows (w/Xamarin installed) because it's not possible to target UWP, WPF and Windows Forms from UNIX.");
+    }
+
+    StartProcess(Context.Tools.Resolve("nbgv*").ToString(), "cloud");
+    Information($"Building version {GitVersioningGetVersion().SemVer2} of {project}.");
+    Information($"Building on pull request {isPullRequest} of {TFBuild.Environment.Repository.RepoName}.");
+
+    CleanDirectories(artifactDirectory);
+    CreateDirectory(testsArtifactDirectory);
+    CreateDirectory(binariesArtifactDirectory);
+    CreateDirectory(packagesArtifactDirectory);
 });
 
-Teardown((context) =>
+Teardown(context =>
 {
     // Executed AFTER the last task.
 });
 
 //////////////////////////////////////////////////////////////////////
+// HELPER METHODS
+//////////////////////////////////////////////////////////////////////
+Action<string, string, bool> Build = (solution, packageOutputPath, doNotOptimise) =>
+{
+    Information("Building {0} using {1}", solution, msBuildPath);
+
+    var msBuildSettings = new MSBuildSettings() {
+            ToolPath = msBuildPath,
+            ArgumentCustomization = args => args.Append("/m /NoWarn:VSX1000"),
+            NodeReuse = false,
+            Restore = true
+        }
+        .WithProperty("TreatWarningsAsErrors", treatWarningsAsErrors.ToString())
+        .SetConfiguration(configuration)     
+        .WithTarget("build;pack")                   
+        .SetVerbosity(Verbosity.Minimal);
+
+    if (!string.IsNullOrWhiteSpace(packageOutputPath))
+    {
+        msBuildSettings = msBuildSettings.WithProperty("PackageOutputPath",  MakeAbsolute(Directory(packageOutputPath)).ToString().Quote());
+    }
+
+    if (doNotOptimise)
+    {
+        msBuildSettings = msBuildSettings.WithProperty("Optimize",  "False");
+    }
+
+    MSBuild(solution, msBuildSettings);
+};
+
+Action<string> CoverageTest = (packageName) => 
+{
+    var projectName = $"./src/{packageName}/{packageName}.csproj";
+    Build(projectName, null, true);
+        
+    foreach (var testFramework in testFrameworks)
+    {
+        Information($"Performing coverage tests on {packageName}");
+
+        var testFile = $"./src/{packageName}/bin/{configuration}/{testFramework}/{packageName}.dll";
+
+        StartProcess(Context.Tools.Resolve("Coverlet*").ToString(), new ProcessSettings {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            Arguments = new ProcessArgumentBuilder()
+                .AppendQuoted(testFile)
+                .AppendSwitch("--include", $"[{project}*]*")
+                .AppendSwitch("--exclude", "[*.Tests*]*")
+                .AppendSwitch("--exclude", "[*]*ThisAssembly*")
+                .AppendSwitch("--exclude-by-file", "*ApprovalTests*")
+                .AppendSwitchQuoted("--output", testCoverageOutputFile.ToString())
+                .AppendSwitchQuoted("--merge-with", testCoverageOutputFile.ToString())
+                .AppendSwitch("--format", "cobertura")
+                .AppendSwitch("--target", "dotnet")
+                .AppendSwitchQuoted("--targetargs", $"test {projectName}  --no-build -c {configuration} --logger:trx;LogFileName=testresults-{testFramework}.trx -r {testsArtifactDirectory}")
+            });
+
+        Information($"Finished coverage testing {packageName}");
+    }
+};
+
+//////////////////////////////////////////////////////////////////////
 // TASKS
 //////////////////////////////////////////////////////////////////////
-Task("UpdateAppVeyorBuildNumber")
-    .WithCriteria(() => AppVeyor.IsRunningOnAppVeyor)
-    .Does(() =>
-{
-    AppVeyor.UpdateBuildVersion(buildVersion);
-
-}).ReportError(exception =>
-{  
-    // When a build starts, the initial identifier is an auto-incremented value supplied by AppVeyor. 
-    // As part of the build script, this version in AppVeyor is changed to be the version obtained from
-    // GitVersion. This identifier is purely cosmetic and is used by the core team to correlate a build
-    // with the pull-request. In some circumstances, such as restarting a failed/cancelled build the
-    // identifier in AppVeyor will be already updated and default behaviour is to throw an
-    // exception/cancel the build when in fact it is safe to swallow.
-    // See https://github.com/reactiveui/ReactiveUI/issues/1262
-
-    Warning("Build with version {0} already exists.", buildVersion);
-});
-
 
 Task("Build")
     .Does (() =>
 {
-    Action<string> build = (solution) =>
+
+    // Clean the directories since we'll need to re-generate the debug type.
+    CleanDirectories($"./src/**/obj/{configuration}");
+    CleanDirectories($"./src/**/bin/{configuration}");
+
+    foreach(var packageName in packageWhitelist)
     {
-        Information("Building {0}", solution);
+        Build($"./src/{packageName}/{packageName}.csproj", packagesArtifactDirectory, false);
+    }
 
-
-        MSBuild(solution, new MSBuildSettings() {
-                ToolPath= msBuildPath
-            }
-            .WithTarget("restore;build;pack")
-            .WithProperty("PackageOutputPath",  MakeAbsolute(Directory(artifactDirectory)).ToString())
-            .WithProperty("TreatWarningsAsErrors", treatWarningsAsErrors.ToString())
-            .SetConfiguration("Release")          
-            // Due to https://github.com/NuGet/Home/issues/4790 and https://github.com/NuGet/Home/issues/4337 we
-            // have to pass a version explicitly
-            .WithProperty("Version", nugetVersion.ToString())
-            .SetVerbosity(Verbosity.Minimal)
-            .SetNodeReuse(false));
-			 
-    };
-
-    build("./src/Fusillade.sln");
+    CopyFiles(GetFiles($"./src/**/bin/{configuration}/**/*"), Directory(binariesArtifactDirectory), true);
 });
 
 Task("RunUnitTests")
-    .IsDependentOn("Build")
     .Does(() =>
 {
-	//  Action<ICakeContext> testAction = tool => {
+    // Clean the directories since we'll need to re-generate the debug type.
+    CleanDirectories($"./src/**/obj/{configuration}");
+    CleanDirectories($"./src/**/bin/{configuration}");
 
-    //     tool.XUnit2("./src/Fusillade.Tests/bin/Release/**/*.Tests.dll", new XUnit2Settings {
-	// 		OutputDirectory = artifactDirectory,
-	// 		XmlReportV1 = true,
-	// 		NoAppDomain = false
-	// 	});
-    // };
+    foreach (var packageName in packageTestWhitelist)
+    {
+        CoverageTest(packageName);
+    }
 
-    // OpenCover(testAction,
-    //     testCoverageOutputFile,
-    //     new OpenCoverSettings {
-    //         ReturnTargetCodeOffset = 0,
-    //         ArgumentCustomization = args => args.Append("-mergeoutput")
-    //     }
-    //     .WithFilter("+[*]* -[*.Tests*]* -[Splat*]*")
-    //     .ExcludeByAttribute("*.ExcludeFromCodeCoverage*")
-    //     .ExcludeByFile("*/*Designer.cs;*/*.g.cs;*/*.g.i.cs;*splat/splat*"));
+    ReportGenerator(testCoverageOutputFile, testsArtifactDirectory + "Report/");
+})
+.ReportError(exception =>
+{
+    var apiApprovals = GetFiles("./**/ApiApprovalTests.*");
+    CopyFiles(apiApprovals, artifactDirectory);
+});
 
-    // ReportGenerator(testCoverageOutputFile, artifactDirectory);
+Task("UploadTestCoverage")
+    .WithCriteria(() => !local)
+    .WithCriteria(() => isRepository)
+    .IsDependentOn("RunUnitTests")
+    .Does(() =>
+{
+    // Resolve the API key.
+    var token = EnvironmentVariable("CODECOV_TOKEN");
+
+    if(EnvironmentVariable("CODECOV_TOKEN") == null)
+    {
+        throw new Exception("Codecov token not found, not sending code coverage data.");
+    }
+
+    if (!string.IsNullOrEmpty(token))
+    {
+        Information("Upload {0} to Codecov server", testCoverageOutputFile);
+
+        // Upload a coverage report.
+        Codecov(testCoverageOutputFile.ToString(), token);
+    }
+});
+
+Task("SignPackages")
+    .IsDependentOn("Build")
+    .WithCriteria(() => !local)
+    .WithCriteria(() => !isPullRequest)
+    .Does(() =>
+{
+    if(EnvironmentVariable("SIGNCLIENT_SECRET") == null)
+    {
+        throw new Exception("Client Secret not found, not signing packages.");
+    }
+
+    var nupkgs = GetFiles(packagesArtifactDirectory + "*.nupkg");
+    foreach(FilePath nupkg in nupkgs)
+    {
+        var packageName = nupkg.GetFilenameWithoutExtension();
+        Information($"Submitting {packageName} for signing");
+
+        StartProcess(Context.Tools.Resolve("SignClient*").ToString(), new ProcessSettings {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            Arguments = new ProcessArgumentBuilder()
+                .Append("sign")
+                .AppendSwitch("-c", "./SignPackages.json")
+                .AppendSwitch("-i", nupkg.FullPath)
+                .AppendSwitch("-r", EnvironmentVariable("SIGNCLIENT_USER"))
+                .AppendSwitch("-s", EnvironmentVariable("SIGNCLIENT_SECRET"))
+                .AppendSwitch("-n", "ReactiveUI")
+                .AppendSwitch("-d", "ReactiveUI")
+                .AppendSwitch("-u", "https://reactiveui.net")
+            });
+
+        Information($"Finished signing {packageName}");
+    }
+    
+    Information("Sign-package complete");
 });
 
 Task("Package")
-   .IsDependentOn("Build")
-   .IsDependentOn("RunUnitTests")
-   .IsDependentOn("PinNuGetDependencies")
+    .IsDependentOn("Build")
+    .IsDependentOn("SignPackages")
     .Does (() =>
 {
-
-});
-
-Task("PinNuGetDependencies")
-    .Does (() =>
-{
-    // only pin whitelisted packages.
-    foreach(var package in packageWhitelist)
-    {
-        // only pin the package which was created during this build run.
-        var packagePath = artifactDirectory + File(string.Concat(package, ".", nugetVersion, ".nupkg"));
-
-        // see https://github.com/cake-contrib/Cake.PinNuGetDependency
-        PinNuGetDependency(packagePath, "Fusillade");
-    }
-});
-
-Task("PublishPackages")
-    .IsDependentOn("RunUnitTests")
-    .IsDependentOn("Package")
-    .WithCriteria(() => !local)
-    .WithCriteria(() => !isPullRequest)
-    .WithCriteria(() => isRepository)
-    .WithCriteria(() => isDevelopBranch || isReleaseBranch)
-    .Does (() =>
-{
-    if (isReleaseBranch && !isTagged)
-    {
-        Information("Packages will not be published as this release has not been tagged.");
-        return;
-    }
-
-    // Resolve the API key.
-    var apiKey = EnvironmentVariable("NUGET_APIKEY");
-    if (string.IsNullOrEmpty(apiKey))
-    {
-        throw new Exception("The NUGET_APIKEY environment variable is not defined.");
-    }
-
-    var source = EnvironmentVariable("NUGET_SOURCE");
-    if (string.IsNullOrEmpty(source))
-    {
-        throw new Exception("The NUGET_SOURCE environment variable is not defined.");
-    }
-
-    // only push whitelisted packages.
-    foreach(var package in packageWhitelist)
-    {
-        // only push the package which was created during this build run.
-        var packagePath = artifactDirectory + File(string.Concat(package, ".", nugetVersion, ".nupkg"));
-
-        // Push the package.
-        NuGetPush(packagePath, new NuGetPushSettings {
-            Source = source,
-            ApiKey = apiKey
-        });
-    }
-});
-
-Task("CreateRelease")
-    .IsDependentOn("RunUnitTests")
-    .IsDependentOn("Package")
-    .WithCriteria(() => !local)
-    .WithCriteria(() => !isPullRequest)
-    .WithCriteria(() => isRepository)
-    .WithCriteria(() => isReleaseBranch)
-    .WithCriteria(() => !isTagged)
-    .Does (() =>
-{
-    var username = EnvironmentVariable("GITHUB_USERNAME");
-    if (string.IsNullOrEmpty(username))
-    {
-        throw new Exception("The GITHUB_USERNAME environment variable is not defined.");
-    }
-
-    var token = EnvironmentVariable("GITHUB_TOKEN");
-    if (string.IsNullOrEmpty(token))
-    {
-        throw new Exception("The GITHUB_TOKEN environment variable is not defined.");
-    }
-
-    GitReleaseManagerCreate(username, token, githubOwner, githubRepository, new GitReleaseManagerCreateSettings {
-        Milestone         = majorMinorPatch,
-        Name              = majorMinorPatch,
-        Prerelease        = true,
-        TargetCommitish   = "master"
-    });
-});
-
-Task("PublishRelease")
-    .IsDependentOn("RunUnitTests")
-    .IsDependentOn("Package")
-    .WithCriteria(() => !local)
-    .WithCriteria(() => !isPullRequest)
-    .WithCriteria(() => isRepository)
-    .WithCriteria(() => isReleaseBranch)
-    .WithCriteria(() => isTagged)
-    .Does (() =>
-{
-    var username = EnvironmentVariable("GITHUB_USERNAME");
-    if (string.IsNullOrEmpty(username))
-    {
-        throw new Exception("The GITHUB_USERNAME environment variable is not defined.");
-    }
-
-    var token = EnvironmentVariable("GITHUB_TOKEN");
-    if (string.IsNullOrEmpty(token))
-    {
-        throw new Exception("The GITHUB_TOKEN environment variable is not defined.");
-    }
-
-    // only push whitelisted packages.
-    foreach(var package in packageWhitelist)
-    {
-        // only push the package which was created during this build run.
-        var packagePath = artifactDirectory + File(string.Concat(package, ".", nugetVersion, ".nupkg"));
-
-        GitReleaseManagerAddAssets(username, token, githubOwner, githubRepository, majorMinorPatch, packagePath);
-    }
-
-    GitReleaseManagerClose(username, token, githubOwner, githubRepository, majorMinorPatch);
 });
 
 //////////////////////////////////////////////////////////////////////
@@ -286,15 +297,12 @@ Task("PublishRelease")
 //////////////////////////////////////////////////////////////////////
 
 Task("Default")
-    .IsDependentOn("UpdateAppVeyorBuildNumber")
-    .IsDependentOn("CreateRelease")
-    .IsDependentOn("PublishPackages")
-    .IsDependentOn("PublishRelease")
+    .IsDependentOn("Package")
+    .IsDependentOn("RunUnitTests")
+    .IsDependentOn("UploadTestCoverage")
     .Does (() =>
 {
-
 });
-
 
 //////////////////////////////////////////////////////////////////////
 // EXECUTION

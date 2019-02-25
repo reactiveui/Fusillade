@@ -144,6 +144,30 @@ using Splat;
 Locator.CurrentMutable.RegisterConstant(new NativeMessageHandler(), typeof(HttpMessageHandler));
 ```
 
+### What do the priorities mean?
+
+The precedence is UserInitiated > Background > Speculative
+Which means that anything set as UserInitiate has a higher priority than Background or Speculative. 
+
+Explicit is a special that allows to set an explicit value that can be higher, lower or in between any of the predefined cases. 
+
+```csharp
+var lowerThanSpeculative = new RateLimitedHttpMessageHandler(
+                new HttpClientHandler(), 
+                Priority.Explicit, 
+                9);
+
+var moreThanSpeculativeButLessThanBAckground = new RateLimitedHttpMessageHandler(
+                new HttpClientHandler(), 
+                Priority.Explicit, 
+                15);
+
+var doItBeforeEverythingElse = new RateLimitedHttpMessageHandler(
+                new HttpClientHandler(), 
+                Priority.Explicit, 
+                1000);
+```
+
 ### Statics? That sucks! I like $OTHER_THING! Your priorities suck, I want to come up with my own scheme!
 
 `NetCache` is just a nice pre-canned default, the interesting code is in a

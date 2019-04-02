@@ -5,8 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="punchclock" Version="3.0.17" />
-    <PackageReference Include="Splat" Version="6.1.7" />
+    <PackageReference Include="punchclock" Version="3.1.1" />
+    <PackageReference Include="Splat" Version="7.0.1" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="System.Reactive" Version="4.0.0" />
   </ItemGroup>

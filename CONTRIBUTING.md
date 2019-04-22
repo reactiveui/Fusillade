@@ -21,7 +21,7 @@ Help us keep the project open and inclusive. Please read and follow our [Code of
 ## <a name="issue"></a> Found an Issue?
 
 If you find a bug in the source code or a mistake in the documentation, you can help us by
-submitting an issue to our [GitHub Repository](https://github.com/paulcbetts/Fusillade). Even better you can submit a Pull Request
+submitting an issue to our [GitHub Repository](https://github.com/reactiveui/Fusillade). Even better you can submit a Pull Request
 with a fix.
 
 **Please see the [Submission Guidelines](#submit) below.**
@@ -33,7 +33,7 @@ would like to implement a new feature then consider what kind of change it is:
 
   prevent duplication of work, and help you to craft the change so that it is successfully accepted
   into the project.
-* **Small Changes** can be crafted and submitted to the [GitHub Repository](https://github.com/paulcbetts/Fusillade) as a Pull
+* **Small Changes** can be crafted and submitted to the [GitHub Repository](https://github.com/reactiveui/Fusillade) as a Pull
   Request.
 
 ## <a name="submit"></a> Submission Guidelines
@@ -60,7 +60,7 @@ quickly:
 ### Submitting a Pull Request
 Before you submit your pull request consider the following guidelines:
 
-* Search [GitHub](https://github.com/paulcbetts/Fusillade/pulls) for an open or closed Pull Request
+* Search [GitHub](https://github.com/reactiveui/Fusillade/pulls) for an open or closed Pull Request
   that relates to your submission. You don't want to duplicate effort.
 * Make your changes in a new git branch:
 

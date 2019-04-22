@@ -5,7 +5,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/reactiveui/Fusillade</PackageProjectUrl>
     <PackageIconUrl>https://github.com/reactiveui/styleguide/blob/master/logo/main.png?raw=true</PackageIconUrl>
-    <Owners>xpaulbettsx;ghuntley;reactiveui</Owners>
+    <Owners>xanaisbettsx;ghuntley;reactiveui</Owners>
     <PackageTags>fusillade, cache, xamarin</PackageTags>
     <PackageReleaseNotes>https://github.com/reactiveui/Fusillade/releases</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/reactiveui/Fusillade</RepositoryUrl>

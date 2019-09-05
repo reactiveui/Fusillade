@@ -13,6 +13,6 @@
     <PackageReference Include="akavache" Version="6.*" />
     <PackageReference Include="DynamicData" Version="6.*" />
     <PackageReference Include="ReactiveUI" Version="9.*" />
-    <PackageReference Include="ReactiveUI.Testing" Version="9.*" />
+    <PackageReference Include="ReactiveUI.Testing" Version="10.*" />
   </ItemGroup>
 </Project>

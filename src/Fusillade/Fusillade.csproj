@@ -8,6 +8,6 @@
     <PackageReference Include="punchclock" Version="3.*" />
     <PackageReference Include="Splat" Version="8.*" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <PackageReference Include="System.Reactive" Version="4.1.5" />
+    <PackageReference Include="System.Reactive" Version="4.3.2" />
   </ItemGroup>
 </Project>

@@ -16,13 +16,13 @@ namespace Fusillade
     /// </summary>
     public class OfflineHttpMessageHandler : HttpMessageHandler
     {
-        private readonly Func<HttpRequestMessage, string, CancellationToken, Task<byte[]>> _retrieveBody;
+        private readonly Func<HttpRequestMessage, string, CancellationToken, Task<byte[]>>? _retrieveBody;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OfflineHttpMessageHandler"/> class.
         /// </summary>
         /// <param name="retrieveBodyFunc">A function that will retrieve a body.</param>
-        public OfflineHttpMessageHandler(Func<HttpRequestMessage, string, CancellationToken, Task<byte[]>> retrieveBodyFunc)
+        public OfflineHttpMessageHandler(Func<HttpRequestMessage, string, CancellationToken, Task<byte[]>>? retrieveBodyFunc)
         {
             _retrieveBody = retrieveBodyFunc;
         }

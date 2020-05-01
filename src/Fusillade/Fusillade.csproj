@@ -4,6 +4,7 @@
     <PackageId>fusillade</PackageId>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
+    <WarningsAsErrors>CS8625;CS8604;CS8600;CS8614;CS8603;CS8618;CS8619</WarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>

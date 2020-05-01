@@ -4,6 +4,7 @@
 // See the LICENSE file in the project root for full license information.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http;
 using Punchclock;
 using Splat;
@@ -17,22 +18,22 @@ namespace Fusillade
     {
         private static LimitingHttpMessageHandler speculative;
         [ThreadStatic]
-        private static LimitingHttpMessageHandler unitTestSpeculative;
+        private static LimitingHttpMessageHandler? unitTestSpeculative;
         private static HttpMessageHandler userInitiated;
         [ThreadStatic]
-        private static HttpMessageHandler unitTestUserInitiated;
+        private static HttpMessageHandler? unitTestUserInitiated;
         private static HttpMessageHandler background;
         [ThreadStatic]
-        private static HttpMessageHandler unitTestBackground;
+        private static HttpMessageHandler? unitTestBackground;
         private static HttpMessageHandler offline;
         [ThreadStatic]
-        private static HttpMessageHandler unitTestOffline;
+        private static HttpMessageHandler? unitTestOffline;
         private static OperationQueue operationQueue = new OperationQueue(4);
         [ThreadStatic]
-        private static OperationQueue unitTestOperationQueue;
-        private static IRequestCache requestCache;
+        private static OperationQueue? unitTestOperationQueue;
+        private static IRequestCache? requestCache;
         [ThreadStatic]
-        private static IRequestCache unitTestRequestCache;
+        private static IRequestCache? unitTestRequestCache;
 
         /// <summary>
         /// Initializes static members of the <see cref="NetCache"/> class.
@@ -162,7 +163,7 @@ namespace Fusillade
         /// Gets or sets a request cache that if set  indicates that HTTP handlers should save and load
         /// requests from a cached source.
         /// </summary>
-        public static IRequestCache RequestCache
+        public static IRequestCache? RequestCache
         {
             get => unitTestRequestCache ?? requestCache;
             set

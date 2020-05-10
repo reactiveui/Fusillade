@@ -66,29 +66,31 @@ namespace Fusillade.Tests
             var scheduledCount = default(int);
             var completedCount = default(int);
 
-            var fixture = CreateFixture(new TestHttpMessageHandler(rq =>
+            new TestScheduler().WithAsync(async sched =>
             {
-                scheduledCount++;
-                var ret = new HttpResponseMessage()
+                var fixture = CreateFixture(new TestHttpMessageHandler(rq =>
                 {
-                    Content = new StringContent("foo", Encoding.UTF8),
-                    StatusCode = HttpStatusCode.OK,
-                };
+                    scheduledCount++;
+                    var ret = new HttpResponseMessage()
+                    {
+                        Content = new StringContent("foo", Encoding.UTF8),
+                        StatusCode = HttpStatusCode.OK,
+                    };
 
-                ret.Headers.ETag = new EntityTagHeaderValue("\"worifjw\"");
+                    ret.Headers.ETag = new EntityTagHeaderValue("\"worifjw\"");
 
-                blockedRqs[rq] = new Subject<Unit>();
-                return blockedRqs[rq].Select(_ => ret).Finally(() => completedCount++);
-            }));
+                    blockedRqs[rq] = new Subject<Unit>();
+                    return blockedRqs[rq].Select(_ => ret).Finally(() => completedCount++);
+                }));
 
-            var client = new HttpClient(fixture);
-            client.BaseAddress = new Uri("http://example");
+                var client = new HttpClient(fixture);
+                client.BaseAddress = new Uri("http://example");
 
-            new TestScheduler().With(sched =>
-            {
-                var rqs = Enumerable.Range(0, 5)
-                    .Select(x => new HttpRequestMessage(HttpMethod.Get, "/" + x.ToString()))
-                    .ToArray();
+                var rqs =
+                    Enumerable
+                        .Range(0, 5)
+                        .Select(x => new HttpRequestMessage(HttpMethod.Get, "/" + x))
+                        .ToArray();
 
                 rqs.ToObservable()
                     .Select(rq => client.SendAsync(rq))
@@ -98,16 +100,12 @@ namespace Fusillade.Tests
                     .Bind(out var results)
                     .Subscribe();
 
-                sched.Start();
-
                 Assert.Equal(4, scheduledCount);
                 Assert.Equal(0, completedCount);
 
                 var firstSubj = blockedRqs.First().Value;
                 firstSubj.OnNext(Unit.Default);
                 firstSubj.OnCompleted();
-
-                sched.Start();
 
                 Assert.Equal(5, scheduledCount);
                 Assert.Equal(1, completedCount);
@@ -117,8 +115,6 @@ namespace Fusillade.Tests
                     v.OnNext(Unit.Default);
                     v.OnCompleted();
                 }
-
-                sched.Start();
 
                 Assert.Equal(5, scheduledCount);
                 Assert.Equal(5, completedCount);

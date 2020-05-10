@@ -24,11 +24,11 @@ namespace Fusillade
     public class RateLimitedHttpMessageHandler : LimitingHttpMessageHandler
     {
         private readonly int _priority;
-        private readonly OperationQueue _opQueue;
+        private readonly OperationQueue? _opQueue;
         private readonly Dictionary<string, InflightRequest> _inflightResponses =
             new Dictionary<string, InflightRequest>();
 
-        private readonly Func<HttpRequestMessage, HttpResponseMessage, string, CancellationToken, Task> _cacheResult;
+        private readonly Func<HttpRequestMessage, HttpResponseMessage, string, CancellationToken, Task>? _cacheResult;
 
         private long? _maxBytesToRead;
 
@@ -41,7 +41,7 @@ namespace Fusillade
         /// <param name="maxBytesToRead">The maximum number of bytes we can reead.</param>
         /// <param name="opQueue">The operation queue on which to run the operation.</param>
         /// <param name="cacheResultFunc">A method that is called if we need to get cached results.</param>
-        public RateLimitedHttpMessageHandler(HttpMessageHandler handler, Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue opQueue = null, Func<HttpRequestMessage, HttpResponseMessage, string, CancellationToken, Task> cacheResultFunc = null)
+        public RateLimitedHttpMessageHandler(HttpMessageHandler handler, Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue? opQueue = null, Func<HttpRequestMessage, HttpResponseMessage, string, CancellationToken, Task>? cacheResultFunc = null)
             : base(handler)
         {
             _priority = (int)basePriority + priority;
@@ -142,7 +142,7 @@ namespace Fusillade
 
             queue.Enqueue(
                 _priority,
-                null,
+                null!,
                 async () =>
                 {
                     try

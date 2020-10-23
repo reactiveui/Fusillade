@@ -9,7 +9,7 @@ on:
 
 env:
   configuration: Release
-  productNamespacePrefix: "Akavache"
+  productNamespacePrefix: "Fusillade"
 
 jobs:
   build:

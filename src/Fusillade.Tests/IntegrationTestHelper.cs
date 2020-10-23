@@ -13,14 +13,26 @@ using System.Text;
 
 namespace Fusillade.Tests
 {
+    /// <summary>
+    /// A helper for performing integration tests.
+    /// </summary>
     public static class IntegrationTestHelper
     {
+        /// <summary>
+        /// Combines together paths together and then gets a full path.
+        /// </summary>
+        /// <param name="paths">The paths to combine.</param>
+        /// <returns>The string path.</returns>
         public static string GetPath(params string[] paths)
         {
             var ret = GetIntegrationTestRootDirectory();
             return new FileInfo(paths.Aggregate(ret, Path.Combine)).FullName;
         }
 
+        /// <summary>
+        /// Gets the root directory for the integration test.
+        /// </summary>
+        /// <returns>The path.</returns>
         public static string GetIntegrationTestRootDirectory()
         {
             // XXX: This is an evil hack, but it's okay for a unit test
@@ -29,6 +41,11 @@ namespace Fusillade.Tests
             return Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName;
         }
 
+        /// <summary>
+        /// Creates a response from a sample file with the data.
+        /// </summary>
+        /// <param name="paths">The path to the file.</param>
+        /// <returns>The generated response.</returns>
         public static HttpResponseMessage GetResponse(params string[] paths)
         {
             var bytes = File.ReadAllBytes(GetPath(paths));

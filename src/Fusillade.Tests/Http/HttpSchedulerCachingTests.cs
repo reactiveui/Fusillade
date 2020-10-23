@@ -3,7 +3,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using Akavache;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,12 +12,20 @@ using System.Net.Http.Headers;
 using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Akavache;
 using Xunit;
 
 namespace Fusillade.Tests.Http
 {
+    /// <summary>
+    /// Checks to make sure that the http scheduler caches correctly.
+    /// </summary>
     public class HttpSchedulerCachingTests
     {
+        /// <summary>
+        /// Checks to make sure that the caching functiosn are only called with content.
+        /// </summary>
+        /// <returns>A task to monitor the progress.</returns>
         [Fact]
         public async Task CachingFunctionShouldBeCalledWithContent()
         {
@@ -45,6 +52,10 @@ namespace Fusillade.Tests.Http
             Assert.Equal(3, contentResponses[0].Length);
         }
 
+        /// <summary>
+        /// Checks to make sure that the cache preserves the http headers.
+        /// </summary>
+        /// <returns>A task to monitor the progress.</returns>
         [Fact]
         public async Task CachingFunctionShouldPreserveHeaders()
         {
@@ -72,6 +83,10 @@ namespace Fusillade.Tests.Http
             Assert.Equal("\"worifjw\"", etagResponses[0]);
         }
 
+        /// <summary>
+        /// Does a round trip integration test.
+        /// </summary>
+        /// <returns>A task to monitor the progress.</returns>
         [Fact]
         public async Task RoundTripIntegrationTest()
         {
@@ -110,6 +125,12 @@ namespace Fusillade.Tests.Http
             Assert.False(shouldDie);
         }
 
+        /// <summary>
+        /// Checks that only relevant http methods are cached.
+        /// </summary>
+        /// <param name="method">The name of the method.</param>
+        /// <param name="shouldCache">If it should be cached or not.</param>
+        /// <returns>A task to monitor the progress.</returns>
         [Theory]
         [InlineData("GET", true)]
         [InlineData("HEAD", true)]

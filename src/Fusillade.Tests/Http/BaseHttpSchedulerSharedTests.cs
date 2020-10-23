@@ -8,8 +8,12 @@ using Punchclock;
 
 namespace Fusillade.Tests
 {
+    /// <summary>
+    /// Checks to make sure the base http scheduler works.
+    /// </summary>
     public class BaseHttpSchedulerSharedTests : HttpSchedulerSharedTests
     {
+        /// <inheritdoc/>
         protected override LimitingHttpMessageHandler CreateFixture(HttpMessageHandler innerHandler)
         {
             return new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, opQueue: new OperationQueue(4));

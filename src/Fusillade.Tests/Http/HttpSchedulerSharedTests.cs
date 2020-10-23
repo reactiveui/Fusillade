@@ -25,8 +25,15 @@ using Xunit;
 
 namespace Fusillade.Tests
 {
+    /// <summary>
+    /// Base class full of common requests.
+    /// </summary>
     public abstract class HttpSchedulerSharedTests
     {
+        /// <summary>
+        /// Checks to make sure a dummy request is completed.
+        /// </summary>
+        /// <returns>A task to monitor the progress.</returns>
         [Fact]
         public async Task HttpSchedulerShouldCompleteADummyRequest()
         {
@@ -59,6 +66,9 @@ namespace Fusillade.Tests
             Assert.Equal(3 /*foo*/, bytes.Length);
         }
 
+        /// <summary>
+        /// Checks to make sure that the http scheduler doesn't do too much scheduling all at once.
+        /// </summary>
         [Fact]
         public void HttpSchedulerShouldntScheduleLotsOfStuffAtOnce()
         {
@@ -66,7 +76,7 @@ namespace Fusillade.Tests
             var scheduledCount = default(int);
             var completedCount = default(int);
 
-            new TestScheduler().WithAsync(async sched =>
+            new TestScheduler().WithAsync(_ =>
             {
                 var fixture = CreateFixture(new TestHttpMessageHandler(rq =>
                 {
@@ -118,9 +128,15 @@ namespace Fusillade.Tests
 
                 Assert.Equal(5, scheduledCount);
                 Assert.Equal(5, completedCount);
+
+                return Task.CompletedTask;
             });
         }
 
+        /// <summary>
+        /// Checks to make sure that the rate limited scheduler stops after content limit has been reached.
+        /// </summary>
+        /// <returns>A task to monitor the progress.</returns>
         [Fact]
         public async Task RateLimitedSchedulerShouldStopAfterContentLimitReached()
         {
@@ -158,6 +174,10 @@ namespace Fusillade.Tests
             await Assert.ThrowsAsync<TaskCanceledException>(() => client.SendAsync(rq)).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Tests to make sure that concurrent requests aren't debounced.
+        /// </summary>
+        /// <returns>A task to monitor the progress.</returns>
         [Fact]
         public async Task ConcurrentRequestsToTheSameResourceAreDebounced()
         {
@@ -195,14 +215,18 @@ namespace Fusillade.Tests
             gate.OnNext(Unit.Default);
             gate.OnNext(Unit.Default);
 
-            var resp1 = await resp1Task;
-            var resp2 = await resp2Task;
+            var resp1 = await resp1Task.ConfigureAwait(false);
+            var resp2 = await resp2Task.ConfigureAwait(false);
 
             Assert.Equal(HttpStatusCode.OK, resp1.StatusCode);
             Assert.Equal(HttpStatusCode.OK, resp2.StatusCode);
             Assert.Equal(1, messageCount);
         }
 
+        /// <summary>
+        /// Checks to make sure that requests don't get unfairly cancelled.
+        /// </summary>
+        /// <returns>A task to monitor the progress.</returns>
         [Fact]
         public async Task DebouncedRequestsDontGetUnfairlyCancelled()
         {
@@ -254,12 +278,16 @@ namespace Fusillade.Tests
             gate.OnNext(Unit.Default);
 
             await Assert.ThrowsAsync<TaskCanceledException>(() => resp1Task).ConfigureAwait(false);
-            var resp2 = await resp2Task;
+            var resp2 = await resp2Task.ConfigureAwait(false);
 
             Assert.Equal(HttpStatusCode.OK, resp2.StatusCode);
             Assert.Equal(1, messageCount);
         }
 
+        /// <summary>
+        /// Checks to make sure that different paths aren't debounced.
+        /// </summary>
+        /// <returns>A task to monitor the progress.</returns>
         [Fact]
         public async Task RequestsToDifferentPathsArentDebounced()
         {
@@ -297,14 +325,18 @@ namespace Fusillade.Tests
             gate.OnNext(Unit.Default);
             gate.OnNext(Unit.Default);
 
-            var resp1 = await resp1Task;
-            var resp2 = await resp2Task;
+            var resp1 = await resp1Task.ConfigureAwait(false);
+            var resp2 = await resp2Task.ConfigureAwait(false);
 
             Assert.Equal(HttpStatusCode.OK, resp1.StatusCode);
             Assert.Equal(HttpStatusCode.OK, resp2.StatusCode);
             Assert.Equal(2, messageCount);
         }
 
+        /// <summary>
+        /// Tests if a debounce is fully cancelling requests.
+        /// </summary>
+        /// <returns>A task to monitor the progress.</returns>
         [Fact]
         public async Task FullyCancelledDebouncedRequestsGetForRealCancelled()
         {
@@ -368,10 +400,16 @@ namespace Fusillade.Tests
             Assert.Equal(0, finalMessageCount);
         }
 
+        /// <summary>
+        /// Attempts to download a release from github to test the filters.
+        /// </summary>
+        /// <returns>A task to monitor the progress.</returns>
         [Fact]
         [Trait("Slow", "Very Yes")]
         public async Task DownloadARelease()
         {
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
             var input = @"https://github.com/akavache/Akavache/releases/download/3.2.0/Akavache.3.2.0.zip";
             var fixture = CreateFixture(new HttpClientHandler()
             {
@@ -387,6 +425,11 @@ namespace Fusillade.Tests
             Assert.Equal(8089690, bytes.Length);
         }
 
+        /// <summary>
+        /// Creates the test fixtures.
+        /// </summary>
+        /// <param name="innerHandler">The inner handler.</param>
+        /// <returns>The limiting handler.</returns>
         protected abstract LimitingHttpMessageHandler CreateFixture(HttpMessageHandler innerHandler = null);
     }
 }

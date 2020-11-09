@@ -1,6 +1,11 @@
 
 [![NuGet Stats](https://img.shields.io/nuget/v/fusillade.svg)](https://www.nuget.org/packages/fusillade) ![Build](https://github.com/reactiveui/Fusillade/workflows/Build/badge.svg) [![Code Coverage](https://codecov.io/gh/reactiveui/fusillade/branch/main/graph/badge.svg)](https://codecov.io/gh/reactiveui/akavache)
 
+<br />
+<a href="https://github.com/reactiveui/fusillade">
+  <img width="120" heigth="120" src="https://raw.githubusercontent.com/reactiveui/styleguide/master/logo_fusillade/main.png">
+</a>
+
 ## Fusillade: An opinionated HTTP library for Mobile Development
 
 Fusillade helps you to write more efficient code in mobile and desktop

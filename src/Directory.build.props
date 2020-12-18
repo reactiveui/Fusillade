@@ -33,7 +33,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="DiffEngine" Version="6.4.6" />
+    <PackageReference Include="DiffEngine" Version="6.4.9" />
   </ItemGroup>
   
   <ItemGroup Condition="'$(IsTestProject)' != 'true'">

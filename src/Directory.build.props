@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project>
   <PropertyGroup>
     <NoWarn>$(NoWarn);VSX1000</NoWarn>
@@ -16,6 +16,7 @@
     <!-- Optional: Include PDB in the built .nupkg -->
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     <!-- disable sourcelink on mono, to workaround https://github.com/dotnet/sourcelink/issues/155 -->
+    <PackageIconUrl>https://raw.githubusercontent.com/reactiveui/styleguide/master/logo_fusillade/main.png?raw=true</PackageIconUrl>
   </PropertyGroup>
   <PropertyGroup Condition="$(IsTestProject)">
     <IsPackable>false</IsPackable>

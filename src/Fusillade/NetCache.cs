@@ -66,7 +66,7 @@ namespace Fusillade
                 if (ModeDetector.InUnitTestRunner())
                 {
                     unitTestSpeculative = value;
-                    speculative ??= value;
+                    speculative = speculative ?? value;
                 }
                 else
                 {
@@ -87,7 +87,7 @@ namespace Fusillade
                 if (ModeDetector.InUnitTestRunner())
                 {
                     unitTestUserInitiated = value;
-                    userInitiated ??= value;
+                    userInitiated = userInitiated ?? value;
                 }
                 else
                 {
@@ -108,7 +108,7 @@ namespace Fusillade
                 if (ModeDetector.InUnitTestRunner())
                 {
                     unitTestBackground = value;
-                    background ??= value;
+                    background = background ?? value;
                 }
                 else
                 {
@@ -129,7 +129,7 @@ namespace Fusillade
                 if (ModeDetector.InUnitTestRunner())
                 {
                     unitTestOffline = value;
-                    offline ??= value;
+                    offline = offline ?? value;
                 }
                 else
                 {
@@ -151,7 +151,7 @@ namespace Fusillade
                 if (ModeDetector.InUnitTestRunner())
                 {
                     unitTestOperationQueue = value;
-                    operationQueue ??= value;
+                    operationQueue = operationQueue ?? value;
                 }
                 else
                 {
@@ -172,7 +172,7 @@ namespace Fusillade
                 if (ModeDetector.InUnitTestRunner())
                 {
                     unitTestRequestCache = value;
-                    requestCache ??= value;
+                    requestCache = requestCache ?? value;
                 }
                 else
                 {

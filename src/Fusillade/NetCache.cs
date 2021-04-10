@@ -60,13 +60,13 @@ namespace Fusillade
         /// </summary>
         public static LimitingHttpMessageHandler Speculative
         {
-            get => unitTestSpeculative ?? speculative ?? Locator.Current.GetService<LimitingHttpMessageHandler>("Speculative");
+            get => unitTestSpeculative ?? Locator.Current.GetService<LimitingHttpMessageHandler>("Speculative") ?? speculative;
             set
             {
                 if (ModeDetector.InUnitTestRunner())
                 {
                     unitTestSpeculative = value;
-                    speculative = speculative ?? value;
+                    speculative ??= value;
                 }
                 else
                 {
@@ -81,13 +81,13 @@ namespace Fusillade
         /// </summary>
         public static HttpMessageHandler UserInitiated
         {
-            get => unitTestUserInitiated ?? userInitiated ?? Locator.Current.GetService<HttpMessageHandler>("UserInitiated");
+            get => unitTestUserInitiated ?? Locator.Current.GetService<HttpMessageHandler>("UserInitiated") ?? userInitiated;
             set
             {
                 if (ModeDetector.InUnitTestRunner())
                 {
                     unitTestUserInitiated = value;
-                    userInitiated = userInitiated ?? value;
+                    userInitiated ??= value;
                 }
                 else
                 {
@@ -102,13 +102,13 @@ namespace Fusillade
         /// </summary>
         public static HttpMessageHandler Background
         {
-            get => unitTestBackground ?? background ?? Locator.Current.GetService<HttpMessageHandler>("Background");
+            get => unitTestBackground ?? Locator.Current.GetService<HttpMessageHandler>("Background") ?? background;
             set
             {
                 if (ModeDetector.InUnitTestRunner())
                 {
                     unitTestBackground = value;
-                    background = background ?? value;
+                    background ??= value;
                 }
                 else
                 {
@@ -123,13 +123,13 @@ namespace Fusillade
         /// </summary>
         public static HttpMessageHandler Offline
         {
-            get => unitTestOffline ?? offline ?? Locator.Current.GetService<HttpMessageHandler>("Offline");
+            get => unitTestOffline ?? Locator.Current.GetService<HttpMessageHandler>("Offline") ?? offline;
             set
             {
                 if (ModeDetector.InUnitTestRunner())
                 {
                     unitTestOffline = value;
-                    offline = offline ?? value;
+                    offline ??= value;
                 }
                 else
                 {
@@ -145,13 +145,13 @@ namespace Fusillade
         /// </summary>
         public static OperationQueue OperationQueue
         {
-            get => unitTestOperationQueue ?? operationQueue ?? Locator.Current.GetService<OperationQueue>("OperationQueue");
+            get => unitTestOperationQueue ?? Locator.Current.GetService<OperationQueue>("OperationQueue") ?? operationQueue;
             set
             {
                 if (ModeDetector.InUnitTestRunner())
                 {
                     unitTestOperationQueue = value;
-                    operationQueue = operationQueue ?? value;
+                    operationQueue ??= value;
                 }
                 else
                 {
@@ -172,7 +172,7 @@ namespace Fusillade
                 if (ModeDetector.InUnitTestRunner())
                 {
                     unitTestRequestCache = value;
-                    requestCache = requestCache ?? value;
+                    requestCache ??= value;
                 }
                 else
                 {

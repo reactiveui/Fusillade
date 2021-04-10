@@ -60,7 +60,7 @@ namespace Fusillade
         /// </summary>
         public static LimitingHttpMessageHandler Speculative
         {
-            get => unitTestSpeculative ?? speculative ?? Locator.Current.GetService<LimitingHttpMessageHandler>("Speculative");
+            get => unitTestSpeculative ?? Locator.Current.GetService<LimitingHttpMessageHandler>("Speculative") ?? speculative;
             set
             {
                 if (ModeDetector.InUnitTestRunner())
@@ -81,7 +81,7 @@ namespace Fusillade
         /// </summary>
         public static HttpMessageHandler UserInitiated
         {
-            get => unitTestUserInitiated ?? userInitiated ?? Locator.Current.GetService<HttpMessageHandler>("UserInitiated");
+            get => unitTestUserInitiated ?? Locator.Current.GetService<HttpMessageHandler>("UserInitiated") ?? userInitiated;
             set
             {
                 if (ModeDetector.InUnitTestRunner())
@@ -102,7 +102,7 @@ namespace Fusillade
         /// </summary>
         public static HttpMessageHandler Background
         {
-            get => unitTestBackground ?? background ?? Locator.Current.GetService<HttpMessageHandler>("Background");
+            get => unitTestBackground ?? Locator.Current.GetService<HttpMessageHandler>("Background") ?? background;
             set
             {
                 if (ModeDetector.InUnitTestRunner())
@@ -123,7 +123,7 @@ namespace Fusillade
         /// </summary>
         public static HttpMessageHandler Offline
         {
-            get => unitTestOffline ?? offline ?? Locator.Current.GetService<HttpMessageHandler>("Offline");
+            get => unitTestOffline ?? Locator.Current.GetService<HttpMessageHandler>("Offline") ?? offline;
             set
             {
                 if (ModeDetector.InUnitTestRunner())
@@ -145,7 +145,7 @@ namespace Fusillade
         /// </summary>
         public static OperationQueue OperationQueue
         {
-            get => unitTestOperationQueue ?? operationQueue ?? Locator.Current.GetService<OperationQueue>("OperationQueue");
+            get => unitTestOperationQueue ?? Locator.Current.GetService<OperationQueue>("OperationQueue") ?? operationQueue;
             set
             {
                 if (ModeDetector.InUnitTestRunner())

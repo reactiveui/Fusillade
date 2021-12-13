@@ -93,8 +93,10 @@ namespace Fusillade.Tests
                     return blockedRqs[rq].Select(_ => ret).Finally(() => completedCount++);
                 }));
 
-                var client = new HttpClient(fixture);
-                client.BaseAddress = new Uri("http://example");
+                var client = new HttpClient(fixture)
+                {
+                    BaseAddress = new Uri("http://example")
+                };
 
                 var rqs =
                     Enumerable
@@ -182,7 +184,7 @@ namespace Fusillade.Tests
         public async Task ConcurrentRequestsToTheSameResourceAreDebounced()
         {
             int messageCount = 0;
-            Subject<Unit> gate = new Subject<Unit>();
+            Subject<Unit> gate = new();
 
             var fixture = CreateFixture(new TestHttpMessageHandler(_ =>
             {
@@ -231,7 +233,7 @@ namespace Fusillade.Tests
         public async Task DebouncedRequestsDontGetUnfairlyCancelled()
         {
             int messageCount = 0;
-            Subject<Unit> gate = new Subject<Unit>();
+            Subject<Unit> gate = new();
 
             var fixture = CreateFixture(new TestHttpMessageHandler(_ =>
             {
@@ -292,7 +294,7 @@ namespace Fusillade.Tests
         public async Task RequestsToDifferentPathsArentDebounced()
         {
             int messageCount = 0;
-            Subject<Unit> gate = new Subject<Unit>();
+            Subject<Unit> gate = new();
 
             var fixture = CreateFixture(new TestHttpMessageHandler(_ =>
             {
@@ -342,7 +344,7 @@ namespace Fusillade.Tests
         {
             int messageCount = 0;
             int finalMessageCount = 0;
-            Subject<Unit> gate = new Subject<Unit>();
+            Subject<Unit> gate = new();
 
             var fixture = CreateFixture(new TestHttpMessageHandler(_ =>
             {
@@ -410,7 +412,7 @@ namespace Fusillade.Tests
         {
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
-            var input = @"https://github.com/akavache/Akavache/releases/download/3.2.0/Akavache.3.2.0.zip";
+            const string input = "https://github.com/akavache/Akavache/releases/download/3.2.0/Akavache.3.2.0.zip";
             var fixture = CreateFixture(new HttpClientHandler()
             {
                 AllowAutoRedirect = true,

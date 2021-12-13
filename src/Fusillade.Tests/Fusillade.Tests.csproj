@@ -1,20 +1,29 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
-    <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">$(TargetFrameworks);net461</TargetFrameworks>
-    <NoWarn>$(NoWarn);1591;CA1707;SA1633</NoWarn>
-    <LangVersion>latest</LangVersion>
-    <NoWarn>$(NoWarn);CA2000;CA1031;CA1307;CA1305</NoWarn>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFrameworks>net6.0</TargetFrameworks>
+		<TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">$(TargetFrameworks);net462</TargetFrameworks>
+		<NoWarn>$(NoWarn);1591;CA1707;SA1633</NoWarn>
+		<IsPackable>false</IsPackable>
+		<LangVersion>latest</LangVersion>
+		<NoWarn>$(NoWarn);CA2000;CA1031;CA1307;CA1305</NoWarn>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Fusillade\Fusillade.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Fusillade\Fusillade.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="akavache" Version="8.*" />
-    <PackageReference Include="DynamicData" Version="7.*" />
-    <PackageReference Include="ReactiveUI" Version="16.*" />
-    <PackageReference Include="ReactiveUI.Testing" Version="16.*" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="akavache" Version="8.*" />
+		<PackageReference Include="ReactiveUI.Testing" Version="17.*" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.0.0" />
+		<PackageReference Include="xunit" Version="2.4.1" />
+		<PackageReference Include="xunit.runner.console" Version="2.4.1" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="2.4.3" />
+		<PackageReference Include="Xunit.StaFact" Version="1.0.37" />
+		<PackageReference Include="FluentAssertions" Version="6.2.0" />
+		<PackageReference Include="Microsoft.Reactive.Testing" Version="5.0.0" />
+		<PackageReference Include="PublicApiGenerator" Version="10.2.0" />
+		<PackageReference Include="coverlet.msbuild" Version="3.1.0" PrivateAssets="All" />
+		<PackageReference Include="Verify.Xunit" Version="14.10.1" />
+	</ItemGroup>
 </Project>

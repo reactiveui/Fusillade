@@ -8,66 +8,17 @@ on:
     branches: [ main ]
 
 env:
-  configuration: Release
   productNamespacePrefix: "Fusillade"
-
+  
 jobs:
   build:
-    runs-on: windows-latest
-    outputs:
-      nbgv: ${{ steps.nbgv.outputs.SemVer2 }}
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-
-    - name: Install .NET Core
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 3.1.x
-
-    - name: NBGV
-      id: nbgv
-      uses: dotnet/nbgv@master
-      with:
-        setAllVars: true
-
-    - name: NuGet Restore
-      run: dotnet restore
-      working-directory: src
-      
-    - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v1
-
-    - name: Build
-      run: msbuild /t:build,pack /maxcpucount /p:NoPackageAnalysis=true /verbosity:minimal /p:Configuration=${{ env.configuration }}
-      working-directory: src
-
-    - name: Run Unit Tests and Generate Coverage
-      uses: glennawatson/coverlet-msbuild@v1
-      with:
-        project-files: '**/*Tests*.csproj'
-        no-build: true
-        exclude-filter: '[${{env.productNamespacePrefix}}.*.Tests.*]*'
-        include-filter: '[${{env.productNamespacePrefix}}*]*'
-        output-format: cobertura
-        output: '../../artifacts/'
-        configuration: ${{ env.configuration }}
-
-    - name: Upload Code Coverage
-      shell: bash
-      run: |
-        echo $PWD
-        bash <(curl -s https://codecov.io/bash) -X gcov -X coveragepy -t ${{ env.CODECOV_TOKEN }} -s '$PWD/artifacts' -f '*.xml'
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-    - name: Create NuGet Artifacts
-      uses: actions/upload-artifact@master
-      with:
-        name: nuget
-        path: '**/*.nupkg'
+    uses: reactiveui/actions-common/.github/workflows/workflow-common-setup-and-build.yml@main
+    with:
+      configuration: Release
+      productNamespacePrefix: "Fusillade"
+      useVisualStudioPreview: false
+      useMauiCheckDotNetTool: false
+      solutionFile: "Fusillade.sln"
 
   release:
     runs-on: ubuntu-latest

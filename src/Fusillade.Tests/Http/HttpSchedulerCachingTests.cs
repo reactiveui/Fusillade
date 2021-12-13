@@ -42,7 +42,12 @@ namespace Fusillade.Tests.Http
             });
 
             var contentResponses = new List<byte[]>();
+
+#if NET462
             var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: async (rq, re, key, ct) => contentResponses.Add(await re.Content.ReadAsByteArrayAsync().ConfigureAwait(false)));
+#else
+            var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: async (rq, re, key, ct) => contentResponses.Add(await re.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false)));
+#endif
 
             var client = new HttpClient(fixture);
             var str = await client.GetStringAsync(new Uri("http://lol/bar")).ConfigureAwait(false);

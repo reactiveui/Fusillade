@@ -52,7 +52,7 @@ namespace Fusillade
         }
 
         /// <summary>
-        /// Generates a unique key for for a <see cref="HttpRequestMessage"/>.
+        /// Generates a unique key for a <see cref="HttpRequestMessage"/>.
         /// This assists with the caching.
         /// </summary>
         /// <param name="request">The request to generate a unique key for.</param>
@@ -66,12 +66,12 @@ namespace Fusillade
 
             var ret = new[]
             {
-                request.RequestUri.ToString(),
+                request.RequestUri!.ToString(),
                 request.Method.Method,
                 request.Headers.Accept.ConcatenateAll(x => x.CharSet + x.MediaType),
                 request.Headers.AcceptEncoding.ConcatenateAll(x => x.Value),
                 (request.Headers.Referrer ?? new Uri("http://example")).AbsoluteUri,
-                request.Headers.UserAgent.ConcatenateAll(x => (x.Product != null ? x.Product.ToString() : x.Comment)),
+                request.Headers.UserAgent.ConcatenateAll(x => x.Product != null ? x.Product.ToString() : x.Comment!),
             }.Aggregate(
                 new StringBuilder(),
                 (acc, x) =>
@@ -82,7 +82,7 @@ namespace Fusillade
 
             if (request.Headers.Authorization != null)
             {
-                ret.AppendLine(request.Headers.Authorization.Parameter + request.Headers.Authorization.Scheme);
+                ret.Append(request.Headers.Authorization.Parameter).AppendLine(request.Headers.Authorization.Scheme);
             }
 
             return "HttpSchedulerCache_" + ret.ToString().GetHashCode().ToString("x", CultureInfo.InvariantCulture);
@@ -95,7 +95,6 @@ namespace Fusillade
         }
 
         /// <inheritdoc />
-        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Doesn't need to be disposed.")]
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             if (request is null)
@@ -115,7 +114,7 @@ namespace Fusillade
                 cacheResult = NetCache.RequestCache.Save;
             }
 
-            if (_maxBytesToRead != null && _maxBytesToRead.Value < 0)
+            if (_maxBytesToRead < 0)
             {
                 var tcs = new TaskCompletionSource<HttpResponseMessage>();
                 tcs.SetCanceled();
@@ -161,7 +160,7 @@ namespace Fusillade
                     {
                         var resp = await base.SendAsync(request, realToken.Token).ConfigureAwait(false);
 
-                        if (_maxBytesToRead != null && resp.Content != null && resp.Content.Headers.ContentLength != null)
+                        if (_maxBytesToRead != null && resp.Content?.Headers.ContentLength != null)
                         {
                             _maxBytesToRead -= resp.Content.Headers.ContentLength;
                         }

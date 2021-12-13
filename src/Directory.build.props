@@ -8,6 +8,9 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)analyzers.ruleset</CodeAnalysisRuleSet>
 		<DebugType>Embedded</DebugType>
+		<Authors>.NET Foundation and Contributors</Authors>
+		<Copyright>Copyright (c) .NET Foundation and Contributors</Copyright>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<!-- Optional: Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
 		<!-- Optional: Embed source files that are not tracked by the source control manager in the PDB -->
@@ -29,13 +32,11 @@
 		<PackageReference Include="xunit.runner.console" Version="2.4.1" />
 		<PackageReference Include="xunit.runner.visualstudio" Version="2.4.3" />
 		<PackageReference Include="Xunit.StaFact" Version="1.0.37" />
-		<PackageReference Include="Microsoft.Reactive.Testing" Version="5.*" />
+		<PackageReference Include="FluentAssertions" Version="6.2.0" />
+		<PackageReference Include="Microsoft.Reactive.Testing" Version="5.0.0" />
 		<PackageReference Include="PublicApiGenerator" Version="10.2.0" />
-		<PackageReference Include="coverlet.msbuild" Version="3.1.0">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-		</PackageReference>
-		<PackageReference Include="DiffEngine" Version="8.5.2" />
+		<PackageReference Include="coverlet.msbuild" Version="3.1.0" PrivateAssets="All" />
+		<PackageReference Include="Verify.Xunit" Version="14.10.1" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(IsTestProject)' != 'true'">

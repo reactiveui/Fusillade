@@ -7,13 +7,15 @@ on:
     branches: [ main ]
 
 env:
-  productNamespacePrefix: "Fusillade"
+  productNamespacePrefix: "Camelotia"
 
 jobs:
   build:
     uses: reactiveui/actions-common/.github/workflows/workflow-common-setup-and-build.yml@main
     with:
       configuration: Release
-      productNamespacePrefix: "Fusillade"
+      productNamespacePrefix: "Camelotia"
       useVisualStudioPreview: false
       useMauiCheckDotNetTool: false
+      installWindowsSdk: false
+      installWorkflows: false

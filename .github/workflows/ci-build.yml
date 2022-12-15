@@ -15,7 +15,7 @@ jobs:
     with:
       configuration: Release
       productNamespacePrefix: "Camelotia"
-      useVisualStudioPreview: false
+      useVisualStudioPreview: true
       useMauiCheckDotNetTool: false
       installWindowsSdk: false
       installWorkflows: false

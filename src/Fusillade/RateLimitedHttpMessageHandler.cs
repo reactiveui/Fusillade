@@ -168,7 +168,11 @@ namespace Fusillade
                         if (cacheResult != null && resp.Content != null)
                         {
                             var ms = new MemoryStream();
+#if NET5_0_OR_GREATER
+                            var stream = await resp.Content.ReadAsStreamAsync(realToken.Token).ConfigureAwait(false);
+#else
                             var stream = await resp.Content.ReadAsStreamAsync().ConfigureAwait(false);
+#endif
                             await stream.CopyToAsync(ms, 32 * 1024, realToken.Token).ConfigureAwait(false);
 
                             realToken.Token.ThrowIfCancellationRequested();
@@ -176,13 +180,13 @@ namespace Fusillade
                             var newResp = new HttpResponseMessage();
                             foreach (var kvp in resp.Headers)
                             {
-                                newResp.Headers.Add(kvp.Key, kvp.Value);
+                                newResp.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value);
                             }
 
                             var newContent = new ByteArrayContent(ms.ToArray());
                             foreach (var kvp in resp.Content.Headers)
                             {
-                                newContent.Headers.Add(kvp.Key, kvp.Value);
+                                newContent.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value);
                             }
 
                             newResp.Content = newContent;

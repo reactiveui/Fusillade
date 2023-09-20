@@ -43,14 +43,14 @@ namespace Fusillade.Tests.Http
 
             var contentResponses = new List<byte[]>();
 
-#if NET462
-            var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: async (rq, re, key, ct) => contentResponses.Add(await re.Content.ReadAsByteArrayAsync().ConfigureAwait(false)));
+#if NET472
+            var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: async (rq, re, key, ct) => contentResponses.Add(await re.Content.ReadAsByteArrayAsync()));
 #else
-            var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: async (rq, re, key, ct) => contentResponses.Add(await re.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false)));
+            var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: async (rq, re, key, ct) => contentResponses.Add(await re.Content.ReadAsByteArrayAsync(ct)));
 #endif
 
             var client = new HttpClient(fixture);
-            var str = await client.GetStringAsync(new Uri("http://lol/bar")).ConfigureAwait(false);
+            var str = await client.GetStringAsync(new Uri("http://lol/bar"));
 
             Assert.Equal("foo", str);
             Assert.Equal(1, contentResponses.Count);
@@ -72,7 +72,7 @@ namespace Fusillade.Tests.Http
                     StatusCode = HttpStatusCode.OK,
                 };
 
-                ret.Headers.ETag = new EntityTagHeaderValue("\"worifjw\"");
+                ret.Headers.ETag = new("\"worifjw\"");
                 return Observable.Return(ret);
             });
 
@@ -84,7 +84,7 @@ namespace Fusillade.Tests.Http
             });
 
             var client = new HttpClient(fixture);
-            var resp = await client.GetAsync(new Uri("http://lol/bar")).ConfigureAwait(false);
+            var resp = await client.GetAsync(new Uri("http://lol/bar"));
             Assert.Equal("\"worifjw\"", etagResponses[0]);
         }
 
@@ -99,12 +99,16 @@ namespace Fusillade.Tests.Http
 
             var cachingHandler = new RateLimitedHttpMessageHandler(new HttpClientHandler(), Priority.UserInitiated, cacheResultFunc: async (rq, resp, key, ct) =>
             {
-                var data = await resp.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+#if NET472
+                var data = await resp.Content.ReadAsByteArrayAsync();
+#else
+                var data = await resp.Content.ReadAsByteArrayAsync(ct);
+#endif
                 await cache.Insert(key, data);
             });
 
             var client = new HttpClient(cachingHandler);
-            var origData = await client.GetStringAsync(new Uri("http://httpbin.org/get")).ConfigureAwait(false);
+            var origData = await client.GetStringAsync(new Uri("http://httpbin.org/get"));
 
             Assert.True(origData.Contains("origin"));
             Assert.Equal(1, (await cache.GetAllKeys()).Count());
@@ -112,14 +116,14 @@ namespace Fusillade.Tests.Http
             var offlineHandler = new OfflineHttpMessageHandler(async (rq, key, ct) => await cache.Get(key));
 
             client = new HttpClient(offlineHandler);
-            var newData = await client.GetStringAsync(new Uri("http://httpbin.org/get")).ConfigureAwait(false);
+            var newData = await client.GetStringAsync(new Uri("http://httpbin.org/get"));
 
             Assert.Equal(origData, newData);
 
             bool shouldDie = true;
             try
             {
-                await client.GetStringAsync(new Uri("http://httpbin.org/gzip")).ConfigureAwait(false);
+                await client.GetStringAsync(new Uri("http://httpbin.org/gzip"));
             }
             catch (Exception ex)
             {
@@ -165,8 +169,8 @@ namespace Fusillade.Tests.Http
             });
 
             var client = new HttpClient(fixture);
-            var request = new HttpRequestMessage(new HttpMethod(method), "http://lol/bar");
-            await client.SendAsync(request).ConfigureAwait(false);
+            var request = new HttpRequestMessage(new(method), "http://lol/bar");
+            await client.SendAsync(request);
 
             Assert.Equal(shouldCache, cached);
         }

@@ -17,7 +17,7 @@ namespace Fusillade.Tests
     /// </summary>
     public class TestHttpMessageHandler : HttpMessageHandler
     {
-        private Func<HttpRequestMessage, IObservable<HttpResponseMessage>> _block;
+        private readonly Func<HttpRequestMessage, IObservable<HttpResponseMessage>> _block;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TestHttpMessageHandler"/> class.

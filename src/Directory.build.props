@@ -10,6 +10,8 @@
 		<DebugType>Embedded</DebugType>
 		<Authors>.NET Foundation and Contributors</Authors>
 		<Copyright>Copyright (c) .NET Foundation and Contributors</Copyright>
+		<PackageIcon>main.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<!-- Optional: Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -27,8 +29,23 @@
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(IsTestProject)' == 'true'">
+		<PackageReference Include="ReactiveUI.Testing" Version="19.*" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2" />
+		<PackageReference Include="xunit" Version="2.5.1" />
+		<PackageReference Include="xunit.runner.console" Version="2.5.1" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="2.5.1" />
+		<PackageReference Include="Xunit.StaFact" Version="1.1.11" />
+		<PackageReference Include="Verify.Xunit" Version="21.1.4" />
+		<PackageReference Include="FluentAssertions" Version="6.12.0" />
+		<PackageReference Include="PublicApiGenerator" Version="11.0.0" />
+		<PackageReference Include="coverlet.msbuild" Version="6.0.0" PrivateAssets="All" />
+    </ItemGroup>
+
 	<ItemGroup>
+		<None Include="$(MSBuildThisFileDirectory)..\images\main.png" Pack="true" PackagePath="\"/>
 		<None Include="$(MSBuildThisFileDirectory)..\LICENSE" Pack="true" PackagePath="LICENSE" />
+		<None Include="$(MSBuildThisFileDirectory)..\README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 	<ItemGroup>

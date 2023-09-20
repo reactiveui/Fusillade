@@ -8,8 +8,8 @@ namespace Fusillade
     }
     public abstract class LimitingHttpMessageHandler : System.Net.Http.DelegatingHandler
     {
-        public LimitingHttpMessageHandler() { }
-        public LimitingHttpMessageHandler(System.Net.Http.HttpMessageHandler innerHandler) { }
+        protected LimitingHttpMessageHandler() { }
+        protected LimitingHttpMessageHandler(System.Net.Http.HttpMessageHandler innerHandler) { }
         public abstract void ResetLimit(long? maxBytesToRead = default);
     }
     public static class NetCache
@@ -28,10 +28,10 @@ namespace Fusillade
     }
     public enum Priority
     {
-        Speculative = 10,
-        UserInitiated = 100,
-        Background = 20,
         Explicit = 0,
+        Speculative = 10,
+        Background = 20,
+        UserInitiated = 100,
     }
     public class RateLimitedHttpMessageHandler : Fusillade.LimitingHttpMessageHandler
     {

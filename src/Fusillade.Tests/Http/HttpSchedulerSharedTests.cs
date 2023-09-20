@@ -59,7 +59,7 @@ namespace Fusillade.Tests
             var result = await client.SendAsync(rq).ToObservable()
                 .Timeout(TimeSpan.FromSeconds(2.0), RxApp.TaskpoolScheduler);
 
-            var bytes = await result.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+            var bytes = await result.Content.ReadAsByteArrayAsync();
 
             Console.WriteLine(Encoding.UTF8.GetString(bytes));
             Assert.Equal(HttpStatusCode.OK, result.StatusCode);
@@ -163,17 +163,17 @@ namespace Fusillade.Tests
 
             // Under the limit => succeed
             var rq = new HttpRequestMessage(HttpMethod.Get, "/");
-            var resp = await client.SendAsync(rq).ConfigureAwait(false);
+            var resp = await client.SendAsync(rq);
             Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
 
             // Crossing the limit => succeed
             rq = new HttpRequestMessage(HttpMethod.Get, "/");
-            resp = await client.SendAsync(rq).ConfigureAwait(false);
+            resp = await client.SendAsync(rq);
             Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
 
             // Over the limit => cancelled
             rq = new HttpRequestMessage(HttpMethod.Get, "/");
-            await Assert.ThrowsAsync<TaskCanceledException>(() => client.SendAsync(rq)).ConfigureAwait(false);
+            await Assert.ThrowsAsync<TaskCanceledException>(() => client.SendAsync(rq));
         }
 
         /// <summary>
@@ -217,8 +217,8 @@ namespace Fusillade.Tests
             gate.OnNext(Unit.Default);
             gate.OnNext(Unit.Default);
 
-            var resp1 = await resp1Task.ConfigureAwait(false);
-            var resp2 = await resp2Task.ConfigureAwait(false);
+            var resp1 = await resp1Task;
+            var resp2 = await resp2Task;
 
             Assert.Equal(HttpStatusCode.OK, resp1.StatusCode);
             Assert.Equal(HttpStatusCode.OK, resp2.StatusCode);
@@ -279,8 +279,8 @@ namespace Fusillade.Tests
             gate.OnNext(Unit.Default);
             gate.OnNext(Unit.Default);
 
-            await Assert.ThrowsAsync<TaskCanceledException>(() => resp1Task).ConfigureAwait(false);
-            var resp2 = await resp2Task.ConfigureAwait(false);
+            await Assert.ThrowsAsync<TaskCanceledException>(() => resp1Task);
+            var resp2 = await resp2Task;
 
             Assert.Equal(HttpStatusCode.OK, resp2.StatusCode);
             Assert.Equal(1, messageCount);
@@ -327,8 +327,8 @@ namespace Fusillade.Tests
             gate.OnNext(Unit.Default);
             gate.OnNext(Unit.Default);
 
-            var resp1 = await resp1Task.ConfigureAwait(false);
-            var resp2 = await resp2Task.ConfigureAwait(false);
+            var resp1 = await resp1Task;
+            var resp2 = await resp2Task;
 
             Assert.Equal(HttpStatusCode.OK, resp1.StatusCode);
             Assert.Equal(HttpStatusCode.OK, resp2.StatusCode);
@@ -354,7 +354,7 @@ namespace Fusillade.Tests
                     StatusCode = HttpStatusCode.OK,
                 };
 
-                ret.Headers.ETag = new EntityTagHeaderValue("\"worifjw\"");
+                ret.Headers.ETag = new("\"worifjw\"");
                 messageCount++;
 
                 return gate.Take(1)
@@ -395,8 +395,8 @@ namespace Fusillade.Tests
             gate.OnNext(Unit.Default);
             gate.OnNext(Unit.Default);
 
-            await Assert.ThrowsAsync<TaskCanceledException>(() => resp1Task).ConfigureAwait(false);
-            await Assert.ThrowsAsync<TaskCanceledException>(() => resp2Task).ConfigureAwait(false);
+            await Assert.ThrowsAsync<TaskCanceledException>(() => resp1Task);
+            await Assert.ThrowsAsync<TaskCanceledException>(() => resp2Task);
 
             Assert.Equal(1, messageCount);
             Assert.Equal(0, finalMessageCount);
@@ -420,8 +420,8 @@ namespace Fusillade.Tests
             });
 
             var client = new HttpClient(fixture);
-            var result = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, new Uri(input))).ConfigureAwait(false);
-            var bytes = await result.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+            var result = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, new Uri(input)));
+            var bytes = await result.Content.ReadAsByteArrayAsync();
 
             Assert.True(result.IsSuccessStatusCode);
             Assert.Equal(8089690, bytes.Length);

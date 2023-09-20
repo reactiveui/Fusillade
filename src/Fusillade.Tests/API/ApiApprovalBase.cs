@@ -26,14 +26,14 @@ namespace Fusillade.APITests
         /// <param name="assembly">The assembly.</param>
         /// <param name="filePath">The file path.</param>
         /// <returns>A <see cref="Task"/> representing the result of the asynchronous operation.</returns>
-        protected static Task CheckApproval(Assembly assembly, [CallerFilePath] string? filePath = null)
+        protected static Task CheckApproval(Assembly assembly, [CallerFilePath] string filePath = null)
         {
             if (filePath is null)
             {
                 return Task.CompletedTask;
             }
 
-            var generatorOptions = new ApiGeneratorOptions { WhitelistedNamespacePrefixes = new[] { "Fusillade" } };
+            var generatorOptions = new ApiGeneratorOptions { AllowNamespacePrefixes = new[] { "Fusillade" } };
             var apiText = assembly.GeneratePublicApi(generatorOptions);
             return Verifier.Verify(apiText, null, filePath)
                 .UniqueForRuntimeAndVersion()

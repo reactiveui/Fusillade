@@ -23,6 +23,7 @@
 		<PackageIconUrl>https://raw.githubusercontent.com/reactiveui/styleguide/master/logo_fusillade/main.png?raw=true</PackageIconUrl>
 		<EnableNETAnalyzers>True</EnableNETAnalyzers>
 		<AnalysisLevel>latest</AnalysisLevel>
+		<LangVersion>preview</LangVersion>
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(IsTestProject)' != 'true'">

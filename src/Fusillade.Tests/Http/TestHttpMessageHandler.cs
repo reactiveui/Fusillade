@@ -15,19 +15,12 @@ namespace Fusillade.Tests
     /// <summary>
     /// Tests the main http scheduler.
     /// </summary>
-    public class TestHttpMessageHandler : HttpMessageHandler
+    /// <remarks>
+    /// Initializes a new instance of the <see cref="TestHttpMessageHandler"/> class.
+    /// </remarks>
+    /// <param name="createResult">Creates a http response.</param>
+    public class TestHttpMessageHandler(Func<HttpRequestMessage, IObservable<HttpResponseMessage>> createResult) : HttpMessageHandler
     {
-        private readonly Func<HttpRequestMessage, IObservable<HttpResponseMessage>> _block;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TestHttpMessageHandler"/> class.
-        /// </summary>
-        /// <param name="createResult">Creates a http response.</param>
-        public TestHttpMessageHandler(Func<HttpRequestMessage, IObservable<HttpResponseMessage>> createResult)
-        {
-            _block = createResult;
-        }
-
         /// <inheritdoc/>
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -36,7 +29,7 @@ namespace Fusillade.Tests
                 return Observable.Throw<HttpResponseMessage>(new OperationCanceledException()).ToTask();
             }
 
-            return _block(request).ToTask(cancellationToken);
+            return createResult(request).ToTask(cancellationToken);
         }
     }
 }

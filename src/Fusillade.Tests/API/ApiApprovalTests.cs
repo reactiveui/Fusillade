@@ -4,6 +4,7 @@
 // See the LICENSE file in the project root for full license information.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;
 
@@ -14,15 +15,13 @@ namespace Fusillade.APITests
     /// </summary>
     [ExcludeFromCodeCoverage]
     [UsesVerify]
-    public class ApiApprovalTests : ApiApprovalBase
+    public class ApiApprovalTests
     {
         /// <summary>
         /// Tests to make sure the akavache project is approved.
         /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
         [Fact]
-        public void FusilladeTests()
-        {
-            CheckApproval(typeof(OfflineHttpMessageHandler).Assembly);
-        }
+        public Task FusilladeTests() => typeof(OfflineHttpMessageHandler).Assembly.CheckApproval(["Fusillade"]);
     }
 }

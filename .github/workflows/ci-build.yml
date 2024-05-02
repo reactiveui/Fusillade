@@ -15,6 +15,7 @@ jobs:
     with:
       configuration: Release
       productNamespacePrefix: "Fusilade"
-      useVisualStudioPreview: true
+      useVisualStudioPreview: false
+      dotNetBuild: true
       useMauiCheckDotNetTool: false
       installWorkflows: false

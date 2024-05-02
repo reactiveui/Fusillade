@@ -9,10 +9,5 @@
 	<ItemGroup>
 		<PackageReference Include="punchclock" Version="3.*" />
 		<PackageReference Include="Splat" Version="14.*" />
-		<PackageReference Include="System.Reactive" Version="6.0.0" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-		<PackageReference Include="System.Net.Http" Version="4.3.4" />
 	</ItemGroup>
 </Project>

@@ -8,6 +8,6 @@
 
 	<ItemGroup>
 		<PackageReference Include="punchclock" Version="3.*" />
-		<PackageReference Include="Splat" Version="14.*" />
+		<PackageReference Include="Splat" Version="15.*" />
 	</ItemGroup>
 </Project>

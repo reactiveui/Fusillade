@@ -5,7 +5,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
-using VerifyXunit;
 using Xunit;
 
 namespace Fusillade.APITests
@@ -14,7 +13,6 @@ namespace Fusillade.APITests
     /// Tests for handling API approval.
     /// </summary>
     [ExcludeFromCodeCoverage]
-    [UsesVerify]
     public class ApiApprovalTests
     {
         /// <summary>

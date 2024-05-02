@@ -10,7 +10,8 @@ jobs:
     with:
       configuration: Release
       productNamespacePrefix: "Fusillade"
-      useVisualStudioPreview: true
+      useVisualStudioPreview: false
+      dotNetBuild: true
       useMauiCheckDotNetTool: false
     secrets:
       SIGN_CLIENT_USER_ID: ${{ secrets.SIGN_CLIENT_USER_ID }}

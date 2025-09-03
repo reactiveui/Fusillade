@@ -4,20 +4,18 @@
 // See the LICENSE file in the project root for full license information.
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reactive;
-using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Reactive.Threading.Tasks;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using DynamicData;
 using Microsoft.Reactive.Testing;
 using ReactiveUI;
 using ReactiveUI.Testing;
@@ -61,7 +59,6 @@ namespace Fusillade.Tests
 
             var bytes = await result.Content.ReadAsByteArrayAsync();
 
-            Console.WriteLine(Encoding.UTF8.GetString(bytes));
             Assert.Equal(HttpStatusCode.OK, result.StatusCode);
             Assert.Equal(3 /*foo*/, bytes.Length);
         }
@@ -69,18 +66,27 @@ namespace Fusillade.Tests
         /// <summary>
         /// Checks to make sure that the http scheduler doesn't do too much scheduling all at once.
         /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
         [Fact]
-        public void HttpSchedulerShouldntScheduleLotsOfStuffAtOnce()
+        public async Task HttpSchedulerShouldntScheduleLotsOfStuffAtOnce()
         {
-            var blockedRqs = new Dictionary<HttpRequestMessage, Subject<Unit>>();
-            var scheduledCount = default(int);
-            var completedCount = default(int);
+            var blockedRqs = new ConcurrentDictionary<HttpRequestMessage, Subject<Unit>>();
+            var scheduledCount = 0;
+            var completedCount = 0;
 
-            new TestScheduler().WithAsync(_ =>
+            var scheduled5Tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var completed5Tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            await new TestScheduler().WithAsync(async _ =>
             {
                 var fixture = CreateFixture(new TestHttpMessageHandler(rq =>
                 {
-                    scheduledCount++;
+                    var current = Interlocked.Increment(ref scheduledCount);
+                    if (current == 5)
+                    {
+                        scheduled5Tcs.TrySetResult();
+                    }
+
                     var ret = new HttpResponseMessage()
                     {
                         Content = new StringContent("foo", Encoding.UTF8),
@@ -89,8 +95,19 @@ namespace Fusillade.Tests
 
                     ret.Headers.ETag = new EntityTagHeaderValue("\"worifjw\"");
 
-                    blockedRqs[rq] = new Subject<Unit>();
-                    return blockedRqs[rq].Select(_ => ret).Finally(() => completedCount++);
+                    var subj = new Subject<Unit>();
+                    blockedRqs[rq] = subj;
+
+                    return subj
+                        .Select(_ => ret)
+                        .Finally(() =>
+                        {
+                            var c = Interlocked.Increment(ref completedCount);
+                            if (c == 5)
+                            {
+                                completed5Tcs.TrySetResult();
+                            }
+                        });
                 }));
 
                 var client = new HttpClient(fixture)
@@ -104,29 +121,40 @@ namespace Fusillade.Tests
                         .Select(x => new HttpRequestMessage(HttpMethod.Get, "/" + x))
                         .ToArray();
 
-                rqs.ToObservable()
-                    .Select(rq => client.SendAsync(rq))
-                    .Merge()
-                    .ToObservableChangeSet()
-                    .ObserveOn(ImmediateScheduler.Instance)
-                    .Bind(out var results)
-                    .Subscribe();
+                using var subscription =
+                    rqs.ToObservable()
+                       .Select(rq => client.SendAsync(rq))
+                       .Merge()
+                       .Subscribe();
 
+                // Wait until the first 4 are scheduled (OperationQueue(4) concurrency).
+                Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref scheduledCount) == 4 && blockedRqs.Count == 4, TimeSpan.FromSeconds(2)));
                 Assert.Equal(4, scheduledCount);
                 Assert.Equal(0, completedCount);
 
+                // Complete one request to free a slot and allow the 5th to be scheduled.
                 var firstSubj = blockedRqs.First().Value;
                 firstSubj.OnNext(Unit.Default);
                 firstSubj.OnCompleted();
 
+                // Wait for the 5th to be scheduled deterministically.
+                await scheduled5Tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+                // Ensure the completedCount advanced for the one we just finished.
+                Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref completedCount) >= 1, TimeSpan.FromSeconds(2)));
                 Assert.Equal(5, scheduledCount);
                 Assert.Equal(1, completedCount);
 
-                foreach (var v in blockedRqs.Values)
+                // Complete all remaining requests (snapshot to avoid concurrent mutation during enumeration).
+                var subjects = blockedRqs.Values.ToArray();
+                foreach (var v in subjects)
                 {
                     v.OnNext(Unit.Default);
                     v.OnCompleted();
                 }
+
+                // Wait until all completed.
+                await completed5Tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
                 Assert.Equal(5, scheduledCount);
                 Assert.Equal(5, completedCount);
@@ -410,8 +438,6 @@ namespace Fusillade.Tests
         [Trait("Slow", "Very Yes")]
         public async Task DownloadARelease()
         {
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-
             const string input = "https://github.com/akavache/Akavache/releases/download/3.2.0/Akavache.3.2.0.zip";
             var fixture = CreateFixture(new HttpClientHandler()
             {

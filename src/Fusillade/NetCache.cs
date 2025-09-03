@@ -1,10 +1,9 @@
-// Copyright (c) 2023 .NET Foundation and Contributors. All rights reserved.
+// Copyright (c) 2025 .NET Foundation and Contributors. All rights reserved.
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Net.Http;
 using Punchclock;
 using Splat;
@@ -34,13 +33,14 @@ public static class NetCache
     private static IRequestCache? requestCache;
     [ThreadStatic]
     private static IRequestCache? unitTestRequestCache;
+    private static IReadonlyDependencyResolver? Current;
 
     /// <summary>
     /// Initializes static members of the <see cref="NetCache"/> class.
     /// </summary>
     static NetCache()
     {
-        var innerHandler = Locator.Current.GetService<HttpMessageHandler>() ?? new HttpClientHandler();
+        var innerHandler = GetCurrent().GetService<HttpMessageHandler>() ?? new HttpClientHandler();
 
         // NB: In vNext this value will be adjusted based on the user's
         // network connection, but that requires us to go fully platformy
@@ -59,7 +59,7 @@ public static class NetCache
     /// </summary>
     public static LimitingHttpMessageHandler Speculative
     {
-        get => unitTestSpeculative ?? Locator.Current.GetService<LimitingHttpMessageHandler>("Speculative") ?? speculative;
+        get => unitTestSpeculative ?? GetCurrent().GetService<LimitingHttpMessageHandler>("Speculative") ?? speculative;
         set
         {
             if (ModeDetector.InUnitTestRunner())
@@ -80,7 +80,7 @@ public static class NetCache
     /// </summary>
     public static HttpMessageHandler UserInitiated
     {
-        get => unitTestUserInitiated ?? Locator.Current.GetService<HttpMessageHandler>("UserInitiated") ?? userInitiated;
+        get => unitTestUserInitiated ?? GetCurrent().GetService<HttpMessageHandler>("UserInitiated") ?? userInitiated;
         set
         {
             if (ModeDetector.InUnitTestRunner())
@@ -101,7 +101,7 @@ public static class NetCache
     /// </summary>
     public static HttpMessageHandler Background
     {
-        get => unitTestBackground ?? Locator.Current.GetService<HttpMessageHandler>("Background") ?? background;
+        get => unitTestBackground ?? GetCurrent().GetService<HttpMessageHandler>("Background") ?? background;
         set
         {
             if (ModeDetector.InUnitTestRunner())
@@ -122,7 +122,7 @@ public static class NetCache
     /// </summary>
     public static HttpMessageHandler Offline
     {
-        get => unitTestOffline ?? Locator.Current.GetService<HttpMessageHandler>("Offline") ?? offline;
+        get => unitTestOffline ?? GetCurrent().GetService<HttpMessageHandler>("Offline") ?? offline;
         set
         {
             if (ModeDetector.InUnitTestRunner())
@@ -144,7 +144,7 @@ public static class NetCache
     /// </summary>
     public static OperationQueue OperationQueue
     {
-        get => unitTestOperationQueue ?? Locator.Current.GetService<OperationQueue>("OperationQueue") ?? operationQueue;
+        get => unitTestOperationQueue ?? GetCurrent().GetService<OperationQueue>("OperationQueue") ?? operationQueue;
         set
         {
             if (ModeDetector.InUnitTestRunner())
@@ -178,5 +178,16 @@ public static class NetCache
                 requestCache = value;
             }
         }
+    }
+
+    internal static void CreateDefaultInstances(IReadonlyDependencyResolver? current)
+    {
+        // This method is just here to force the static constructor to run
+        Current = current;
+    }
+
+    private static IReadonlyDependencyResolver GetCurrent()
+    {
+        return Current ??= Locator.Current;
     }
 }

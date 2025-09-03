@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.0;net6.0;net8.0</TargetFrameworks>
+		<TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
 		<PackageId>fusillade</PackageId>
 		<Nullable>enable</Nullable>
 		<WarningsAsErrors>CS8625;CS8604;CS8600;CS8614;CS8603;CS8618;CS8619</WarningsAsErrors>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="punchclock" Version="3.*" />
-		<PackageReference Include="Splat" Version="15.*" />
+		<PackageReference Include="punchclock" Version="4.0.2" />
+		<PackageReference Include="Splat" Version="16.1.1" />
 	</ItemGroup>
 </Project>

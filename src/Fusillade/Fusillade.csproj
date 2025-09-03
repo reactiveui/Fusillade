@@ -7,7 +7,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="punchclock" Version="3.4.143" />
+		<PackageReference Include="punchclock" Version="4.0.2" />
 		<PackageReference Include="Splat" Version="16.1.1" />
 	</ItemGroup>
 </Project>

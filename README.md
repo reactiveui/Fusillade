@@ -1,200 +1,279 @@
-
-[![NuGet Stats](https://img.shields.io/nuget/v/fusillade.svg)](https://www.nuget.org/packages/fusillade) ![Build](https://github.com/reactiveui/Fusillade/workflows/Build/badge.svg) [![Code Coverage](https://codecov.io/gh/reactiveui/fusillade/branch/main/graph/badge.svg)](https://codecov.io/gh/reactiveui/akavache)
+[![NuGet Stats](https://img.shields.io/nuget/v/fusillade.svg)](https://www.nuget.org/packages/fusillade) ![Build](https://github.com/reactiveui/Fusillade/workflows/Build/badge.svg) [![Code Coverage](https://codecov.io/gh/reactiveui/fusillade/branch/main/graph/badge.svg)](https://codecov.io/gh/reactiveui/fusillade)
 
 <br />
 <a href="https://github.com/reactiveui/fusillade">
   <img width="120" heigth="120" src="https://raw.githubusercontent.com/reactiveui/styleguide/master/logo_fusillade/main.png">
 </a>
 
-## Fusillade: An opinionated HTTP library for Mobile Development
+## Fusillade: An opinionated HTTP library for .NET apps
 
-Fusillade helps you to write more efficient code in mobile and desktop
-applications written in C#. Its design goals and feature set are inspired by
-[Volley](http://arnab.ch/blog/2013/08/asynchronous-http-requests-in-android-using-volley/)
-as well as [Picasso](http://square.github.io/picasso/).
+Fusillade helps you write efficient, resilient networked apps by composing HttpMessageHandlers for HttpClient. It focuses on:
 
-### What even does this do for me?
+- Request de-duplication for relevant HTTP methods
+- Concurrency limiting via a priority-aware operation queue
+- Request prioritization for predictable UX
+- Speculative background fetching with byte-budget limits
+- Optional caching of responses and an offline replay handler
 
-Fusillade is a set of HttpMessageHandlers (i.e. "drivers" for HttpClient) that
-make your mobile applications more efficient and responsive:
+Design inspirations include Android's Volley and Picasso.
 
-* **Auto-deduplication of relevant requests** - if every instance of your TweetView
-  class requests the same avatar image, Fusillade will only do *one* request
-  and give the result to every instance. All `GET`, `HEAD`, and `OPTIONS` requests are deduplicated.
+Supported targets: library is built for .NET Standard 2.0 and is used from modern .NET (e.g., .NET 8/9), Xamarin/Mono, and .NET for iOS/Android/Mac Catalyst apps.
 
-* **Request Limiting** - Requests are always dispatched 4 at a time (the
-  Volley default) - issue lots of requests without overwhelming the network
-  connection.
 
-* **Request Prioritization** - background requests should run at a lower
-  priority than requests initiated by the user, but actually *implementing*
-  this is quite difficult. With a few changes to your app, you can hint to
-  Fusillade which requests should skip to the front of the queue.
+## Install
 
-* **Speculative requests** - On page load, many apps will try to speculatively
-  cache data (i.e. try to pre-download data that the user *might* click on).
-  Marking requests as speculative will allow requests until a certain data
-  limit is reached, then cancel future requests (i.e. "Keep downloading data
-  in the background until we've got 5MB of cached data")
+- Package Manager: Install-Package fusillade
+- .NET CLI: dotnet add package fusillade
 
-### How do I use it?
+Optional (examples below): Akavache for caching.
 
-The easiest way to interact with Fusillade is via a class called `NetCache`,
-which has a number of built-in scenarios:
+- .NET CLI: dotnet add package Akavache.SystemTextJson
 
-```cs
-public static class NetCache
-{
-    // Use to fetch data into a cache when a page loads. Expect that
-    // these requests will only get so far then give up and start failing
-    public static HttpMessageHandler Speculative { get; set; }
 
-    // Use for network requests that are running in the background
-    public static HttpMessageHandler Background { get; set; }
+## Quick start
 
-    // Use for network requests that are fetching data that the user is
-    // waiting on *right now*
-    public static HttpMessageHandler UserInitiated { get; set; }
-}
-```
+Create HttpClient instances by picking the right handler from NetCache:
 
-To use them, just create an `HttpClient` with the given handler:
+```csharp
+using Fusillade;
+using System.Net.Http;
 
-```cs
+// Highest priority: the user is waiting now
 var client = new HttpClient(NetCache.UserInitiated);
-var response = await client.GetAsync("http://httpbin.org/get");
-var str = await response.Content.ReadAsStringAsync();
-
-Console.WriteLine(str);
+var json = await client.GetStringAsync("https://httpbin.org/get");
 ```
 
-### Where does it work?
+Available built-ins:
 
-Everywhere! Fusillade is a Portable Library, it works on:
+- NetCache.UserInitiated: foreground work the user is waiting for
+- NetCache.Background: background work that should not block UI work
+- NetCache.Speculative: background prefetching with a byte budget
+- NetCache.Offline: fetch from cache only (no network)
 
-* Xamarin.Android
-* Xamarin.iOS
-* Xamarin.Mac
-* Windows Desktop apps
-* WinRT / Windows Phone 8.1 apps
-* Windows Phone 8
+By default, requests are processed four at a time via an operation queue.
 
-### More on speculative requests
 
-Generally, on a mobile app, you'll want to *reset* the Speculative limit every
-time the app resumes from standby. How you do this depends on the platform,
-but in that callback, you need to call:
+## Core ideas
 
-```cs
-NetCache.Speculative.ResetLimit(1048576 * 5/*MB*/);
+### 1) Request de-duplication
+
+Fusillade de-duplicates concurrent requests for the same resource when the method is GET, HEAD, or OPTIONS. If multiple callers request the same URL concurrently, only one on-the-wire request is made; the others join the same in-flight response.
+
+This happens transparently in RateLimitedHttpMessageHandler.
+
+### 2) Concurrency limiting and prioritization
+
+All work is scheduled through an OperationQueue (default parallelism is 4). Each handler has an effective priority:
+
+- Priority.UserInitiated (100)
+- Priority.Background (20)
+- Priority.Speculative (10)
+- Priority.Explicit (custom base with offset)
+
+Higher numbers run before lower ones. You can set a custom base (Explicit) and an offset to fit your scenario.
+
+```csharp
+using Fusillade;
+using Punchclock;
+using System.Net.Http;
+
+// Custom queue with 2 concurrent slots
+var queue = new OperationQueue(2);
+
+var handler = new RateLimitedHttpMessageHandler(
+    new HttpClientHandler(),
+    basePriority: Priority.Explicit,
+    priority: 500,           // higher runs earlier
+    opQueue: queue);
+
+var client = new HttpClient(handler);
 ```
 
-### Offline Support
+### 3) Speculative background fetching with byte budgets
 
-Fusillade can optionally cache responses that it sees, then play them back to
-you when your app is offline (or you just want to speed up your app by fetching
-cached data). Here's how to set it up:
+Use NetCache.Speculative for prefetching scenarios. Limit the total number of bytes fetched; once the limit is reached, further speculative requests are canceled.
 
-* Implement the IRequestCache interface:
+```csharp
+// Reset byte budget to 5 MB (e.g., on app resume)
+NetCache.Speculative.ResetLimit(5 * 1024 * 1024);
 
-```cs
+var prefetch = new HttpClient(NetCache.Speculative);
+_ = prefetch.GetStringAsync("https://example.com/expensive-data");
+```
+
+To stop speculative fetching immediately:
+
+```csharp
+NetCache.Speculative.ResetLimit(-1); // any further requests will be canceled
+```
+
+
+## Caching and offline
+
+Fusillade can optionally cache responses (body bytes + headers) and replay them when offline.
+
+There are two ways to wire caching:
+
+1) Provide a cacheResultFunc to RateLimitedHttpMessageHandler, which gets called with the response and a unique request key when a response is received.
+
+2) Set NetCache.RequestCache with an implementation of IRequestCache. Fusillade will invoke Save and Fetch automatically.
+
+### IRequestCache
+
+```csharp
 public interface IRequestCache
 {
-    /// <summary>
-    /// Implement this method by saving the Body of the response. The
-    /// response is already downloaded as a ByteArrayContent so you don't
-    /// have to worry about consuming the stream.
-    /// <param name="request">The originating request.</param>
-    /// <param name="response">The response whose body you should save.</param>
-    /// <param name="key">A unique key used to identify the request details.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>Completion.</returns>
     Task Save(HttpRequestMessage request, HttpResponseMessage response, string key, CancellationToken ct);
-
-    /// <summary>
-    /// Implement this by loading the Body of the given request / key.
-    /// </summary>
-    /// <param name="request">The originating request.</param>
-    /// <param name="key">A unique key used to identify the request details,
-    /// that was given in Save().</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>The Body of the given request, or null if the search
-    /// completed successfully but the response was not found.</returns>
     Task<byte[]> Fetch(HttpRequestMessage request, string key, CancellationToken ct);
 }
 ```
 
-* Set an instance to `NetCache.RequestCache`, and make some requests:
+- Save is called once the handler has fully buffered the body (as ByteArrayContent) and cloned headers.
+- Fetch should return the previously saved body bytes for the key (or null if not found).
 
-```cs
-NetCache.RequestCache = new MyCoolCache();
+Keys are generated by RateLimitedHttpMessageHandler.UniqueKeyForRequest(request). Treat the key as an implementation detail; persist what you receive and return it during Fetch.
 
-var client = new HttpClient(NetCache.UserInitiated);
-await client.GetStringAsync("https://httpbin.org/get");
-```
-
-* Now you can use `NetCache.Offline` to get data even when the Internet is disconnected:
-
-```cs
-// This will never actually make an HTTP request, it will either succeed via
-// reading from MyCoolCache, or return an HttpResponseMessage with a 503 Status code.
-var client = new HttpClient(NetCache.Offline);
-await client.GetStringAsync("https://httpbin.org/get");
-```
-
-### How do I use this with ModernHttpClient?
-
-Add this line to a **static constructor** of your app's startup class:
-
-```cs
-using Splat;
-
-Locator.CurrentMutable.RegisterConstant(new NativeMessageHandler(), typeof(HttpMessageHandler));
-```
-
-### What do the priorities mean?
-
-The precedence is UserInitiated > Background > Speculative
-Which means that anything set as UserInitiate has a higher priority than Background or Speculative. 
-
-Explicit is a special that allows to set an explicit value that can be higher, lower or in between any of the predefined cases. 
+### Simple Akavache-based cache
 
 ```csharp
-var lowerThanSpeculative = new RateLimitedHttpMessageHandler(
-                new HttpClientHandler(), 
-                Priority.Explicit, 
-                9);
+using Akavache;
+using Akavache.SystemTextJson;
+using Fusillade;
+using System.Net.Http;
 
-var moreThanSpeculativeButLessThanBAckground = new RateLimitedHttpMessageHandler(
-                new HttpClientHandler(), 
-                Priority.Explicit, 
-                15);
+// Initialize a simple in-memory Akavache cache
+var database = CacheDatabase.CreateBuilder().WithSerializerSystemTextJson().Build();
+var blobCache = new InMemoryBlobCache(database.Serializer);
 
-var doItBeforeEverythingElse = new RateLimitedHttpMessageHandler(
-                new HttpClientHandler(), 
-                Priority.Explicit, 
-                1000);
+// Option A: Provide a cacheResultFunc directly
+var cachingHandler = new RateLimitedHttpMessageHandler(
+    new HttpClientHandler(),
+    Priority.UserInitiated,
+    cacheResultFunc: async (rq, resp, key, ct) =>
+    {
+        var data = await resp.Content.ReadAsByteArrayAsync(ct);
+        await blobCache.Insert(key, data);
+    });
+
+var client = new HttpClient(cachingHandler);
+var fresh = await client.GetStringAsync("https://httpbin.org/get");
+
+// Option B: Implement IRequestCache and set NetCache.RequestCache
+NetCache.RequestCache = new MyRequestCache(blobCache);
 ```
 
-### Statics? That sucks! I like $OTHER_THING! Your priorities suck, I want to come up with my own scheme!
+```csharp
+// Example IRequestCache wrapper over Akavache
+class MyRequestCache : IRequestCache
+{
+    private readonly IBlobCache _cache;
+    public MyRequestCache(IBlobCache cache) => _cache = cache;
 
-`NetCache` is just a nice pre-canned default, the interesting code is in a
-class called `RateLimitedHttpMessageHandler`. You can create it explicitly and
-configure it as-needed.
+    public async Task Save(HttpRequestMessage request, HttpResponseMessage response, string key, CancellationToken ct)
+    {
+        var bytes = await response.Content.ReadAsByteArrayAsync(ct);
+        await _cache.Insert(key, bytes);
+    }
 
-### What's with the name?
+    public Task<byte[]> Fetch(HttpRequestMessage request, string key, CancellationToken ct)
+        => _cache.Get(key);
+}
+```
 
-The word 'Fusillade' is a synonym for Volley :)
+### Offline replay
+
+Use OfflineHttpMessageHandler to serve cached data only (no network). This handler asks IRequestCache (or your custom retrieveBodyFunc) for the cached body and returns:
+
+- 200 OK with the cached body, or
+- 503 Service Unavailable if not found
+
+```csharp
+// Use NetCache.Offline after setting NetCache.RequestCache
+var offline = new HttpClient(NetCache.Offline);
+var data = await offline.GetStringAsync("https://httpbin.org/get");
+
+// Or construct explicitly
+var offlineExplicit = new HttpClient(new OfflineHttpMessageHandler(
+    async (rq, key, ct) => await blobCache.Get(key)));
+```
+
+
+## Dependency injection and Splat integration
+
+If you use Splat, you can initialize NetCache to use your container’s services via the provided extension:
+
+```csharp
+using Splat.Builder;
+
+var app = AppBuilder.CreateSplatBuilder().Build();
+app.CreateFusilladeNetCache();
+```
+
+You can also register a platform-specific HttpMessageHandler (e.g., NSUrlSessionHandler on iOS, AndroidMessageHandler on Android) in your container beforehand; NetCache will pick it up as the inner HTTP handler.
+
+
+## Advanced configuration
+
+- Custom OperationQueue: override NetCache.OperationQueue with your own queue to control concurrency for the entire app.
+
+```csharp
+using Punchclock;
+NetCache.OperationQueue = new OperationQueue(maxConcurrency: 6);
+```
+
+- Custom priorities: compose RateLimitedHttpMessageHandler with Priority.Explicit and an offset to place certain pipelines ahead or behind the defaults.
+
+```csharp
+var urgent = new RateLimitedHttpMessageHandler(new HttpClientHandler(), Priority.Explicit, priority: 1_000);
+var slow   = new RateLimitedHttpMessageHandler(new HttpClientHandler(), Priority.Explicit, priority: -50);
+```
+
+- Deduplication scope: deduplication is per-HttpMessageHandler instance via an in-memory in-flight map. Multiple handlers mean multiple scopes.
+
+
+## Usage recipes
+
+- Image gallery / avatars
+  - Use RateLimitedHttpMessageHandler for GETs
+  - De-dup prevents duplicate downloads for the same URL
+  - Use Background for preloading next images; switch to UserInitiated for visible images
+
+- Boot-time warmup
+  - On app start/resume, set NetCache.Speculative.ResetLimit to a sensible budget
+  - Queue speculative GETs for likely-next screens to reduce perceived latency
+
+- Offline-first data views
+  - Populate cache during online sessions using cacheResultFunc or IRequestCache
+  - When network is unavailable, point HttpClient to NetCache.Offline
+
+
+## FAQ
+
+- How many requests run at once?
+  - Default is 4 (OperationQueue with concurrency 4). Override via NetCache.OperationQueue or pass a custom queue to a handler.
+
+- Which methods are de-duplicated?
+  - GET, HEAD, and OPTIONS.
+
+- How are cache keys generated?
+  - Via RateLimitedHttpMessageHandler.UniqueKeyForRequest(request). Treat this as an implementation detail; persist and reuse as given.
+
+- Can I cancel a request?
+  - Use CancellationToken in HttpClient APIs; dedup ensures the underlying request cancels only when all dependents cancel.
+
 
 ## Contribute
 
-Fusillade is developed under an OSI-approved open source license, making it freely usable and distributable, even for commercial use. Because of our Open Collective model for funding and transparency, we are able to funnel support and funds through to our contributors and community. We ❤ the people who are involved in this project, and we’d love to have you on board, especially if you are just getting started or have never contributed to open-source before.
+Fusillade is developed under an OSI-approved open source license, making it freely usable and distributable, even for commercial use. We ❤ our contributors and welcome new contributors of all experience levels.
 
-So here's to you, lovely person who wants to join us — this is how you can support us:
+- Answer questions on StackOverflow: https://stackoverflow.com/questions/tagged/fusillade
+- Share knowledge and mentor the next generation of developers
+- Donations: https://reactiveui.net/donate and Corporate Sponsorships: https://reactiveui.net/sponsorship
+- Ask your employer to support open-source: https://github.com/github/balanced-employee-ip-agreement
+- Improve documentation and examples
+- Contribute features and bugfixes via PRs
 
-* [Responding to questions on StackOverflow](https://stackoverflow.com/questions/tagged/fusillade)
-* [Passing on knowledge and teaching the next generation of developers](http://ericsink.com/entries/dont_use_rxui.html)
-* [Donations](https://reactiveui.net/donate) and [Corporate Sponsorships](https://reactiveui.net/sponsorship)
-* [Asking your employer to reciprocate and contribute to open-source](https://github.com/github/balanced-employee-ip-agreement)
-* Submitting documentation updates where you see fit or lacking.
-* Making contributions to the code base.
+
+## What’s with the name?
+
+“Fusillade” is a synonym for Volley 🙂

@@ -13,6 +13,7 @@ using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Akavache;
+using Akavache.SystemTextJson;
 using Xunit;
 
 namespace Fusillade.Tests.Http
@@ -95,7 +96,8 @@ namespace Fusillade.Tests.Http
         [Fact]
         public async Task RoundTripIntegrationTest()
         {
-            var cache = new InMemoryBlobCache();
+            var aka = CacheDatabase.CreateBuilder().WithSerializerSystemTextJson().Build();
+            var cache = new InMemoryBlobCache(aka.Serializer);
 
             var cachingHandler = new RateLimitedHttpMessageHandler(new HttpClientHandler(), Priority.UserInitiated, cacheResultFunc: async (rq, resp, key, ct) =>
             {
@@ -111,7 +113,11 @@ namespace Fusillade.Tests.Http
             var origData = await client.GetStringAsync(new Uri("http://httpbin.org/get"));
 
             Assert.True(origData.Contains("origin"));
-            Assert.Equal(1, (await cache.GetAllKeys()).Count());
+
+            // Some Akavache cache implementations expose a single key, not a collection.
+            var singleKey = await cache.GetAllKeys();
+            Assert.False(string.IsNullOrEmpty(singleKey));
+            Assert.StartsWith("HttpSchedulerCache_", singleKey, StringComparison.Ordinal);
 
             var offlineHandler = new OfflineHttpMessageHandler(async (rq, key, ct) => await cache.Get(key));
 

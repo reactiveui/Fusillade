@@ -31,12 +31,12 @@
 
 	<ItemGroup Condition="'$(IsTestProject)' == 'true'">
 		<PackageReference Include="ReactiveUI.Testing" Version="21.*" />
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
 		<PackageReference Include="xunit" Version="2.9.3" />
 		<PackageReference Include="xunit.runner.console" Version="2.9.3" />
 		<PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
 		<PackageReference Include="Xunit.StaFact" Version="1.2.69" />
-		<PackageReference Include="Verify.Xunit" Version="30.10.0" />
+		<PackageReference Include="Verify.Xunit" Version="31.0.1" />
 		<PackageReference Include="FluentAssertions" Version="8.7.0" />
 		<PackageReference Include="PublicApiGenerator" Version="11.4.6" />
 		<PackageReference Include="coverlet.msbuild" Version="6.0.4" PrivateAssets="All" />

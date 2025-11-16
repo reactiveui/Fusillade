@@ -4,13 +4,27 @@
 		<NoWarn>$(NoWarn);1591;CA1707;SA1633</NoWarn>
 		<IsPackable>false</IsPackable>
 		<NoWarn>$(NoWarn);CA2000;CA1031;CA1307;CA1305</NoWarn>
+		<LangVersion>preview</LangVersion>
+		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Fusillade\Fusillade.csproj" />
+		<ProjectReference Include="../Fusillade/Fusillade.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Akavache.SystemTextJson" Version="11.1.1" />		
+		<PackageReference Include="Akavache.SystemTextJson" />
+		<PackageReference Include="System.Reactive" />
+		<PackageReference Include="Microsoft.Reactive.Testing" />
+		<PackageReference Include="ReactiveUI" />
+		<PackageReference Include="ReactiveUI.Testing" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="NUnit" />
+		<PackageReference Include="NUnit3TestAdapter" />
+		<PackageReference Include="NUnit.Analyzers" PrivateAssets="All" />
+		<PackageReference Include="Verify.NUnit" />
+		<PackageReference Include="PublicApiGenerator" />
+		<PackageReference Include="FluentAssertions" />
+		<PackageReference Include="coverlet.msbuild" PrivateAssets="All" />
 	</ItemGroup>
 </Project>

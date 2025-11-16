@@ -17,6 +17,5 @@ jobs:
     with:
       configuration: Release
       productNamespacePrefix: "Fusilade"
-      installWorkflows: false
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

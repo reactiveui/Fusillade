@@ -2,7 +2,7 @@
 	<PropertyGroup>
 		<TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
 		<PackageId>fusillade</PackageId>
-		<Nullable>enable</Nullable>
+		<Nullable>Enable</Nullable>
 		<WarningsAsErrors>CS8625;CS8604;CS8600;CS8614;CS8603;CS8618;CS8619</WarningsAsErrors>
 	</PropertyGroup>
 

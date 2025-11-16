@@ -11,7 +11,8 @@
     <PackageVersion Include="ReactiveUI.Testing" Version="22.2.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="NUnit" Version="4.4.0" />
-    <PackageVersion Include="NUnit3TestAdapter" Version="4.5.0" />
+	<PackageVersion Include="NUnit3TestAdapter" Version="5.2.0" />
+	<PackageVersion Include="NUnit.Analyzers" Version="4.10.0" />
     <PackageVersion Include="Verify.NUnit" Version="30.10.0" />
     <PackageVersion Include="FluentAssertions" Version="8.8.0" />
     <PackageVersion Include="PublicApiGenerator" Version="11.4.6" />

@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
 	<PropertyGroup>
-		<Copyright>Copyright (c) .NET Foundation and Contributors</Copyright>
-		<Authors>.NET Foundation and Contributors</Authors>
+		<Copyright>Copyright (c) ReactiveUI and Contributors</Copyright>
+		<Authors>ReactiveUI and Contributors</Authors>
+		<PackageProjectUrl>https://github.com/reactiveui/fusillade/</PackageProjectUrl>
+		<PackageReleaseNotes>https://github.com/reactiveui/fusillade/releases</PackageReleaseNotes>
+		<RepositoryUrl>https://github.com/reactiveui/fusillade</RepositoryUrl>
+		
 		<NoWarn>$(NoWarn);VSX1000</NoWarn>
 		<Platform>AnyCPU</Platform>
 		<IsTestProject>$(MSBuildProjectName.Contains('Tests'))</IsTestProject>
@@ -23,18 +27,6 @@
 	<ItemGroup Condition="'$(IsTestProject)' != 'true'">
 		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
 	</ItemGroup>
-
-	<ItemGroup Condition="'$(IsTestProject)' == 'true'">
-		<PackageReference Include="ReactiveUI.Testing" />
-		<PackageReference Include="Microsoft.NET.Test.Sdk" />
-		<PackageReference Include="NUnit" />
-		<PackageReference Include="NUnit3TestAdapter" />
-		<PackageReference Include="NUnit.Analyzers" />
-		<PackageReference Include="Verify.NUnit" />
-		<PackageReference Include="FluentAssertions" />
-		<PackageReference Include="PublicApiGenerator" />
-		<PackageReference Include="coverlet.msbuild" PrivateAssets="All" />
-    </ItemGroup>
 
 	<ItemGroup>
 		<None Include="$(MSBuildThisFileDirectory)../images/main.png" Pack="true" PackagePath="/"/>

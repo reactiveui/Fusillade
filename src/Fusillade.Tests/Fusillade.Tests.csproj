@@ -14,5 +14,16 @@
 
 	<ItemGroup>
 		<PackageReference Include="Akavache.SystemTextJson" />
+		<PackageReference Include="System.Reactive" />
+		<PackageReference Include="Microsoft.Reactive.Testing" />
+		<PackageReference Include="ReactiveUI" />
+		<PackageReference Include="ReactiveUI.Testing" />
+		<PackageReference Include="NUnit" />
+		<PackageReference Include="NUnit3TestAdapter" />
+		<PackageReference Include="NUnit.Analyzers" PrivateAssets="All" />
+		<PackageReference Include="Verify.NUnit" />
+		<PackageReference Include="PublicApiGenerator" />
+		<PackageReference Include="FluentAssertions" />
+		<PackageReference Include="coverlet.msbuild" PrivateAssets="All" />
 	</ItemGroup>
 </Project>

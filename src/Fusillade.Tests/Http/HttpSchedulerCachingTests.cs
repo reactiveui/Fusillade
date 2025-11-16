@@ -14,20 +14,21 @@ using System.Text;
 using System.Threading.Tasks;
 using Akavache;
 using Akavache.SystemTextJson;
-using Xunit;
+using NUnit.Framework; // switched from xunit
 
 namespace Fusillade.Tests.Http
 {
     /// <summary>
     /// Checks to make sure that the http scheduler caches correctly.
     /// </summary>
+    [TestFixture]
     public class HttpSchedulerCachingTests
     {
         /// <summary>
         /// Checks to make sure that the caching functiosn are only called with content.
         /// </summary>
         /// <returns>A task to monitor the progress.</returns>
-        [Fact]
+        [Test]
         public async Task CachingFunctionShouldBeCalledWithContent()
         {
             var innerHandler = new TestHttpMessageHandler(_ =>
@@ -53,16 +54,16 @@ namespace Fusillade.Tests.Http
             var client = new HttpClient(fixture);
             var str = await client.GetStringAsync(new Uri("http://lol/bar"));
 
-            Assert.Equal("foo", str);
-            Assert.Equal(1, contentResponses.Count);
-            Assert.Equal(3, contentResponses[0].Length);
+            Assert.That(str, Is.EqualTo("foo"));
+            Assert.That(contentResponses.Count, Is.EqualTo(1));
+            Assert.That(contentResponses[0].Length, Is.EqualTo(3));
         }
 
         /// <summary>
         /// Checks to make sure that the cache preserves the http headers.
         /// </summary>
         /// <returns>A task to monitor the progress.</returns>
-        [Fact]
+        [Test]
         public async Task CachingFunctionShouldPreserveHeaders()
         {
             var innerHandler = new TestHttpMessageHandler(_ =>
@@ -86,14 +87,14 @@ namespace Fusillade.Tests.Http
 
             var client = new HttpClient(fixture);
             var resp = await client.GetAsync(new Uri("http://lol/bar"));
-            Assert.Equal("\"worifjw\"", etagResponses[0]);
+            Assert.That(etagResponses[0], Is.EqualTo("\"worifjw\""));
         }
 
         /// <summary>
         /// Does a round trip integration test.
         /// </summary>
         /// <returns>A task to monitor the progress.</returns>
-        [Fact]
+        [Test]
         public async Task RoundTripIntegrationTest()
         {
             var aka = CacheDatabase.CreateBuilder().WithSerializerSystemTextJson().Build();
@@ -112,19 +113,18 @@ namespace Fusillade.Tests.Http
             var client = new HttpClient(cachingHandler);
             var origData = await client.GetStringAsync(new Uri("http://httpbin.org/get"));
 
-            Assert.True(origData.Contains("origin"));
+            Assert.That(origData.Contains("origin"), Is.True);
 
-            // Some Akavache cache implementations expose a single key, not a collection.
             var singleKey = await cache.GetAllKeys();
-            Assert.False(string.IsNullOrEmpty(singleKey));
-            Assert.StartsWith("HttpSchedulerCache_", singleKey, StringComparison.Ordinal);
+            Assert.That(string.IsNullOrEmpty(singleKey), Is.False);
+            Assert.That(singleKey.StartsWith("HttpSchedulerCache_", StringComparison.Ordinal), Is.True);
 
             var offlineHandler = new OfflineHttpMessageHandler(async (rq, key, ct) => await cache.Get(key));
 
             client = new HttpClient(offlineHandler);
             var newData = await client.GetStringAsync(new Uri("http://httpbin.org/get"));
 
-            Assert.Equal(origData, newData);
+            Assert.That(origData, Is.EqualTo(newData));
 
             bool shouldDie = true;
             try
@@ -137,7 +137,7 @@ namespace Fusillade.Tests.Http
                 Console.WriteLine(ex);
             }
 
-            Assert.False(shouldDie);
+            Assert.That(shouldDie, Is.False);
         }
 
         /// <summary>
@@ -146,14 +146,13 @@ namespace Fusillade.Tests.Http
         /// <param name="method">The name of the method.</param>
         /// <param name="shouldCache">If it should be cached or not.</param>
         /// <returns>A task to monitor the progress.</returns>
-        [Theory]
-        [InlineData("GET", true)]
-        [InlineData("HEAD", true)]
-        [InlineData("OPTIONS", true)]
-        [InlineData("POST", false)]
-        [InlineData("DELETE", false)]
-        [InlineData("PUT", false)]
-        [InlineData("WHATEVER", false)]
+        [TestCase("GET", true)]
+        [TestCase("HEAD", true)]
+        [TestCase("OPTIONS", true)]
+        [TestCase("POST", false)]
+        [TestCase("DELETE", false)]
+        [TestCase("PUT", false)]
+        [TestCase("WHATEVER", false)]
         public async Task OnlyCacheRelevantMethods(string method, bool shouldCache)
         {
             var innerHandler = new TestHttpMessageHandler(_ =>
@@ -178,7 +177,7 @@ namespace Fusillade.Tests.Http
             var request = new HttpRequestMessage(new(method), "http://lol/bar");
             await client.SendAsync(request);
 
-            Assert.Equal(shouldCache, cached);
+            Assert.That(cached, Is.EqualTo(shouldCache));
         }
     }
 }

@@ -3,28 +3,29 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using Xunit;
+using NUnit.Framework; // switched from xUnit
 
 namespace Fusillade.Tests
 {
     /// <summary>
     /// Checks to make sure that the NetCache operates correctly.
     /// </summary>
-    [CollectionDefinition(nameof(NetCacheTests), DisableParallelization = true)]
+    [TestFixture]
+    [NonParallelizable] // replaces CollectionDefinition DisableParallelization
     public class NetCacheTests
     {
         /// <summary>
         /// Verifies that we are registering the default handlers correctly.
         /// </summary>
-        [Fact]
+        [Test]
         public void DefaultValuesShouldBeRegistered()
         {
-            Assert.NotNull(NetCache.Speculative);
-            Assert.NotNull(NetCache.UserInitiated);
-            Assert.NotNull(NetCache.Background);
-            Assert.NotNull(NetCache.Offline);
-            Assert.NotNull(NetCache.OperationQueue);
-            Assert.Null(NetCache.RequestCache);
+            Assert.That(NetCache.Speculative, Is.Not.Null);
+            Assert.That(NetCache.UserInitiated, Is.Not.Null);
+            Assert.That(NetCache.Background, Is.Not.Null);
+            Assert.That(NetCache.Offline, Is.Not.Null);
+            Assert.That(NetCache.OperationQueue, Is.Not.Null);
+            Assert.That(NetCache.RequestCache, Is.Null);
         }
     }
 }

@@ -8,8 +8,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using NUnit.Framework; // add for NUnit attributes if needed later
 using PublicApiGenerator;
-using VerifyXunit;
+using VerifyNUnit; // changed from VerifyXunit
 
 namespace Fusillade.APITests;
 

@@ -4,6 +4,8 @@
 		<NoWarn>$(NoWarn);1591;CA1707;SA1633</NoWarn>
 		<IsPackable>false</IsPackable>
 		<NoWarn>$(NoWarn);CA2000;CA1031;CA1307;CA1305</NoWarn>
+		<LangVersion>preview</LangVersion>
+		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
 	<ItemGroup>

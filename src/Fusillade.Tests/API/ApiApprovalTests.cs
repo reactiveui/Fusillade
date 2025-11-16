@@ -5,7 +5,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
-using Xunit;
+using NUnit.Framework;
 
 namespace Fusillade.APITests
 {
@@ -19,7 +19,7 @@ namespace Fusillade.APITests
         /// Tests to make sure the akavache project is approved.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
-        [Fact]
-        public Task FusilladeTests() => typeof(OfflineHttpMessageHandler).Assembly.CheckApproval(["Fusillade"]);
+        [Test]
+        public Task FusilladeTests() => typeof(OfflineHttpMessageHandler).Assembly.CheckApproval(new[] { "Fusillade" });
     }
 }

@@ -11,6 +11,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Akavache.SystemTextJson" Version="11.1.1" />		
+		<PackageReference Include="Akavache.SystemTextJson" Version="11.4.1" />		
 	</ItemGroup>
 </Project>

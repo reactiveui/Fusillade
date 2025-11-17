@@ -59,8 +59,11 @@ namespace Fusillade.Tests
 
             var bytes = await result.Content.ReadAsByteArrayAsync();
 
-            Assert.That(result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(bytes.Length, Is.EqualTo(3));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(bytes, Has.Length.EqualTo(3));
+            }
         }
 
         /// <summary>
@@ -127,9 +130,12 @@ namespace Fusillade.Tests
                        .Merge()
                        .Subscribe();
 
-                Assert.That(SpinWait.SpinUntil(() => Volatile.Read(ref scheduledCount) == 4 && blockedRqs.Count == 4, TimeSpan.FromSeconds(2)), Is.True);
-                Assert.That(scheduledCount, Is.EqualTo(4));
-                Assert.That(completedCount, Is.EqualTo(0));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(SpinWait.SpinUntil(() => Volatile.Read(ref scheduledCount) == 4 && blockedRqs.Count == 4, TimeSpan.FromSeconds(2)), Is.True);
+                    Assert.That(scheduledCount, Is.EqualTo(4));
+                    Assert.That(completedCount, Is.Zero);
+                }
 
                 // Complete one request to free a slot and allow the 5th to be scheduled.
                 var firstSubj = blockedRqs.First().Value;
@@ -139,10 +145,13 @@ namespace Fusillade.Tests
                 // Wait for the 5th to be scheduled deterministically.
                 await scheduled5Tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
-                // Ensure the completedCount advanced for the one we just finished.
-                Assert.That(SpinWait.SpinUntil(() => Volatile.Read(ref completedCount) >= 1, TimeSpan.FromSeconds(2)), Is.True);
-                Assert.That(scheduledCount, Is.EqualTo(5));
-                Assert.That(completedCount, Is.EqualTo(1));
+                using (Assert.EnterMultipleScope())
+                {
+                    // Ensure the completedCount advanced for the one we just finished.
+                    Assert.That(SpinWait.SpinUntil(() => Volatile.Read(ref completedCount) >= 1, TimeSpan.FromSeconds(2)), Is.True);
+                    Assert.That(scheduledCount, Is.EqualTo(5));
+                    Assert.That(completedCount, Is.EqualTo(1));
+                }
 
                 // Complete all remaining requests (snapshot to avoid concurrent mutation during enumeration).
                 var subjects = blockedRqs.Values.ToArray();
@@ -155,8 +164,11 @@ namespace Fusillade.Tests
                 // Wait until all completed.
                 await completed5Tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
-                Assert.That(scheduledCount, Is.EqualTo(5));
-                Assert.That(completedCount, Is.EqualTo(5));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(scheduledCount, Is.EqualTo(5));
+                    Assert.That(completedCount, Is.EqualTo(5));
+                }
 
                 return Task.CompletedTask;
             });
@@ -235,7 +247,7 @@ namespace Fusillade.Tests
             var rq1 = new HttpRequestMessage(HttpMethod.Get, "/");
             var rq2 = new HttpRequestMessage(HttpMethod.Get, "/");
 
-            Assert.That(messageCount, Is.EqualTo(0));
+            Assert.That(messageCount, Is.Zero);
 
             var resp1Task = client.SendAsync(rq1);
             var resp2Task = client.SendAsync(rq2);
@@ -247,9 +259,12 @@ namespace Fusillade.Tests
             var resp1 = await resp1Task;
             var resp2 = await resp2Task;
 
-            Assert.That(resp1.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(resp2.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(messageCount, Is.EqualTo(1));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(resp1.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(resp2.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(messageCount, Is.EqualTo(1));
+            }
         }
 
         /// <summary>
@@ -284,7 +299,7 @@ namespace Fusillade.Tests
             var rq1 = new HttpRequestMessage(HttpMethod.Get, "/");
             var rq2 = new HttpRequestMessage(HttpMethod.Get, "/");
 
-            Assert.That(messageCount, Is.EqualTo(0));
+            Assert.That(messageCount, Is.Zero);
 
             var cts = new CancellationTokenSource();
 
@@ -300,8 +315,11 @@ namespace Fusillade.Tests
             Assert.ThrowsAsync<TaskCanceledException>(async () => await resp1Task);
             var resp2 = await resp2Task;
 
-            Assert.That(resp2.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(messageCount, Is.EqualTo(1));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(resp2.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(messageCount, Is.EqualTo(1));
+            }
         }
 
         /// <summary>
@@ -336,7 +354,7 @@ namespace Fusillade.Tests
             var rq1 = new HttpRequestMessage(HttpMethod.Get, "/foo");
             var rq2 = new HttpRequestMessage(HttpMethod.Get, "/bar");
 
-            Assert.That(messageCount, Is.EqualTo(0));
+            Assert.That(messageCount, Is.Zero);
 
             var resp1Task = client.SendAsync(rq1);
             var resp2Task = client.SendAsync(rq2);
@@ -348,9 +366,12 @@ namespace Fusillade.Tests
             var resp1 = await resp1Task;
             var resp2 = await resp2Task;
 
-            Assert.That(resp1.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(resp2.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(messageCount, Is.EqualTo(2));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(resp1.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(resp2.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(messageCount, Is.EqualTo(2));
+            }
         }
 
         /// <summary>
@@ -388,14 +409,17 @@ namespace Fusillade.Tests
             var rq1 = new HttpRequestMessage(HttpMethod.Get, "/");
             var rq2 = new HttpRequestMessage(HttpMethod.Get, "/");
 
-            Assert.That(messageCount, Is.EqualTo(0));
+            Assert.That(messageCount, Is.Zero);
 
             var cts = new CancellationTokenSource();
 
             var resp1Task = client.SendAsync(rq1, cts.Token);
             var resp2Task = client.SendAsync(rq2, cts.Token);
-            Assert.That(messageCount, Is.EqualTo(1));
-            Assert.That(finalMessageCount, Is.EqualTo(0));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(messageCount, Is.EqualTo(1));
+                Assert.That(finalMessageCount, Is.Zero);
+            }
 
             cts.Cancel();
 
@@ -405,8 +429,11 @@ namespace Fusillade.Tests
             Assert.ThrowsAsync<TaskCanceledException>(async () => await resp1Task);
             Assert.ThrowsAsync<TaskCanceledException>(async () => await resp2Task);
 
-            Assert.That(messageCount, Is.EqualTo(1));
-            Assert.That(finalMessageCount, Is.EqualTo(0));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(messageCount, Is.EqualTo(1));
+                Assert.That(finalMessageCount, Is.Zero);
+            }
         }
 
         /// <summary>
@@ -428,8 +455,11 @@ namespace Fusillade.Tests
             var result = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, new Uri(input)));
             var bytes = await result.Content.ReadAsByteArrayAsync();
 
-            Assert.That(result.IsSuccessStatusCode, Is.True);
-            Assert.That(bytes.Length, Is.EqualTo(8089690));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.IsSuccessStatusCode, Is.True);
+                Assert.That(bytes, Has.Length.EqualTo(8089690));
+            }
         }
 
         /// <summary>

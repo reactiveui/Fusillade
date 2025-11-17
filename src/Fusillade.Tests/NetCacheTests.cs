@@ -4,6 +4,7 @@
 // See the LICENSE file in the project root for full license information.
 
 using NUnit.Framework; // switched from xUnit
+using Shouldly;
 
 namespace Fusillade.Tests
 {
@@ -20,12 +21,12 @@ namespace Fusillade.Tests
         [Test]
         public void DefaultValuesShouldBeRegistered()
         {
-            Assert.That(NetCache.Speculative, Is.Not.Null);
-            Assert.That(NetCache.UserInitiated, Is.Not.Null);
-            Assert.That(NetCache.Background, Is.Not.Null);
-            Assert.That(NetCache.Offline, Is.Not.Null);
-            Assert.That(NetCache.OperationQueue, Is.Not.Null);
-            Assert.That(NetCache.RequestCache, Is.Null);
+            NetCache.Speculative.ShouldNotBeNull();
+            NetCache.UserInitiated.ShouldNotBeNull();
+            NetCache.Background.ShouldNotBeNull();
+            NetCache.Offline.ShouldNotBeNull();
+            NetCache.OperationQueue.ShouldNotBeNull();
+            NetCache.RequestCache.ShouldBeNull();
         }
     }
 }

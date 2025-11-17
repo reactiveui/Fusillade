@@ -20,6 +20,7 @@ using Microsoft.Reactive.Testing;
 using NUnit.Framework; // switched from xUnit
 using ReactiveUI;
 using ReactiveUI.Testing;
+using Shouldly;
 
 namespace Fusillade.Tests
 {
@@ -59,8 +60,8 @@ namespace Fusillade.Tests
 
             var bytes = await result.Content.ReadAsByteArrayAsync();
 
-            Assert.That(result.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(bytes.Length, Is.EqualTo(3));
+            result.StatusCode.ShouldBe(HttpStatusCode.OK);
+            bytes.Length.ShouldBe(3);
         }
 
         /// <summary>
@@ -127,24 +128,20 @@ namespace Fusillade.Tests
                        .Merge()
                        .Subscribe();
 
-                Assert.That(SpinWait.SpinUntil(() => Volatile.Read(ref scheduledCount) == 4 && blockedRqs.Count == 4, TimeSpan.FromSeconds(2)), Is.True);
-                Assert.That(scheduledCount, Is.EqualTo(4));
-                Assert.That(completedCount, Is.EqualTo(0));
+                SpinWait.SpinUntil(() => Volatile.Read(ref scheduledCount) == 4 && blockedRqs.Count == 4, TimeSpan.FromSeconds(2)).ShouldBeTrue();
+                scheduledCount.ShouldBe(4);
+                completedCount.ShouldBe(0);
 
-                // Complete one request to free a slot and allow the 5th to be scheduled.
                 var firstSubj = blockedRqs.First().Value;
                 firstSubj.OnNext(Unit.Default);
                 firstSubj.OnCompleted();
 
-                // Wait for the 5th to be scheduled deterministically.
                 await scheduled5Tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
-                // Ensure the completedCount advanced for the one we just finished.
-                Assert.That(SpinWait.SpinUntil(() => Volatile.Read(ref completedCount) >= 1, TimeSpan.FromSeconds(2)), Is.True);
-                Assert.That(scheduledCount, Is.EqualTo(5));
-                Assert.That(completedCount, Is.EqualTo(1));
+                SpinWait.SpinUntil(() => Volatile.Read(ref completedCount) >= 1, TimeSpan.FromSeconds(2)).ShouldBeTrue();
+                scheduledCount.ShouldBe(5);
+                completedCount.ShouldBe(1);
 
-                // Complete all remaining requests (snapshot to avoid concurrent mutation during enumeration).
                 var subjects = blockedRqs.Values.ToArray();
                 foreach (var v in subjects)
                 {
@@ -152,11 +149,10 @@ namespace Fusillade.Tests
                     v.OnCompleted();
                 }
 
-                // Wait until all completed.
                 await completed5Tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
-                Assert.That(scheduledCount, Is.EqualTo(5));
-                Assert.That(completedCount, Is.EqualTo(5));
+                scheduledCount.ShouldBe(5);
+                completedCount.ShouldBe(5);
 
                 return Task.CompletedTask;
             });
@@ -188,19 +184,16 @@ namespace Fusillade.Tests
 
             fixture.ResetLimit(5);
 
-            // Under the limit => succeed
             var rq = new HttpRequestMessage(HttpMethod.Get, "/");
             var resp = await client.SendAsync(rq);
-            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            resp.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-            // Crossing the limit => succeed
             rq = new HttpRequestMessage(HttpMethod.Get, "/");
             resp = await client.SendAsync(rq);
-            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            resp.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-            // Over the limit => cancelled
             rq = new HttpRequestMessage(HttpMethod.Get, "/");
-            Assert.ThrowsAsync<TaskCanceledException>(async () => await client.SendAsync(rq));
+            await Should.ThrowAsync<TaskCanceledException>(async () => await client.SendAsync(rq));
         }
 
         /// <summary>
@@ -235,11 +228,11 @@ namespace Fusillade.Tests
             var rq1 = new HttpRequestMessage(HttpMethod.Get, "/");
             var rq2 = new HttpRequestMessage(HttpMethod.Get, "/");
 
-            Assert.That(messageCount, Is.EqualTo(0));
+            messageCount.ShouldBe(0);
 
             var resp1Task = client.SendAsync(rq1);
             var resp2Task = client.SendAsync(rq2);
-            Assert.That(messageCount, Is.EqualTo(1));
+            messageCount.ShouldBe(1);
 
             gate.OnNext(Unit.Default);
             gate.OnNext(Unit.Default);
@@ -247,9 +240,9 @@ namespace Fusillade.Tests
             var resp1 = await resp1Task;
             var resp2 = await resp2Task;
 
-            Assert.That(resp1.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(resp2.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(messageCount, Is.EqualTo(1));
+            resp1.StatusCode.ShouldBe(HttpStatusCode.OK);
+            resp2.StatusCode.ShouldBe(HttpStatusCode.OK);
+            messageCount.ShouldBe(1);
         }
 
         /// <summary>
@@ -284,24 +277,24 @@ namespace Fusillade.Tests
             var rq1 = new HttpRequestMessage(HttpMethod.Get, "/");
             var rq2 = new HttpRequestMessage(HttpMethod.Get, "/");
 
-            Assert.That(messageCount, Is.EqualTo(0));
+            messageCount.ShouldBe(0);
 
             var cts = new CancellationTokenSource();
 
             var resp1Task = client.SendAsync(rq1, cts.Token);
             var resp2Task = client.SendAsync(rq2);
-            Assert.That(messageCount, Is.EqualTo(1));
+            messageCount.ShouldBe(1);
 
             cts.Cancel();
 
             gate.OnNext(Unit.Default);
             gate.OnNext(Unit.Default);
 
-            Assert.ThrowsAsync<TaskCanceledException>(async () => await resp1Task);
+            await Should.ThrowAsync<TaskCanceledException>(async () => await resp1Task);
             var resp2 = await resp2Task;
 
-            Assert.That(resp2.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(messageCount, Is.EqualTo(1));
+            resp2.StatusCode.ShouldBe(HttpStatusCode.OK);
+            messageCount.ShouldBe(1);
         }
 
         /// <summary>
@@ -336,11 +329,11 @@ namespace Fusillade.Tests
             var rq1 = new HttpRequestMessage(HttpMethod.Get, "/foo");
             var rq2 = new HttpRequestMessage(HttpMethod.Get, "/bar");
 
-            Assert.That(messageCount, Is.EqualTo(0));
+            messageCount.ShouldBe(0);
 
             var resp1Task = client.SendAsync(rq1);
             var resp2Task = client.SendAsync(rq2);
-            Assert.That(messageCount, Is.EqualTo(2));
+            messageCount.ShouldBe(2);
 
             gate.OnNext(Unit.Default);
             gate.OnNext(Unit.Default);
@@ -348,9 +341,9 @@ namespace Fusillade.Tests
             var resp1 = await resp1Task;
             var resp2 = await resp2Task;
 
-            Assert.That(resp1.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(resp2.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(messageCount, Is.EqualTo(2));
+            resp1.StatusCode.ShouldBe(HttpStatusCode.OK);
+            resp2.StatusCode.ShouldBe(HttpStatusCode.OK);
+            messageCount.ShouldBe(2);
         }
 
         /// <summary>
@@ -388,25 +381,25 @@ namespace Fusillade.Tests
             var rq1 = new HttpRequestMessage(HttpMethod.Get, "/");
             var rq2 = new HttpRequestMessage(HttpMethod.Get, "/");
 
-            Assert.That(messageCount, Is.EqualTo(0));
+            messageCount.ShouldBe(0);
 
             var cts = new CancellationTokenSource();
 
             var resp1Task = client.SendAsync(rq1, cts.Token);
             var resp2Task = client.SendAsync(rq2, cts.Token);
-            Assert.That(messageCount, Is.EqualTo(1));
-            Assert.That(finalMessageCount, Is.EqualTo(0));
+            messageCount.ShouldBe(1);
+            finalMessageCount.ShouldBe(0);
 
             cts.Cancel();
 
             gate.OnNext(Unit.Default);
             gate.OnNext(Unit.Default);
 
-            Assert.ThrowsAsync<TaskCanceledException>(async () => await resp1Task);
-            Assert.ThrowsAsync<TaskCanceledException>(async () => await resp2Task);
+            await Should.ThrowAsync<TaskCanceledException>(async () => await resp1Task);
+            await Should.ThrowAsync<TaskCanceledException>(async () => await resp2Task);
 
-            Assert.That(messageCount, Is.EqualTo(1));
-            Assert.That(finalMessageCount, Is.EqualTo(0));
+            messageCount.ShouldBe(1);
+            finalMessageCount.ShouldBe(0);
         }
 
         /// <summary>
@@ -428,8 +421,8 @@ namespace Fusillade.Tests
             var result = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, new Uri(input)));
             var bytes = await result.Content.ReadAsByteArrayAsync();
 
-            Assert.That(result.IsSuccessStatusCode, Is.True);
-            Assert.That(bytes.Length, Is.EqualTo(8089690));
+            result.IsSuccessStatusCode.ShouldBeTrue();
+            bytes.Length.ShouldBe(8089690);
         }
 
         /// <summary>

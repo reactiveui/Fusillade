@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using Akavache;
 using Akavache.SystemTextJson;
 using NUnit.Framework; // switched from xunit
+using Shouldly;
 
 namespace Fusillade.Tests.Http
 {
@@ -54,9 +55,9 @@ namespace Fusillade.Tests.Http
             var client = new HttpClient(fixture);
             var str = await client.GetStringAsync(new Uri("http://lol/bar"));
 
-            Assert.That(str, Is.EqualTo("foo"));
-            Assert.That(contentResponses.Count, Is.EqualTo(1));
-            Assert.That(contentResponses[0].Length, Is.EqualTo(3));
+            str.ShouldBe("foo");
+            contentResponses.Count.ShouldBe(1);
+            contentResponses[0].Length.ShouldBe(3);
         }
 
         /// <summary>
@@ -87,7 +88,7 @@ namespace Fusillade.Tests.Http
 
             var client = new HttpClient(fixture);
             var resp = await client.GetAsync(new Uri("http://lol/bar"));
-            Assert.That(etagResponses[0], Is.EqualTo("\"worifjw\""));
+            etagResponses[0].ShouldBe("\"worifjw\"");
         }
 
         /// <summary>
@@ -113,18 +114,18 @@ namespace Fusillade.Tests.Http
             var client = new HttpClient(cachingHandler);
             var origData = await client.GetStringAsync(new Uri("http://httpbin.org/get"));
 
-            Assert.That(origData.Contains("origin"), Is.True);
+            origData.ShouldContain("origin");
 
             var singleKey = await cache.GetAllKeys();
-            Assert.That(string.IsNullOrEmpty(singleKey), Is.False);
-            Assert.That(singleKey.StartsWith("HttpSchedulerCache_", StringComparison.Ordinal), Is.True);
+            singleKey.ShouldNotBeNullOrEmpty();
+            singleKey.StartsWith("HttpSchedulerCache_", StringComparison.Ordinal).ShouldBeTrue();
 
             var offlineHandler = new OfflineHttpMessageHandler(async (rq, key, ct) => await cache.Get(key));
 
             client = new HttpClient(offlineHandler);
             var newData = await client.GetStringAsync(new Uri("http://httpbin.org/get"));
 
-            Assert.That(origData, Is.EqualTo(newData));
+            newData.ShouldBe(origData);
 
             bool shouldDie = true;
             try
@@ -137,7 +138,7 @@ namespace Fusillade.Tests.Http
                 Console.WriteLine(ex);
             }
 
-            Assert.That(shouldDie, Is.False);
+            shouldDie.ShouldBeFalse();
         }
 
         /// <summary>
@@ -177,7 +178,7 @@ namespace Fusillade.Tests.Http
             var request = new HttpRequestMessage(new(method), "http://lol/bar");
             await client.SendAsync(request);
 
-            Assert.That(cached, Is.EqualTo(shouldCache));
+            cached.ShouldBe(shouldCache);
         }
     }
 }

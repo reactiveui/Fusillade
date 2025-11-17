@@ -24,7 +24,10 @@
 		<PackageReference Include="NUnit.Analyzers" PrivateAssets="All" />
 		<PackageReference Include="Verify.NUnit" />
 		<PackageReference Include="PublicApiGenerator" />
-		<PackageReference Include="FluentAssertions" />
-		<PackageReference Include="coverlet.msbuild" PrivateAssets="All" />
+		<PackageReference Include="Shouldly" />
+		<PackageReference Include="coverlet.msbuild">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+		</PackageReference>
 	</ItemGroup>
 </Project>

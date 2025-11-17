@@ -54,9 +54,13 @@ namespace Fusillade.Tests.Http
             var client = new HttpClient(fixture);
             var str = await client.GetStringAsync(new Uri("http://lol/bar"));
 
-            Assert.That(str, Is.EqualTo("foo"));
-            Assert.That(contentResponses.Count, Is.EqualTo(1));
-            Assert.That(contentResponses[0].Length, Is.EqualTo(3));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(str, Is.EqualTo("foo"));
+                Assert.That(contentResponses, Has.Count.EqualTo(1));
+            }
+
+            Assert.That(contentResponses[0], Has.Length.EqualTo(3));
         }
 
         /// <summary>
@@ -113,11 +117,14 @@ namespace Fusillade.Tests.Http
             var client = new HttpClient(cachingHandler);
             var origData = await client.GetStringAsync(new Uri("http://httpbin.org/get"));
 
-            Assert.That(origData.Contains("origin"), Is.True);
+            Assert.That(origData, Does.Contain("origin"));
 
             var singleKey = await cache.GetAllKeys();
-            Assert.That(string.IsNullOrEmpty(singleKey), Is.False);
-            Assert.That(singleKey.StartsWith("HttpSchedulerCache_", StringComparison.Ordinal), Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(string.IsNullOrEmpty(singleKey), Is.False);
+                Assert.That(singleKey.StartsWith("HttpSchedulerCache_", StringComparison.Ordinal), Is.True);
+            }
 
             var offlineHandler = new OfflineHttpMessageHandler(async (rq, key, ct) => await cache.Get(key));
 
@@ -126,7 +133,7 @@ namespace Fusillade.Tests.Http
 
             Assert.That(origData, Is.EqualTo(newData));
 
-            bool shouldDie = true;
+            var shouldDie = true;
             try
             {
                 await client.GetStringAsync(new Uri("http://httpbin.org/gzip"));

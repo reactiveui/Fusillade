@@ -20,12 +20,15 @@ namespace Fusillade.Tests
         [Test]
         public void DefaultValuesShouldBeRegistered()
         {
-            Assert.That(NetCache.Speculative, Is.Not.Null);
-            Assert.That(NetCache.UserInitiated, Is.Not.Null);
-            Assert.That(NetCache.Background, Is.Not.Null);
-            Assert.That(NetCache.Offline, Is.Not.Null);
-            Assert.That(NetCache.OperationQueue, Is.Not.Null);
-            Assert.That(NetCache.RequestCache, Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(NetCache.Speculative, Is.Not.Null);
+                Assert.That(NetCache.UserInitiated, Is.Not.Null);
+                Assert.That(NetCache.Background, Is.Not.Null);
+                Assert.That(NetCache.Offline, Is.Not.Null);
+                Assert.That(NetCache.OperationQueue, Is.Not.Null);
+                Assert.That(NetCache.RequestCache, Is.Null);
+            }
         }
     }
 }

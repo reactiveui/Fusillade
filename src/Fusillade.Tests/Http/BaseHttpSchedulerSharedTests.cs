@@ -14,7 +14,7 @@ namespace Fusillade.Tests
     public class BaseHttpSchedulerSharedTests : HttpSchedulerSharedTests
     {
         /// <inheritdoc/>
-        protected override LimitingHttpMessageHandler CreateFixture(HttpMessageHandler innerHandler) =>
+        protected override LimitingHttpMessageHandler CreateFixture(HttpMessageHandler? innerHandler) =>
             new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, opQueue: new OperationQueue(4));
     }
 }

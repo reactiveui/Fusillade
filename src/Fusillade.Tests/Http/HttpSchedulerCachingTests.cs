@@ -85,7 +85,7 @@ namespace Fusillade.Tests.Http
             var etagResponses = new List<string>();
             var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: (rq, re, key, ct) =>
             {
-                etagResponses.Add(re.Headers.ETag.Tag);
+                etagResponses.Add(re.Headers.ETag!.Tag);
                 return Task.FromResult(true);
             });
 
@@ -102,7 +102,7 @@ namespace Fusillade.Tests.Http
         public async Task RoundTripIntegrationTest()
         {
             var aka = CacheDatabase.CreateBuilder().WithSerializerSystemTextJson().Build();
-            var cache = new InMemoryBlobCache(aka.Serializer);
+            var cache = new InMemoryBlobCache(aka.Serializer!);
 
             var cachingHandler = new RateLimitedHttpMessageHandler(new HttpClientHandler(), Priority.UserInitiated, cacheResultFunc: async (rq, resp, key, ct) =>
             {

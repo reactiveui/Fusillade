@@ -19,8 +19,8 @@ public abstract class LimitingHttpMessageHandler : DelegatingHandler
     /// Initializes a new instance of the <see cref="LimitingHttpMessageHandler"/> class.
     /// </summary>
     /// <param name="innerHandler">A inner handler we will call to get the data.</param>
-    protected LimitingHttpMessageHandler(HttpMessageHandler innerHandler)
-        : base(innerHandler)
+    protected LimitingHttpMessageHandler(HttpMessageHandler? innerHandler)
+        : base(innerHandler!)
     {
     }
 

@@ -30,7 +30,7 @@ namespace Fusillade;
 /// <param name="maxBytesToRead">The maximum number of bytes we can read.</param>
 /// <param name="opQueue">The operation queue on which to run the operation.</param>
 /// <param name="cacheResultFunc">A method that is called if we need to get cached results.</param>
-public class RateLimitedHttpMessageHandler(HttpMessageHandler handler, Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue? opQueue = null, Func<HttpRequestMessage, HttpResponseMessage, string, CancellationToken, Task>? cacheResultFunc = null) : LimitingHttpMessageHandler(handler)
+public class RateLimitedHttpMessageHandler(HttpMessageHandler? handler, Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue? opQueue = null, Func<HttpRequestMessage, HttpResponseMessage, string, CancellationToken, Task>? cacheResultFunc = null) : LimitingHttpMessageHandler(handler)
 {
     private readonly int _priority = (int)basePriority + priority;
     private readonly Dictionary<string, InflightRequest> _inflightResponses = new();

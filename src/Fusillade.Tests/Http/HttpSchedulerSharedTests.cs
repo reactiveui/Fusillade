@@ -467,6 +467,6 @@ namespace Fusillade.Tests
         /// </summary>
         /// <param name="innerHandler">The inner handler.</param>
         /// <returns>The limiting handler.</returns>
-        protected abstract LimitingHttpMessageHandler CreateFixture(HttpMessageHandler innerHandler = null);
+        protected abstract LimitingHttpMessageHandler CreateFixture(HttpMessageHandler? innerHandler = null);
     }
 }

@@ -22,6 +22,7 @@
 		<AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
 		<EnableNETAnalyzers>True</EnableNETAnalyzers>
 		<AnalysisLevel>latest</AnalysisLevel>
+		<WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(IsTestProject)' != 'true'">

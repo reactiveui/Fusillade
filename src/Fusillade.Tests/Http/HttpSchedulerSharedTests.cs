@@ -210,7 +210,7 @@ namespace Fusillade.Tests
         [Test]
         public async Task ConcurrentRequestsToTheSameResourceAreDebounced()
         {
-            int messageCount = 0;
+            var messageCount = 0;
             Subject<Unit> gate = new();
 
             var fixture = CreateFixture(new TestHttpMessageHandler(_ =>
@@ -259,7 +259,7 @@ namespace Fusillade.Tests
         [Test]
         public async Task DebouncedRequestsDontGetUnfairlyCancelled()
         {
-            int messageCount = 0;
+            var messageCount = 0;
             Subject<Unit> gate = new();
 
             var fixture = CreateFixture(new TestHttpMessageHandler(_ =>
@@ -311,7 +311,7 @@ namespace Fusillade.Tests
         [Test]
         public async Task RequestsToDifferentPathsArentDebounced()
         {
-            int messageCount = 0;
+            var messageCount = 0;
             Subject<Unit> gate = new();
 
             var fixture = CreateFixture(new TestHttpMessageHandler(_ =>
@@ -360,8 +360,8 @@ namespace Fusillade.Tests
         [Test]
         public async Task FullyCancelledDebouncedRequestsGetForRealCancelled()
         {
-            int messageCount = 0;
-            int finalMessageCount = 0;
+            var messageCount = 0;
+            var finalMessageCount = 0;
             Subject<Unit> gate = new();
 
             var fixture = CreateFixture(new TestHttpMessageHandler(_ =>

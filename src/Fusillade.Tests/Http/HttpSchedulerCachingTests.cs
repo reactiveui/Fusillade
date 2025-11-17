@@ -126,7 +126,7 @@ namespace Fusillade.Tests.Http
 
             Assert.That(origData, Is.EqualTo(newData));
 
-            bool shouldDie = true;
+            var shouldDie = true;
             try
             {
                 await client.GetStringAsync(new Uri("http://httpbin.org/gzip"));

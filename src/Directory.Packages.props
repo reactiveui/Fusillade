@@ -7,7 +7,7 @@
     <!-- Central package versions -->
     <PackageVersion Include="punchclock" Version="4.0.2" />
     <PackageVersion Include="Splat" Version="17.1.1" />
-    <PackageVersion Include="Akavache.SystemTextJson" Version="11.4.1" />
+    <PackageVersion Include="Akavache.SystemTextJson" Version="11.5.1" />
     <PackageVersion Include="ReactiveUI.Testing" Version="22.2.1" />
     <PackageVersion Include="ReactiveUI" Version="22.2.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />

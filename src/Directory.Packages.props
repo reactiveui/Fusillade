@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Central package versions -->
-    <PackageVersion Include="punchclock" Version="4.0.2" />
+    <PackageVersion Include="punchclock" Version="5.0.1" />
     <PackageVersion Include="Splat" Version="17.1.1" />
     <PackageVersion Include="Akavache.SystemTextJson" Version="11.4.1" />
     <PackageVersion Include="ReactiveUI.Testing" Version="22.2.1" />

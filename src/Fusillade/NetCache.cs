@@ -188,6 +188,6 @@ public static class NetCache
 
     private static IReadonlyDependencyResolver GetCurrent()
     {
-        return Current ??= Locator.Current;
+        return Current ??= AppLocator.Current;
     }
 }

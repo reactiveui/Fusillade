@@ -18,7 +18,7 @@ namespace Fusillade;
 /// Initializes a new instance of the <see cref="OfflineHttpMessageHandler"/> class.
 /// </remarks>
 /// <param name="retrieveBodyFunc">A function that will retrieve a body.</param>
-public class OfflineHttpMessageHandler(Func<HttpRequestMessage, string, CancellationToken, Task<byte[]>>? retrieveBodyFunc) : HttpMessageHandler
+public class OfflineHttpMessageHandler(Func<HttpRequestMessage, string, CancellationToken, Task<byte[]?>>? retrieveBodyFunc) : HttpMessageHandler
 {
     /// <inheritdoc />
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -31,7 +31,7 @@ public class OfflineHttpMessageHandler(Func<HttpRequestMessage, string, Cancella
 
         if (retrieveBody == null)
         {
-            throw new Exception("Configure NetCache.RequestCache before calling this!");
+            throw new InvalidOperationException("Configure NetCache.RequestCache before calling this!");
         }
 
         var body = await retrieveBody(request, RateLimitedHttpMessageHandler.UniqueKeyForRequest(request), cancellationToken).ConfigureAwait(false);

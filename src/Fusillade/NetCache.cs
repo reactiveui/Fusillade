@@ -62,6 +62,11 @@ public static class NetCache
         get => unitTestSpeculative ?? GetCurrent().GetService<LimitingHttpMessageHandler>("Speculative") ?? speculative;
         set
         {
+            if (value is null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+
             if (ModeDetector.InUnitTestRunner())
             {
                 unitTestSpeculative = value;
@@ -83,6 +88,11 @@ public static class NetCache
         get => unitTestUserInitiated ?? GetCurrent().GetService<HttpMessageHandler>("UserInitiated") ?? userInitiated;
         set
         {
+            if (value is null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+
             if (ModeDetector.InUnitTestRunner())
             {
                 unitTestUserInitiated = value;
@@ -104,6 +114,11 @@ public static class NetCache
         get => unitTestBackground ?? GetCurrent().GetService<HttpMessageHandler>("Background") ?? background;
         set
         {
+            if (value is null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+
             if (ModeDetector.InUnitTestRunner())
             {
                 unitTestBackground = value;
@@ -125,6 +140,11 @@ public static class NetCache
         get => unitTestOffline ?? GetCurrent().GetService<HttpMessageHandler>("Offline") ?? offline;
         set
         {
+            if (value is null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+
             if (ModeDetector.InUnitTestRunner())
             {
                 unitTestOffline = value;
@@ -147,6 +167,11 @@ public static class NetCache
         get => unitTestOperationQueue ?? GetCurrent().GetService<OperationQueue>("OperationQueue") ?? operationQueue;
         set
         {
+            if (value is null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+
             if (ModeDetector.InUnitTestRunner())
             {
                 unitTestOperationQueue = value;
@@ -180,14 +205,11 @@ public static class NetCache
         }
     }
 
-    internal static void CreateDefaultInstances(IReadonlyDependencyResolver? current)
-    {
-        // This method is just here to force the static constructor to run
-        Current = current;
-    }
+    /// <summary>
+    /// Creates the default instances. This method is just here to force the static constructor to run.
+    /// </summary>
+    /// <param name="current">The current.</param>
+    internal static void CreateDefaultInstances(IReadonlyDependencyResolver? current) => Current = current;
 
-    private static IReadonlyDependencyResolver GetCurrent()
-    {
-        return Current ??= AppLocator.Current;
-    }
+    private static IReadonlyDependencyResolver GetCurrent() => Current ??= AppLocator.Current;
 }

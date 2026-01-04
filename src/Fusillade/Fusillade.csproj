@@ -1,14 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
+		<TargetFrameworks>net462;net472;net481;net8.0;net9.0;net10.0</TargetFrameworks>
 		<PackageId>fusillade</PackageId>
 		<LangVersion>preview</LangVersion>
 		<Nullable>enable</Nullable>
 		<WarningsAsErrors>CS8625;CS8604;CS8600;CS8614;CS8603;CS8618;CS8619</WarningsAsErrors>
 	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net462|AnyCPU'">
+	  <CodeAnalysisRuleSet />
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net462|AnyCPU'">
+	  <CodeAnalysisRuleSet />
+	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="punchclock" />
 		<PackageReference Include="Splat" />
+		<PackageReference Include="System.Net.Http" Condition="'$(TargetFramework)' == 'net462' OR '$(TargetFramework)' == 'net472' OR '$(TargetFramework)' == 'net481'" />
 	</ItemGroup>
 </Project>

@@ -17,7 +17,7 @@ Fusillade helps you write efficient, resilient networked apps by composing HttpM
 
 Design inspirations include Android's Volley and Picasso.
 
-Supported targets: library is built for .NET Standard 2.0 and is used from modern .NET (e.g., .NET 8/9), Xamarin/Mono, and .NET for iOS/Android/Mac Catalyst apps.
+Supported targets: library is built for .NET 4.6.2+, .NET 8/9/10, for modern .Net applications.
 
 
 ## Install

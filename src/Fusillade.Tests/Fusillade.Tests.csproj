@@ -1,17 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-		<NoWarn>$(NoWarn);1591;CA1707;SA1633</NoWarn>
+		<NoWarn>$(NoWarn);1591;CA1707;SA1633;CA2000;CA1031;CA1307;CA1305</NoWarn>
 		<IsPackable>false</IsPackable>
-		<NoWarn>$(NoWarn);CA2000;CA1031;CA1307;CA1305</NoWarn>
 		<LangVersion>preview</LangVersion>
 		<Nullable>enable</Nullable>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0|AnyCPU'">
-	  <CodeAnalysisRuleSet />
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net8.0|AnyCPU'">
-	  <CodeAnalysisRuleSet />
 	</PropertyGroup>
 
 	<ItemGroup>

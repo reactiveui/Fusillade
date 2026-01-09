@@ -7,6 +7,12 @@
 		<LangVersion>preview</LangVersion>
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0|AnyCPU'">
+	  <CodeAnalysisRuleSet />
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net8.0|AnyCPU'">
+	  <CodeAnalysisRuleSet />
+	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="../Fusillade/Fusillade.csproj" />

@@ -3,7 +3,7 @@ namespace Fusillade
 {
     public interface IRequestCache
     {
-        System.Threading.Tasks.Task<byte[]> Fetch(System.Net.Http.HttpRequestMessage request, string key, System.Threading.CancellationToken ct);
+        System.Threading.Tasks.Task<byte[]?> Fetch(System.Net.Http.HttpRequestMessage request, string key, System.Threading.CancellationToken ct);
         System.Threading.Tasks.Task Save(System.Net.Http.HttpRequestMessage request, System.Net.Http.HttpResponseMessage response, string key, System.Threading.CancellationToken ct);
     }
     public abstract class LimitingHttpMessageHandler : System.Net.Http.DelegatingHandler
@@ -23,7 +23,7 @@ namespace Fusillade
     }
     public class OfflineHttpMessageHandler : System.Net.Http.HttpMessageHandler
     {
-        public OfflineHttpMessageHandler(System.Func<System.Net.Http.HttpRequestMessage, string, System.Threading.CancellationToken, System.Threading.Tasks.Task<byte[]>>? retrieveBodyFunc) { }
+        public OfflineHttpMessageHandler(System.Func<System.Net.Http.HttpRequestMessage, string, System.Threading.CancellationToken, System.Threading.Tasks.Task<byte[]?>>? retrieveBodyFunc) { }
         protected override System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage> SendAsync(System.Net.Http.HttpRequestMessage request, System.Threading.CancellationToken cancellationToken) { }
     }
     public enum Priority

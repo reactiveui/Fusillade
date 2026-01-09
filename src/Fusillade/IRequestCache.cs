@@ -37,5 +37,5 @@ public interface IRequestCache
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The Body of the given request, or null if the search
     /// completed successfully but the response was not found.</returns>
-    Task<byte[]> Fetch(HttpRequestMessage request, string key, CancellationToken ct);
+    Task<byte[]?> Fetch(HttpRequestMessage request, string key, CancellationToken ct);
 }

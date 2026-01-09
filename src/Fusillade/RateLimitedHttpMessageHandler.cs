@@ -33,7 +33,7 @@ namespace Fusillade;
 public class RateLimitedHttpMessageHandler(HttpMessageHandler? handler, Priority basePriority, int priority = 0, long? maxBytesToRead = null, OperationQueue? opQueue = null, Func<HttpRequestMessage, HttpResponseMessage, string, CancellationToken, Task>? cacheResultFunc = null) : LimitingHttpMessageHandler(handler)
 {
     private readonly int _priority = (int)basePriority + priority;
-    private readonly Dictionary<string, InflightRequest> _inflightResponses = new();
+    private readonly Dictionary<string, InflightRequest> _inflightResponses = [];
     private long? _maxBytesToRead = maxBytesToRead;
 
     /// <summary>
@@ -99,10 +99,10 @@ public class RateLimitedHttpMessageHandler(HttpMessageHandler? handler, Priority
         if (_maxBytesToRead < 0)
         {
             var tcs = new TaskCompletionSource<HttpResponseMessage>();
-#if NETSTANDARD2_0
-            tcs.SetCanceled();
-#else
+#if NET5_0_OR_GREATER
             tcs.SetCanceled(cancellationToken);
+#else
+            tcs.SetCanceled();
 #endif
             return tcs.Task;
         }
@@ -121,13 +121,12 @@ public class RateLimitedHttpMessageHandler(HttpMessageHandler? handler, Priority
 
         lock (_inflightResponses)
         {
-            if (_inflightResponses.ContainsKey(key))
+            if (_inflightResponses.TryGetValue(key, out var existingRequest))
             {
-                var val = _inflightResponses[key];
-                val.AddRef();
-                cancellationToken.Register(val.Cancel);
+                existingRequest.AddRef();
+                cancellationToken.Register(existingRequest.Cancel);
 
-                return val.Response.ToTask(cancellationToken);
+                return existingRequest.Response.ToTask(cancellationToken);
             }
 
             _inflightResponses[key] = ret;

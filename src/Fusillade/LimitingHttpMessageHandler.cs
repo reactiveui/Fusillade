@@ -20,7 +20,7 @@ public abstract class LimitingHttpMessageHandler : DelegatingHandler
     /// </summary>
     /// <param name="innerHandler">A inner handler we will call to get the data.</param>
     protected LimitingHttpMessageHandler(HttpMessageHandler? innerHandler)
-        : base(innerHandler!)
+        : base(innerHandler ?? new HttpClientHandler())
     {
     }
 

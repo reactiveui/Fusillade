@@ -12,7 +12,6 @@
 		<IsTestProject>$(MSBuildProjectName.Contains('Tests'))</IsTestProject>
 		<RepositoryType>git</RepositoryType>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)analyzers.ruleset</CodeAnalysisRuleSet>
 		<DebugType>Embedded</DebugType>
 		<PackageIcon>main.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>

@@ -6,7 +6,7 @@
   <ItemGroup>
     <!-- Central package versions -->
     <PackageVersion Include="punchclock" Version="6.0.1" />
-    <PackageVersion Include="Splat" Version="18.1.1" />
+    <PackageVersion Include="Splat" Version="19.1.1" />
     <PackageVersion Include="System.Net.Http" Version="4.3.4" />
     <PackageVersion Include="Akavache.SystemTextJson" Version="11.5.1" />
     <PackageVersion Include="ReactiveUI.Testing" Version="22.3.1" />

@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Central package versions -->
-    <PackageVersion Include="punchclock" Version="5.0.1" />
+    <PackageVersion Include="punchclock" Version="6.0.1" />
     <PackageVersion Include="Splat" Version="18.1.1" />
     <PackageVersion Include="System.Net.Http" Version="4.3.4" />
     <PackageVersion Include="Akavache.SystemTextJson" Version="11.5.1" />

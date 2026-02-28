@@ -14,7 +14,7 @@ internal class InflightRequest(Action onFullyCancelled)
 {
     private int _refCount = 1;
 
-    public AsyncSubject<HttpResponseMessage> Response { get; } = new AsyncSubject<HttpResponseMessage>();
+    public AsyncSubject<HttpResponseMessage> Response { get; } = new();
 
     public void AddRef() => Interlocked.Increment(ref _refCount);
 

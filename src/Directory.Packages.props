@@ -11,7 +11,7 @@
     <PackageVersion Include="Akavache.SystemTextJson" Version="11.5.1" />
     <PackageVersion Include="ReactiveUI.Testing" Version="22.3.1" />
     <PackageVersion Include="ReactiveUI" Version="22.3.1" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
     <PackageVersion Include="NUnit" Version="4.5.0" />
     <PackageVersion Include="NUnit3TestAdapter" Version="6.1.0" />
     <PackageVersion Include="NUnit.Analyzers" Version="4.11.2" />

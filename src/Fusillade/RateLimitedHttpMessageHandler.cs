@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
+﻿// Copyright (c) 2016 - 2026 ReactiveUI and Contributors. All rights reserved.
 // Licensed to ReactiveUI and Contributors under one or more agreements.
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
@@ -14,6 +14,7 @@ using System.Reactive.Threading.Tasks;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Fusillade.Helpers;
 using Punchclock;
 
 namespace Fusillade;
@@ -44,14 +45,7 @@ public class RateLimitedHttpMessageHandler(HttpMessageHandler? handler, Priority
     /// <returns>The unique key.</returns>
     public static string UniqueKeyForRequest(HttpRequestMessage request)
     {
-#if NET8_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(request);
-#else
-        if (request is null)
-        {
-            throw new ArgumentNullException(nameof(request));
-        }
-#endif
+        ArgumentExceptionHelper.ThrowIfNull(request);
 
         var ret = new[]
         {
@@ -83,14 +77,7 @@ public class RateLimitedHttpMessageHandler(HttpMessageHandler? handler, Priority
     /// <inheritdoc />
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-#if NET8_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(request);
-#else
-        if (request is null)
-        {
-            throw new ArgumentNullException(nameof(request));
-        }
-#endif
+        ArgumentExceptionHelper.ThrowIfNull(request);
 
         var method = request.Method;
         if (method != HttpMethod.Get && method != HttpMethod.Head && method != HttpMethod.Options)

@@ -20,10 +20,14 @@ public static class FusilladeSplatBuilderExtensions
     /// <returns>The App Instance for Chaining.</returns>
     public static IAppInstance CreateFusilladeNetCache(this IAppInstance builder)
     {
+#if NET8_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(builder);
+#else
         if (builder is null)
         {
             throw new ArgumentNullException(nameof(builder));
         }
+#endif
 
         NetCache.CreateDefaultInstances(builder.Current);
         return builder;

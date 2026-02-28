@@ -17,7 +17,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Reactive.Testing;
-using NUnit.Framework; // switched from xUnit
+using NUnit.Framework;
 using ReactiveUI;
 using ReactiveUI.Testing;
 
@@ -55,7 +55,7 @@ namespace Fusillade.Tests
             var rq = new HttpRequestMessage(HttpMethod.Get, "/");
 
             var result = await client.SendAsync(rq).ToObservable()
-                .Timeout(TimeSpan.FromSeconds(2.0), RxApp.TaskpoolScheduler);
+                .Timeout(TimeSpan.FromSeconds(2.0), RxSchedulers.TaskpoolScheduler);
 
             var bytes = await result.Content.ReadAsByteArrayAsync();
 

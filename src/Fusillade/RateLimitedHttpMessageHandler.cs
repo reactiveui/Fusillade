@@ -44,10 +44,14 @@ public class RateLimitedHttpMessageHandler(HttpMessageHandler? handler, Priority
     /// <returns>The unique key.</returns>
     public static string UniqueKeyForRequest(HttpRequestMessage request)
     {
+#if NET8_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(request);
+#else
         if (request is null)
         {
             throw new ArgumentNullException(nameof(request));
         }
+#endif
 
         var ret = new[]
         {
@@ -79,10 +83,14 @@ public class RateLimitedHttpMessageHandler(HttpMessageHandler? handler, Priority
     /// <inheritdoc />
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+#if NET8_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(request);
+#else
         if (request is null)
         {
             throw new ArgumentNullException(nameof(request));
         }
+#endif
 
         var method = request.Method;
         if (method != HttpMethod.Get && method != HttpMethod.Head && method != HttpMethod.Options)

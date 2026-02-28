@@ -62,10 +62,14 @@ public static class NetCache
         get => unitTestSpeculative ?? GetCurrent().GetService<LimitingHttpMessageHandler>("Speculative") ?? speculative;
         set
         {
+#if NET8_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(value, nameof(value));
+#else
             if (value is null)
             {
                 throw new ArgumentNullException(nameof(value));
             }
+#endif
 
             if (ModeDetector.InUnitTestRunner())
             {
@@ -88,10 +92,14 @@ public static class NetCache
         get => unitTestUserInitiated ?? GetCurrent().GetService<HttpMessageHandler>("UserInitiated") ?? userInitiated;
         set
         {
+#if NET8_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(value, nameof(value));
+#else
             if (value is null)
             {
                 throw new ArgumentNullException(nameof(value));
             }
+#endif
 
             if (ModeDetector.InUnitTestRunner())
             {
@@ -114,10 +122,14 @@ public static class NetCache
         get => unitTestBackground ?? GetCurrent().GetService<HttpMessageHandler>("Background") ?? background;
         set
         {
+#if NET8_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(value, nameof(value));
+#else
             if (value is null)
             {
                 throw new ArgumentNullException(nameof(value));
             }
+#endif
 
             if (ModeDetector.InUnitTestRunner())
             {
@@ -140,10 +152,14 @@ public static class NetCache
         get => unitTestOffline ?? GetCurrent().GetService<HttpMessageHandler>("Offline") ?? offline;
         set
         {
+#if NET8_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(value, nameof(value));
+#else
             if (value is null)
             {
                 throw new ArgumentNullException(nameof(value));
             }
+#endif
 
             if (ModeDetector.InUnitTestRunner())
             {
@@ -167,10 +183,14 @@ public static class NetCache
         get => unitTestOperationQueue ?? GetCurrent().GetService<OperationQueue>("OperationQueue") ?? operationQueue;
         set
         {
+#if NET8_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(value, nameof(value));
+#else
             if (value is null)
             {
                 throw new ArgumentNullException(nameof(value));
             }
+#endif
 
             if (ModeDetector.InUnitTestRunner())
             {

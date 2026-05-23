@@ -22,6 +22,8 @@ jobs:
     uses: reactiveui/actions-common/.github/workflows/workflow-common-release.yml@main
     with:
       solutionFile: Fusillade.sln
+      versioningTool: minver
+      minverMinimumMajorMinor: '5.0'
       bump: ${{ inputs.bump }}
       signerImage: ghcr.io/reactiveui/certum-signer:latest
     secrets:

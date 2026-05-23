@@ -1,46 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
-	<PropertyGroup>
-		<Copyright>Copyright (c) ReactiveUI and Contributors</Copyright>
-		<Authors>ReactiveUI and Contributors</Authors>
-		<PackageProjectUrl>https://github.com/reactiveui/fusillade/</PackageProjectUrl>
-		<PackageReleaseNotes>https://github.com/reactiveui/fusillade/releases</PackageReleaseNotes>
-		<RepositoryUrl>https://github.com/reactiveui/fusillade</RepositoryUrl>
-		
-		<NoWarn>$(NoWarn);VSX1000</NoWarn>
-		<Platform>AnyCPU</Platform>
-		<IsTestProject>$(MSBuildProjectName.Contains('Tests'))</IsTestProject>
-		<RepositoryType>git</RepositoryType>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<DebugType>Embedded</DebugType>
-		<PackageIcon>main.png</PackageIcon>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<PublishRepositoryUrl>true</PublishRepositoryUrl>
-		<EmbedUntrackedSources>true</EmbedUntrackedSources>
-		<AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
-		<EnableNETAnalyzers>True</EnableNETAnalyzers>
-		<AnalysisLevel>latest</AnalysisLevel>
-		<WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
-	</PropertyGroup>
+  <PropertyGroup>
+    <Copyright>Copyright (c) ReactiveUI and Contributors</Copyright>
+    <Authors>ReactiveUI and Contributors</Authors>
+    <PackageProjectUrl>https://github.com/reactiveui/fusillade/</PackageProjectUrl>
+    <PackageReleaseNotes>https://github.com/reactiveui/fusillade/releases</PackageReleaseNotes>
+    <RepositoryUrl>https://github.com/reactiveui/fusillade</RepositoryUrl>
+    
+    <NoWarn>$(NoWarn);VSX1000</NoWarn>
+    <Platform>AnyCPU</Platform>
+    <IsTestProject>$(MSBuildProjectName.Contains('Tests'))</IsTestProject>
+    <RepositoryType>git</RepositoryType>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DebugType>Embedded</DebugType>
+    <PackageIcon>main.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    <EnableNETAnalyzers>True</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
+  </PropertyGroup>
 
-	<ItemGroup Condition="'$(IsTestProject)' != 'true'">
-		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
-	</ItemGroup>
+  <ItemGroup Condition="'$(IsTestProject)' != 'true'">
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<None Include="$(MSBuildThisFileDirectory)../images/main.png" Pack="true" PackagePath="/"/>
-		<None Include="$(MSBuildThisFileDirectory)../LICENSE" Pack="true" PackagePath="LICENSE" />
-		<None Include="$(MSBuildThisFileDirectory)../README.md" Pack="true" PackagePath="/" />
-	</ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)../images/main.png" Pack="true" PackagePath="/"/>
+    <None Include="$(MSBuildThisFileDirectory)../LICENSE" Pack="true" PackagePath="LICENSE" />
+    <None Include="$(MSBuildThisFileDirectory)../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Nerdbank.GitVersioning" PrivateAssets="all" />
-		<PackageReference Include="stylecop.analyzers" PrivateAssets="all" />
-		<PackageReference Include="Roslynator.Analyzers" PrivateAssets="All" />
-	</ItemGroup>
+  <!-- MinVer (versioning) — replaces Nerdbank.GitVersioning. Floor at 5.0
+       (carried over from the former version.json) so untagged builds produce
+       5.0.x-alpha.0.<height> until a v5.0.x (or later) tag is reachable. -->
+  <PropertyGroup>
+    <MinVerAutoIncrement>minor</MinVerAutoIncrement>
+    <MinVerDefaultPreReleaseIdentifiers>alpha.0</MinVerDefaultPreReleaseIdentifiers>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerMinimumMajorMinor>5.0</MinVerMinimumMajorMinor>
+  </PropertyGroup>
 
-	<ItemGroup>
-		<AdditionalFiles Include="$(MSBuildThisFileDirectory)stylecop.json" Link="stylecop.json" />
-	</ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MinVer" PrivateAssets="all" />
+    <PackageReference Include="stylecop.analyzers" PrivateAssets="all" />
+    <PackageReference Include="Roslynator.Analyzers" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
 </Project>

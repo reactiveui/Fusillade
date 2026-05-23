@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    - cron: '18 12 * * 3'
+    - cron: '42 3 * * 5'
 
 permissions:
   security-events: write

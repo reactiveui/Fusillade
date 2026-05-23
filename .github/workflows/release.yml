@@ -15,6 +15,7 @@ on:
 permissions:
   contents: write
   id-token: write
+  packages: read
 
 jobs:
   release:
@@ -22,6 +23,7 @@ jobs:
     with:
       solutionFile: Fusillade.sln
       bump: ${{ inputs.bump }}
+      signerImage: ghcr.io/reactiveui/certum-signer:latest
     secrets:
       CERTUM_USER_ID: ${{ secrets.CERTUM_USER_ID }}
       CERTUM_OTP_URI: ${{ secrets.CERTUM_OTP_URI }}

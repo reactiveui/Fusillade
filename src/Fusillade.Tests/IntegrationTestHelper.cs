@@ -1,95 +1,103 @@
-﻿// Copyright (c) 2021 .NET Foundation and Contributors. All rights reserved.
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) 2016-2026 ReactiveUI and Contributors. All rights reserved.
+// ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System;
-using System.IO;
-using System.Linq;
 using System.Net;
-using System.Net.Http;
-using System.Reactive.Linq;
 using System.Text;
 
-namespace Fusillade.Tests
+namespace Fusillade.Tests;
+
+/// <summary>
+/// A helper for performing integration tests.
+/// </summary>
+public static class IntegrationTestHelper
 {
+    /// <summary>The carriage-return byte (CR).</summary>
+    private const byte CarriageReturn = 0x0D;
+
+    /// <summary>The line-feed byte (LF).</summary>
+    private const byte LineFeed = 0x0A;
+
+    /// <summary>The number of bytes in a single CRLF sequence.</summary>
+    private const int CrlfLength = 2;
+
     /// <summary>
-    /// A helper for performing integration tests.
+    /// Combines together paths together and then gets a full path.
     /// </summary>
-    public static class IntegrationTestHelper
+    /// <param name="paths">The paths to combine.</param>
+    /// <returns>The string path.</returns>
+    public static string GetPath(params string[] paths)
     {
-        /// <summary>
-        /// Combines together paths together and then gets a full path.
-        /// </summary>
-        /// <param name="paths">The paths to combine.</param>
-        /// <returns>The string path.</returns>
-        public static string GetPath(params string[] paths)
+        var ret = GetIntegrationTestRootDirectory();
+        return new FileInfo(paths.Aggregate(ret, Path.Combine)).FullName;
+    }
+
+    /// <summary>
+    /// Gets the root directory for the integration test.
+    /// </summary>
+    /// <returns>The path.</returns>
+    public static string GetIntegrationTestRootDirectory() =>
+
+        // The test fixtures live next to the source, but at runtime the assembly is
+        // executed from its build output (e.g. bin/<config>/<tfm>). We deliberately
+        // avoid Assembly.Location here: many test runners shadow-copy or relocate the
+        // assembly to a temp directory, which makes its reported location useless for
+        // finding the fixtures. The current working directory, however, is the build
+        // output folder, so walking up two levels (out of <tfm> and <config>) lands
+        // back at the project directory where the sample files are checked in.
+        Directory.GetParent(Directory.GetCurrentDirectory())!.Parent!.FullName;
+
+    /// <summary>
+    /// Creates a response from a sample file with the data.
+    /// </summary>
+    /// <param name="paths">The path to the file.</param>
+    /// <returns>The generated response.</returns>
+    public static HttpResponseMessage GetResponse(params string[] paths)
+    {
+        var bytes = File.ReadAllBytes(GetPath(paths));
+
+        // Find the body, separated from the headers by a CRLF CRLF sequence.
+        var bodyIndex = FindBodyIndex(bytes);
+        if (bodyIndex < 0)
         {
-            var ret = GetIntegrationTestRootDirectory();
-            return new FileInfo(paths.Aggregate(ret, Path.Combine)).FullName;
+            throw new InvalidOperationException("Couldn't find response body");
         }
 
-        /// <summary>
-        /// Gets the root directory for the integration test.
-        /// </summary>
-        /// <returns>The path.</returns>
-        public static string GetIntegrationTestRootDirectory()
+        var headerText = Encoding.UTF8.GetString(bytes, 0, bodyIndex);
+        var lines = headerText.Split('\n');
+        var statusCode = (HttpStatusCode)int.Parse(lines[0].Split(' ')[1]);
+        var bodyStart = bodyIndex + CrlfLength;
+        var ret = new HttpResponseMessage(statusCode)
         {
-            // XXX: This is an evil hack, but it's okay for a unit test
-            // We can't use Assembly.Location because unit test runners love
-            // to move stuff to temp directories
-            return Directory.GetParent(Directory.GetCurrentDirectory())!.Parent!.FullName;
-        }
+            Content = new ByteArrayContent(bytes, bodyStart, bytes.Length - bodyStart)
+        };
 
-        /// <summary>
-        /// Creates a response from a sample file with the data.
-        /// </summary>
-        /// <param name="paths">The path to the file.</param>
-        /// <returns>The generated response.</returns>
-        public static HttpResponseMessage GetResponse(params string[] paths)
+        foreach (var line in lines.Skip(1))
         {
-            var bytes = File.ReadAllBytes(GetPath(paths));
+            var separatorIndex = line.IndexOf(':');
+            var key = line.Substring(0, separatorIndex);
+            var val = line.Substring(separatorIndex + CrlfLength).TrimEnd();
 
-            // Find the body
-            var bodyIndex = -1;
-            for (bodyIndex = 0; bodyIndex < bytes.Length - 3; bodyIndex++)
+            if (string.IsNullOrWhiteSpace(line))
             {
-                if (bytes[bodyIndex] != 0x0D || bytes[bodyIndex + 1] != 0x0A ||
-                    bytes[bodyIndex + 2] != 0x0D || bytes[bodyIndex + 3] != 0x0A)
-                {
-                    continue;
-                }
-
-                goto foundIt;
+                continue;
             }
 
-            throw new Exception("Couldn't find response body");
-
-        foundIt:
-
-            var headerText = Encoding.UTF8.GetString(bytes, 0, bodyIndex);
-            var lines = headerText.Split('\n');
-            var statusCode = (HttpStatusCode)int.Parse(lines[0].Split(' ')[1]);
-            var ret = new HttpResponseMessage(statusCode);
-
-            ret.Content = new ByteArrayContent(bytes, bodyIndex + 2, bytes.Length - bodyIndex - 2);
-
-            foreach (var line in lines.Skip(1))
-            {
-                var separatorIndex = line.IndexOf(':');
-                var key = line.Substring(0, separatorIndex);
-                var val = line.Substring(separatorIndex + 2).TrimEnd();
-
-                if (string.IsNullOrWhiteSpace(line))
-                {
-                    continue;
-                }
-
-                ret.Headers.TryAddWithoutValidation(key, val);
-                ret.Content.Headers.TryAddWithoutValidation(key, val);
-            }
-
-            return ret;
+            ret.Headers.TryAddWithoutValidation(key, val);
+            ret.Content.Headers.TryAddWithoutValidation(key, val);
         }
+
+        return ret;
+    }
+
+    /// <summary>
+    /// Finds the byte offset of the header/body separator (a double CRLF sequence).
+    /// </summary>
+    /// <param name="bytes">The raw response bytes.</param>
+    /// <returns>The offset of the separator, or -1 if it is not present.</returns>
+    private static int FindBodyIndex(byte[] bytes)
+    {
+        ReadOnlySpan<byte> separator = [CarriageReturn, LineFeed, CarriageReturn, LineFeed];
+        return bytes.AsSpan().IndexOf(separator);
     }
 }

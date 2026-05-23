@@ -1,5 +1,4 @@
-// Copyright (c) 2016 - 2026 ReactiveUI and Contributors. All rights reserved.
-// Licensed to ReactiveUI and Contributors under one or more agreements.
+// Copyright (c) 2016-2026 ReactiveUI and Contributors. All rights reserved.
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
@@ -24,10 +23,12 @@ internal static class ArgumentExceptionHelper
     /// <param name="paramName">The name of the parameter with which <paramref name="argument"/> corresponds.</param>
     public static void ThrowIfNull([NotNull] object? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
     {
-        if (argument is null)
+        if (argument is not null)
         {
-            throw new ArgumentNullException(paramName);
+            return;
         }
+
+        throw new ArgumentNullException(paramName);
     }
 
     /// <summary>
@@ -44,9 +45,11 @@ internal static class ArgumentExceptionHelper
             throw new ArgumentNullException(paramName);
         }
 
-        if (argument.Length == 0)
+        if (argument.Length != 0)
         {
-            throw new ArgumentException("The value cannot be an empty string.", paramName);
+            return;
         }
+
+        throw new ArgumentException("The value cannot be an empty string.", paramName);
     }
 }

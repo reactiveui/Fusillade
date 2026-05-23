@@ -1,0 +1,26 @@
+{
+    "platform": {
+        "execution": {
+            "parallel": false
+        }
+    },
+    "codeCoverage": {
+        "Configuration": {
+            "Format": "cobertura",
+            "CodeCoverage": {
+                "SkipAutoProperties": true,
+                "ModulePaths": {
+                    "Exclude": [
+                        ".*Tests\\.dll$",
+                        ".*TestRunner.*"
+                    ]
+                },
+                "Functions": {
+                    "Exclude": [
+                        ".*__.*"
+                    ]
+                }
+            }
+        }
+    }
+}

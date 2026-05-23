@@ -12,16 +12,16 @@
     <PackageVersion Include="ReactiveUI.Testing" Version="23.2.27" />
     <PackageVersion Include="ReactiveUI" Version="23.2.27" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
-    <PackageVersion Include="NUnit" Version="4.6.1" />
-    <PackageVersion Include="NUnit3TestAdapter" Version="6.2.0" />
-    <PackageVersion Include="NUnit.Analyzers" Version="4.13.0" />
-    <PackageVersion Include="Verify.NUnit" Version="31.16.3" />
+    <PackageVersion Include="TUnit" Version="1.45.8" />
+    <PackageVersion Include="Verify.TUnit" Version="31.16.3" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.7.0" />
     <PackageVersion Include="PublicApiGenerator" Version="11.5.4" />
-    <PackageVersion Include="coverlet.msbuild" Version="10.0.1" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.300" />
     <PackageVersion Include="MinVer" Version="7.0.0" />
     <PackageVersion Include="stylecop.analyzers" Version="1.2.0-beta.556" />
     <PackageVersion Include="Roslynator.Analyzers" Version="4.15.0" />
+    <PackageVersion Include="Blazor.Common.Analyzers" Version="2.0.0" />
+    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.25.0.139117" />
     <PackageVersion Include="Microsoft.Reactive.Testing" Version="6.1.0" />
     <PackageVersion Include="System.Reactive" Version="6.1.0" />
   </ItemGroup>

@@ -1,0 +1,25 @@
+name: SonarCloud
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  sonarcloud:
+    uses: reactiveui/actions-common/.github/workflows/workflow-common-sonarcloud.yml@main
+    with:
+      productNamespacePrefix: Fusillade
+      versioningTool: minver
+      minverMinimumMajorMinor: '5.0'
+      sonarProjectKey: reactiveui_Fusillade
+      sonarOrganization: reactiveui
+      sonarExclusions: '**/*.Tests/**'
+      sonarCoverageExclusions: '**/*.Tests/**,**/*Tests.cs'
+      sonarTestExclusions: '**/*.Tests/**'
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

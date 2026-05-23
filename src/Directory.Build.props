@@ -7,21 +7,42 @@
     <PackageReleaseNotes>https://github.com/reactiveui/fusillade/releases</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/reactiveui/fusillade</RepositoryUrl>
     
-    <NoWarn>$(NoWarn);VSX1000</NoWarn>
     <Platform>AnyCPU</Platform>
     <IsTestProject>$(MSBuildProjectName.Contains('Tests'))</IsTestProject>
     <RepositoryType>git</RepositoryType>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <DebugType>Embedded</DebugType>
+    <DebugType>embedded</DebugType>
     <PackageIcon>main.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
-    <EnableNETAnalyzers>True</EnableNETAnalyzers>
+
+    <!-- Enable building Windows-specific targets on non-Windows platforms -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+
+    <!-- Analyzer + style enforcement (aligned with reactiveui/Extensions). -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
+
+    <!-- Surface source-generator output under obj/Generated for easy inspection. -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(MSBuildProjectDirectory)/obj/Generated</CompilerGeneratedFilesOutputPath>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <!-- AOT / trim-compatibility analyzers on .NET 8+ for every library project.
+       Netfx TFMs (net462/net472/net481) don't support these — keep them off there. -->
+  <PropertyGroup Condition="'$(IsTestProject)' != 'true' and $([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsTestProject)' != 'true'">
@@ -48,9 +69,30 @@
     <PackageReference Include="MinVer" PrivateAssets="all" />
     <PackageReference Include="stylecop.analyzers" PrivateAssets="all" />
     <PackageReference Include="Roslynator.Analyzers" PrivateAssets="All" />
+    <PackageReference Include="Blazor.Common.Analyzers" PrivateAssets="All" />
+    <PackageReference Include="SonarAnalyzer.CSharp" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)stylecop.json" Link="stylecop.json" />
   </ItemGroup>
+
+  <!--
+    The .NET SDK + transitive packages auto-load several source generators that
+    have nothing to do in this codebase. Each one still scans the full compilation
+    looking for its trigger attribute, so removing them from @(Analyzer) before
+    CoreCompile shaves real csc time. Re-enable any of these the moment the
+    corresponding attribute is introduced; csc will silently produce wrong output otherwise.
+  -->
+  <Target Name="RemoveUnusedSdkGenerators" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <Analyzer Remove="@(Analyzer)"
+                Condition="'%(Filename)' == 'Microsoft.Interop.ComInterfaceGenerator'
+                        or '%(Filename)' == 'Microsoft.Interop.ComClassGenerator'
+                        or '%(Filename)' == 'Microsoft.Interop.VtableIndexStubGenerator'
+                        or '%(Filename)' == 'Microsoft.Interop.JavaScript.JSImportGenerator'
+                        or '%(Filename)' == 'Microsoft.Interop.LibraryImportGenerator'
+                        or '%(Filename)' == 'System.Text.Json.SourceGeneration'" />
+    </ItemGroup>
+  </Target>
 </Project>

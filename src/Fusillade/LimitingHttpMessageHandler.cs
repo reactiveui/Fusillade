@@ -1,5 +1,4 @@
-﻿// Copyright (c) 2016 - 2026 ReactiveUI and Contributors. All rights reserved.
-// Licensed to ReactiveUI and Contributors under one or more agreements.
+﻿// Copyright (c) 2016-2026 ReactiveUI and Contributors. All rights reserved.
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
@@ -32,10 +31,17 @@ public abstract class LimitingHttpMessageHandler : DelegatingHandler
     }
 
     /// <summary>
+    /// Resets the total limit of bytes to read, clearing any previously set
+    /// limit. This is usually called when the app resumes from suspend, to
+    /// indicate that we should fetch another set of data.
+    /// </summary>
+    public void ResetLimit() => ResetLimit(null);
+
+    /// <summary>
     /// Resets the total limit of bytes to read. This is usually called
     /// when the app resumes from suspend, to indicate that we should
     /// fetch another set of data.
     /// </summary>
     /// <param name="maxBytesToRead">The maximum number of bytes to read.</param>
-    public abstract void ResetLimit(long? maxBytesToRead = null);
+    public abstract void ResetLimit(long? maxBytesToRead);
 }

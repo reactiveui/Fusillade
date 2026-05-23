@@ -1,0 +1,11 @@
+ignore:
+  - src/Fusillade.Tests
+  - src/tests
+  - src/tools
+  - src/benchmarks
+  - integrationtests
+  - "**/tests/"
+  - "**/tools/"
+  - "**/benchmarks/"
+  - "**/Tests/"
+  - "**/*.Tests/"

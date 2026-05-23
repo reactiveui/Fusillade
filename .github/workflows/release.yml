@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   release:
-    uses: reactiveui/actions-common/.github/workflows/workflow-common-release.yml@main
+    uses: reactiveui/actions-common/.github/workflows/workflow-common-release.yml@eda189f763e0e2758ca6d5dc560dc98754031f18 # main
     with:
       solutionFile: Fusillade.sln
       bump: ${{ inputs.bump }}
@@ -58,7 +58,7 @@ jobs:
 
   create-release:
     needs: [release, publish-nuget]
-    uses: reactiveui/actions-common/.github/workflows/workflow-common-create-release.yml@main
+    uses: reactiveui/actions-common/.github/workflows/workflow-common-create-release.yml@eda189f763e0e2758ca6d5dc560dc98754031f18 # main
     with:
       version: ${{ needs.release.outputs.semver2 }}
       tag: ${{ needs.release.outputs.tag }}

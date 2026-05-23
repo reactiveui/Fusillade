@@ -38,9 +38,13 @@ public static class IntegrationTestHelper
     /// <returns>The path.</returns>
     public static string GetIntegrationTestRootDirectory() =>
 
-        // XXX: This is an evil hack, but it's okay for a unit test
-        // We can't use Assembly.Location because unit test runners love
-        // to move stuff to temp directories
+        // The test fixtures live next to the source, but at runtime the assembly is
+        // executed from its build output (e.g. bin/<config>/<tfm>). We deliberately
+        // avoid Assembly.Location here: many test runners shadow-copy or relocate the
+        // assembly to a temp directory, which makes its reported location useless for
+        // finding the fixtures. The current working directory, however, is the build
+        // output folder, so walking up two levels (out of <tfm> and <config>) lands
+        // back at the project directory where the sample files are checked in.
         Directory.GetParent(Directory.GetCurrentDirectory())!.Parent!.FullName;
 
     /// <summary>

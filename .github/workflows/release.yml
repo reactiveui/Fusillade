@@ -22,7 +22,6 @@ jobs:
     uses: reactiveui/actions-common/.github/workflows/workflow-common-release.yml@main
     with:
       solutionFile: Fusillade.slnx
-      versioningTool: minver
       minverMinimumMajorMinor: '5.0'
       bump: ${{ inputs.bump }}
     secrets:

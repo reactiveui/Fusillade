@@ -1,0 +1,26 @@
+name: "CodeQL Advanced"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '18 12 * * 3'
+
+permissions:
+  security-events: write
+  contents: read
+  packages: read
+  actions: read
+
+jobs:
+  codeql:
+    uses: reactiveui/actions-common/.github/workflows/workflow-common-codeql.yml@main
+    with:
+      srcFolder: src
+      solutionFile: Fusillade.slnx
+      installWorkloads: false
+      analyzeCSharp: true
+      analyzeActions: true
+      analyzeJavaScript: false

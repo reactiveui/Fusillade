@@ -1,5 +1,4 @@
-// Copyright (c) 2016 - 2026 ReactiveUI and Contributors. All rights reserved.
-// Licensed to ReactiveUI and Contributors under one or more agreements.
+// Copyright (c) 2016-2026 ReactiveUI and Contributors. All rights reserved.
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
@@ -16,24 +15,55 @@ namespace Fusillade;
 /// </summary>
 public static class NetCache
 {
+    /// <summary>
+    /// The default speculative read budget (5 MB). Speculative requests stop
+    /// fetching once this many bytes have been read across all requests.
+    /// </summary>
+    private const long DefaultSpeculativeMaxBytesToRead = 5_242_880;
+
+    /// <summary>The process-wide speculative handler.</summary>
     private static LimitingHttpMessageHandler speculative;
+
+    /// <summary>The unit-test override for the speculative handler.</summary>
     [ThreadStatic]
     private static LimitingHttpMessageHandler? unitTestSpeculative;
+
+    /// <summary>The process-wide user-initiated handler.</summary>
     private static HttpMessageHandler userInitiated;
+
+    /// <summary>The unit-test override for the user-initiated handler.</summary>
     [ThreadStatic]
     private static HttpMessageHandler? unitTestUserInitiated;
+
+    /// <summary>The process-wide background handler.</summary>
     private static HttpMessageHandler background;
+
+    /// <summary>The unit-test override for the background handler.</summary>
     [ThreadStatic]
     private static HttpMessageHandler? unitTestBackground;
+
+    /// <summary>The process-wide offline handler.</summary>
     private static HttpMessageHandler offline;
+
+    /// <summary>The unit-test override for the offline handler.</summary>
     [ThreadStatic]
     private static HttpMessageHandler? unitTestOffline;
-    private static OperationQueue operationQueue = new(4);
+
+    /// <summary>The process-wide operation queue.</summary>
+    private static OperationQueue operationQueue = new();
+
+    /// <summary>The unit-test override for the operation queue.</summary>
     [ThreadStatic]
     private static OperationQueue? unitTestOperationQueue;
+
+    /// <summary>The process-wide request cache.</summary>
     private static IRequestCache? requestCache;
+
+    /// <summary>The unit-test override for the request cache.</summary>
     [ThreadStatic]
     private static IRequestCache? unitTestRequestCache;
+
+    /// <summary>The dependency resolver used to resolve handlers.</summary>
     private static IReadonlyDependencyResolver? Current;
 
     /// <summary>
@@ -46,9 +76,9 @@ public static class NetCache
         // NB: In vNext this value will be adjusted based on the user's
         // network connection, but that requires us to go fully platformy
         // like Splat.
-        speculative = new RateLimitedHttpMessageHandler(innerHandler, Priority.Speculative, 0, 1048576 * 5);
-        userInitiated = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, 0);
-        background = new RateLimitedHttpMessageHandler(innerHandler, Priority.Background, 0);
+        speculative = new RateLimitedHttpMessageHandler(innerHandler, Priority.Speculative, maxBytesToRead: DefaultSpeculativeMaxBytesToRead);
+        userInitiated = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated);
+        background = new RateLimitedHttpMessageHandler(innerHandler, Priority.Background);
         offline = new OfflineHttpMessageHandler(null);
     }
 
@@ -63,7 +93,7 @@ public static class NetCache
         get => unitTestSpeculative ?? GetCurrent().GetService<LimitingHttpMessageHandler>("Speculative") ?? speculative;
         set
         {
-            ArgumentExceptionHelper.ThrowIfNull(value, nameof(value));
+            ArgumentExceptionHelper.ThrowIfNull(value);
 
             if (ModeDetector.InUnitTestRunner())
             {
@@ -86,7 +116,7 @@ public static class NetCache
         get => unitTestUserInitiated ?? GetCurrent().GetService<HttpMessageHandler>("UserInitiated") ?? userInitiated;
         set
         {
-            ArgumentExceptionHelper.ThrowIfNull(value, nameof(value));
+            ArgumentExceptionHelper.ThrowIfNull(value);
 
             if (ModeDetector.InUnitTestRunner())
             {
@@ -109,7 +139,7 @@ public static class NetCache
         get => unitTestBackground ?? GetCurrent().GetService<HttpMessageHandler>("Background") ?? background;
         set
         {
-            ArgumentExceptionHelper.ThrowIfNull(value, nameof(value));
+            ArgumentExceptionHelper.ThrowIfNull(value);
 
             if (ModeDetector.InUnitTestRunner())
             {
@@ -132,7 +162,7 @@ public static class NetCache
         get => unitTestOffline ?? GetCurrent().GetService<HttpMessageHandler>("Offline") ?? offline;
         set
         {
-            ArgumentExceptionHelper.ThrowIfNull(value, nameof(value));
+            ArgumentExceptionHelper.ThrowIfNull(value);
 
             if (ModeDetector.InUnitTestRunner())
             {
@@ -156,7 +186,7 @@ public static class NetCache
         get => unitTestOperationQueue ?? GetCurrent().GetService<OperationQueue>("OperationQueue") ?? operationQueue;
         set
         {
-            ArgumentExceptionHelper.ThrowIfNull(value, nameof(value));
+            ArgumentExceptionHelper.ThrowIfNull(value);
 
             if (ModeDetector.InUnitTestRunner())
             {
@@ -197,5 +227,7 @@ public static class NetCache
     /// <param name="current">The current.</param>
     internal static void CreateDefaultInstances(IReadonlyDependencyResolver? current) => Current = current;
 
+    /// <summary>Gets the current dependency resolver, falling back to <see cref="AppLocator.Current"/>.</summary>
+    /// <returns>The dependency resolver.</returns>
     private static IReadonlyDependencyResolver GetCurrent() => Current ??= AppLocator.Current;
 }

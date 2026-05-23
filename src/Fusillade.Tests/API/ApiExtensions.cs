@@ -1,16 +1,10 @@
-﻿// Copyright (c) 2021 .NET Foundation and Contributors. All rights reserved.
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) 2016-2026 ReactiveUI and Contributors. All rights reserved.
+// ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
-using NUnit.Framework; // add for NUnit attributes if needed later
 using PublicApiGenerator;
-using VerifyNUnit; // changed from VerifyXunit
 
 namespace Fusillade.APITests;
 
@@ -32,13 +26,14 @@ public static class ApiExtensions
     {
         var generatorOptions = new ApiGeneratorOptions { AllowNamespacePrefixes = namespaces };
         var apiText = assembly.GeneratePublicApi(generatorOptions);
-        var result = await Verifier.Verify(apiText, null, filePath)
+        _ = await Verify(apiText, null, filePath)
             .UniqueForRuntimeAndVersion()
             .ScrubEmptyLines()
             .ScrubLines(l =>
                 l.StartsWith("[assembly: AssemblyVersion(", StringComparison.InvariantCulture) ||
                 l.StartsWith("[assembly: AssemblyFileVersion(", StringComparison.InvariantCulture) ||
                 l.StartsWith("[assembly: AssemblyInformationalVersion(", StringComparison.InvariantCulture) ||
-                l.StartsWith("[assembly: System.Reflection.AssemblyMetadata(", StringComparison.InvariantCulture));
+                l.StartsWith("[assembly: System.Reflection.AssemblyMetadata(", StringComparison.InvariantCulture) ||
+                l.StartsWith("[assembly: System.Runtime.CompilerServices.InternalsVisibleTo(", StringComparison.InvariantCulture));
     }
 }

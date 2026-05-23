@@ -1,28 +1,40 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-		<NoWarn>$(NoWarn);1591;CA1707;SA1633;CA2000;CA1031;CA1307;CA1305</NoWarn>
-		<IsPackable>false</IsPackable>
-		<LangVersion>preview</LangVersion>
-		<Nullable>enable</Nullable>
-	</PropertyGroup>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ExcludeFromCodeCoverage>true</ExcludeFromCodeCoverage>
+    <SonarQubeExclude>true</SonarQubeExclude>
+    <Nullable>enable</Nullable>
 
-	<ItemGroup>
-		<ProjectReference Include="../Fusillade/Fusillade.csproj" />
-	</ItemGroup>
+    <!-- TUnit runs on Microsoft.Testing.Platform; bridge it to `dotnet test`. -->
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <TUnitImplicitUsings>true</TUnitImplicitUsings>
+    <TUnitAssertionsImplicitUsings>true</TUnitAssertionsImplicitUsings>
+  </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Akavache.SystemTextJson" />
-		<PackageReference Include="System.Reactive" />
-		<PackageReference Include="Microsoft.Reactive.Testing" />
-		<PackageReference Include="ReactiveUI" />
-		<PackageReference Include="ReactiveUI.Testing" />
-		<PackageReference Include="Microsoft.NET.Test.Sdk" />
-		<PackageReference Include="NUnit" />
-		<PackageReference Include="NUnit3TestAdapter" />
-		<PackageReference Include="NUnit.Analyzers" PrivateAssets="All" />
-		<PackageReference Include="Verify.NUnit" />
-		<PackageReference Include="PublicApiGenerator" />
-		<PackageReference Include="coverlet.msbuild" PrivateAssets="All" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Fusillade/Fusillade.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Akavache.SystemTextJson" />
+    <PackageReference Include="System.Reactive" />
+    <PackageReference Include="Microsoft.Reactive.Testing" />
+    <PackageReference Include="ReactiveUI" />
+    <PackageReference Include="ReactiveUI.Testing" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+    <PackageReference Include="TUnit" />
+    <PackageReference Include="Verify.TUnit" />
+    <PackageReference Include="PublicApiGenerator" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)../testconfig.json">
+      <Link>$(AssemblyName).testconfig.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

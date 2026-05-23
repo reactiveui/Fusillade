@@ -1,5 +1,4 @@
-﻿// Copyright (c) 2016 - 2026 ReactiveUI and Contributors. All rights reserved.
-// Licensed to ReactiveUI and Contributors under one or more agreements.
+﻿// Copyright (c) 2016-2026 ReactiveUI and Contributors. All rights reserved.
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
@@ -37,10 +36,10 @@ public class OfflineHttpMessageHandler(Func<HttpRequestMessage, string, Cancella
         var body = await retrieveBody(request, RateLimitedHttpMessageHandler.UniqueKeyForRequest(request), cancellationToken).ConfigureAwait(false);
         if (body == null)
         {
-            return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
+            return new(HttpStatusCode.ServiceUnavailable);
         }
 
         var byteContent = new ByteArrayContent(body);
-        return new HttpResponseMessage(HttpStatusCode.OK) { Content = byteContent };
+        return new(HttpStatusCode.OK) { Content = byteContent };
     }
 }

@@ -1,10 +1,11 @@
-// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
+// Copyright (c) 2016 - 2026 ReactiveUI and Contributors. All rights reserved.
 // Licensed to ReactiveUI and Contributors under one or more agreements.
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 using System;
 using System.Net.Http;
+using Fusillade.Helpers;
 using Punchclock;
 using Splat;
 
@@ -62,14 +63,7 @@ public static class NetCache
         get => unitTestSpeculative ?? GetCurrent().GetService<LimitingHttpMessageHandler>("Speculative") ?? speculative;
         set
         {
-#if NET8_0_OR_GREATER
-            ArgumentNullException.ThrowIfNull(value, nameof(value));
-#else
-            if (value is null)
-            {
-                throw new ArgumentNullException(nameof(value));
-            }
-#endif
+            ArgumentExceptionHelper.ThrowIfNull(value, nameof(value));
 
             if (ModeDetector.InUnitTestRunner())
             {
@@ -92,14 +86,7 @@ public static class NetCache
         get => unitTestUserInitiated ?? GetCurrent().GetService<HttpMessageHandler>("UserInitiated") ?? userInitiated;
         set
         {
-#if NET8_0_OR_GREATER
-            ArgumentNullException.ThrowIfNull(value, nameof(value));
-#else
-            if (value is null)
-            {
-                throw new ArgumentNullException(nameof(value));
-            }
-#endif
+            ArgumentExceptionHelper.ThrowIfNull(value, nameof(value));
 
             if (ModeDetector.InUnitTestRunner())
             {
@@ -122,14 +109,7 @@ public static class NetCache
         get => unitTestBackground ?? GetCurrent().GetService<HttpMessageHandler>("Background") ?? background;
         set
         {
-#if NET8_0_OR_GREATER
-            ArgumentNullException.ThrowIfNull(value, nameof(value));
-#else
-            if (value is null)
-            {
-                throw new ArgumentNullException(nameof(value));
-            }
-#endif
+            ArgumentExceptionHelper.ThrowIfNull(value, nameof(value));
 
             if (ModeDetector.InUnitTestRunner())
             {
@@ -152,14 +132,7 @@ public static class NetCache
         get => unitTestOffline ?? GetCurrent().GetService<HttpMessageHandler>("Offline") ?? offline;
         set
         {
-#if NET8_0_OR_GREATER
-            ArgumentNullException.ThrowIfNull(value, nameof(value));
-#else
-            if (value is null)
-            {
-                throw new ArgumentNullException(nameof(value));
-            }
-#endif
+            ArgumentExceptionHelper.ThrowIfNull(value, nameof(value));
 
             if (ModeDetector.InUnitTestRunner())
             {
@@ -183,14 +156,7 @@ public static class NetCache
         get => unitTestOperationQueue ?? GetCurrent().GetService<OperationQueue>("OperationQueue") ?? operationQueue;
         set
         {
-#if NET8_0_OR_GREATER
-            ArgumentNullException.ThrowIfNull(value, nameof(value));
-#else
-            if (value is null)
-            {
-                throw new ArgumentNullException(nameof(value));
-            }
-#endif
+            ArgumentExceptionHelper.ThrowIfNull(value, nameof(value));
 
             if (ModeDetector.InUnitTestRunner())
             {

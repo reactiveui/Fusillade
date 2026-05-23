@@ -1,10 +1,11 @@
-// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
+// Copyright (c) 2016 - 2026 ReactiveUI and Contributors. All rights reserved.
 // Licensed to ReactiveUI and Contributors under one or more agreements.
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 using System;
 using Fusillade;
+using Fusillade.Helpers;
 
 namespace Splat.Builder;
 
@@ -20,14 +21,7 @@ public static class FusilladeSplatBuilderExtensions
     /// <returns>The App Instance for Chaining.</returns>
     public static IAppInstance CreateFusilladeNetCache(this IAppInstance builder)
     {
-#if NET8_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(builder);
-#else
-        if (builder is null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
-#endif
+        ArgumentExceptionHelper.ThrowIfNull(builder);
 
         NetCache.CreateDefaultInstances(builder.Current);
         return builder;

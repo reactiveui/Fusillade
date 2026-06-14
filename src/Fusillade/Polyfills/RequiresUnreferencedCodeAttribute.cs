@@ -24,17 +24,12 @@ namespace System.Diagnostics.CodeAnalysis;
     Inherited = false)]
 internal sealed class RequiresUnreferencedCodeAttribute : Attribute
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="RequiresUnreferencedCodeAttribute"/> class
-    /// with the specified message.
-    /// </summary>
+    /// <summary>Initializes a new instance of the <see cref="RequiresUnreferencedCodeAttribute"/> class with the specified message.</summary>
     /// <param name="message">A message that contains information about the usage of unreferenced code.</param>
     public RequiresUnreferencedCodeAttribute(string message) =>
         Message = message;
 
-    /// <summary>
-    /// Gets a message that contains information about the usage of unreferenced code.
-    /// </summary>
+    /// <summary>Gets a message that contains information about the usage of unreferenced code.</summary>
     public string Message { get; }
 
     /// <summary>

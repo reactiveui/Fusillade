@@ -1,40 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
   <PropertyGroup>
-    <Copyright>Copyright (c) ReactiveUI and Contributors</Copyright>
-    <Authors>ReactiveUI and Contributors</Authors>
+    <Authors>ReactiveUI Association Inc</Authors>
+    <Company>ReactiveUI Association Inc</Company>
+    <Copyright>Copyright (c) ReactiveUI Association Inc $([System.DateTime]::Now.ToString('yyyy'))</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/reactiveui/fusillade/</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>main.png</PackageIcon>
+    <Owners>glennawatson;rlittlesii;chrispulman</Owners>
     <PackageReleaseNotes>https://github.com/reactiveui/fusillade/releases</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/reactiveui/fusillade</RepositoryUrl>
-    
-    <Platform>AnyCPU</Platform>
-    <IsTestProject>$(MSBuildProjectName.Contains('Tests'))</IsTestProject>
     <RepositoryType>git</RepositoryType>
+    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Platform>AnyCPU</Platform>
+    <IsTestProject>$(MSBuildProjectName.EndsWith('.Tests'))</IsTestProject>
     <DebugType>embedded</DebugType>
-    <PackageIcon>main.png</PackageIcon>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
 
-    <!-- Enable building Windows-specific targets on non-Windows platforms -->
-    <EnableWindowsTargeting>true</EnableWindowsTargeting>
-
-    <!-- Analyzer + style enforcement (aligned with reactiveui/Extensions). -->
+    <!-- Analyzer + style enforcement. -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <RunAnalyzers>true</RunAnalyzers>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
-
-    <!-- Surface source-generator output under obj/Generated for easy inspection. -->
+    <ReportAnalyzer>true</ReportAnalyzer>
+    
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(MSBuildProjectDirectory)/obj/Generated</CompilerGeneratedFilesOutputPath>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>    
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <TUnitImplicitUsings>true</TUnitImplicitUsings>
+    <TUnitAssertionsImplicitUsings>true</TUnitAssertionsImplicitUsings>
+    <SonarQubeExclude>true</SonarQubeExclude>
+    <ExcludeFromCodeCoverage>true</ExcludeFromCodeCoverage>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NetTargetFrameworks>net8.0;net9.0;net10.0;net11.0</NetTargetFrameworks>
+    <NetFrameworkTargetFrameworks>net462;net472;net48;net481</NetFrameworkTargetFrameworks>
+    <LibraryTargetFrameworks>$(NetTargetFrameworks);$(NetFrameworkTargetFrameworks)</LibraryTargetFrameworks>
   </PropertyGroup>
 
   <!-- AOT / trim-compatibility analyzers on .NET 8+ for every library project.
@@ -45,15 +60,9 @@
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(IsTestProject)' != 'true'">
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)../images/main.png" Pack="true" PackagePath="/"/>
-    <None Include="$(MSBuildThisFileDirectory)../LICENSE" Pack="true" PackagePath="LICENSE" />
-    <None Include="$(MSBuildThisFileDirectory)../README.md" Pack="true" PackagePath="/" />
-  </ItemGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net11.0'))">
+    <Features>$(Features);runtime-async=on</Features>
+  </PropertyGroup>
 
   <!-- MinVer (versioning) — replaces Nerdbank.GitVersioning. Floor at 5.0
        (carried over from the former version.json) so untagged builds produce
@@ -65,16 +74,59 @@
     <MinVerMinimumMajorMinor>5.0</MinVerMinimumMajorMinor>
   </PropertyGroup>
 
+  <!-- Per-TFM public-API tracking via Roslyn PublicApiAnalyzers (RS0016/RS0017); baselines in
+       PublicAPI/<tfm>/. Tests, benchmarks, and source generators are exempt. -->
+  <PropertyGroup>
+    <TrackPublicApi Condition="'$(TrackPublicApi)' == ''">true</TrackPublicApi>
+    <TrackPublicApi Condition="$(MSBuildProjectName.EndsWith('.Tests'))">false</TrackPublicApi>
+    <TrackPublicApi Condition="$(MSBuildProjectName.EndsWith('.Benchmarks'))">false</TrackPublicApi>
+    <TrackPublicApi Condition="$(MSBuildProjectName.EndsWith('.Generator'))">false</TrackPublicApi>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(TrackPublicApi)' == 'true'">
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all"/>
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)\PublicAPI\$(TargetFramework)\PublicAPI.Shipped.txt"/>
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)\PublicAPI\$(TargetFramework)\PublicAPI.Unshipped.txt"/>
+  </ItemGroup>
+
+  <!-- MTP Native JSON Configuration -->
+  <ItemGroup Condition="$(IsTestProject)">
+    <None Include="$(MSBuildThisFileDirectory)testconfig.json">
+      <Link>$(AssemblyName).testconfig.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage"/>
+    <PackageReference Include="TUnit"/>
+
+    <PackageReference Include="Akavache.SystemTextJson" />
+    <PackageReference Include="ReactiveUI.Primitives" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsTestProject)' != 'true'">
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)../images/main.png" Pack="true" PackagePath="/"/>
+    <None Include="$(MSBuildThisFileDirectory)../LICENSE" Pack="true" PackagePath="LICENSE" />
+    <None Include="$(MSBuildThisFileDirectory)../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="MinVer" PrivateAssets="all" />
-    <PackageReference Include="stylecop.analyzers" PrivateAssets="all" />
+    <PackageReference Include="StyleSharp.Analyzers" PrivateAssets="all"/>
     <PackageReference Include="Roslynator.Analyzers" PrivateAssets="All" />
     <PackageReference Include="Blazor.Common.Analyzers" PrivateAssets="All" />
     <PackageReference Include="SonarAnalyzer.CSharp" PrivateAssets="all" />
   </ItemGroup>
 
-  <ItemGroup>
-    <AdditionalFiles Include="$(MSBuildThisFileDirectory)stylecop.json" Link="stylecop.json" />
+  <!-- Alias Lock to the dedicated System.Threading.Lock on .NET 9+ (faster EnterScope fast path),
+     and to a plain object elsewhere (the lock statement falls back to Monitor). -->
+  <ItemGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net9.0'))">
+    <Using Include="System.Threading.Lock" Alias="Lock"/>
+  </ItemGroup>
+  <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net9.0'))">
+    <Using Include="System.Object" Alias="Lock"/>
   </ItemGroup>
 
   <!--
@@ -92,6 +144,8 @@
                         or '%(Filename)' == 'Microsoft.Interop.VtableIndexStubGenerator'
                         or '%(Filename)' == 'Microsoft.Interop.JavaScript.JSImportGenerator'
                         or '%(Filename)' == 'Microsoft.Interop.LibraryImportGenerator'
+                        or '%(Filename)' == 'ReactiveUI.Primitives.R3Bridge.Generator'
+                        or '%(Filename)' == 'ReactiveUI.Primitives.SystemReactiveBridge.Generator'
                         or '%(Filename)' == 'System.Text.Json.SourceGeneration'" />
     </ItemGroup>
   </Target>

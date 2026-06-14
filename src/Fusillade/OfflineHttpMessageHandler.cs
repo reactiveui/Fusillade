@@ -10,9 +10,7 @@ using System.Threading.Tasks;
 
 namespace Fusillade;
 
-/// <summary>
-/// A http handler that will make a response even if the HttpClient is offline.
-/// </summary>
+/// <summary>A http handler that will make a response even if the HttpClient is offline.</summary>
 /// <remarks>
 /// Initializes a new instance of the <see cref="OfflineHttpMessageHandler"/> class.
 /// </remarks>
@@ -23,18 +21,18 @@ public class OfflineHttpMessageHandler(Func<HttpRequestMessage, string, Cancella
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var retrieveBody = retrieveBodyFunc;
-        if (retrieveBody == null && NetCache.RequestCache != null)
+        if (retrieveBody is null && NetCache.RequestCache is not null)
         {
-            retrieveBody = NetCache.RequestCache.Fetch;
+            retrieveBody = NetCache.RequestCache.FetchAsync;
         }
 
-        if (retrieveBody == null)
+        if (retrieveBody is null)
         {
             throw new InvalidOperationException("Configure NetCache.RequestCache before calling this!");
         }
 
         var body = await retrieveBody(request, RateLimitedHttpMessageHandler.UniqueKeyForRequest(request), cancellationToken).ConfigureAwait(false);
-        if (body == null)
+        if (body is null)
         {
             return new(HttpStatusCode.ServiceUnavailable);
         }

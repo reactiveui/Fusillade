@@ -3,27 +3,28 @@
 // See the LICENSE file in the project root for full license information.
 
 using System.Net;
-using System.Reactive.Linq;
+using System.Net.Http.Headers;
 using System.Text;
 using Akavache;
 using Akavache.SystemTextJson;
+using ReactiveUI.Primitives.Signals;
 
 namespace Fusillade.Tests.Http;
 
-/// <summary>
-/// Checks to make sure that the http scheduler caches correctly.
-/// </summary>
+/// <summary>Checks to make sure that the http scheduler caches correctly.</summary>
+[NotInParallel]
 public class HttpSchedulerCachingTests
 {
+    /// <summary>The repeated test URL used by cache tests.</summary>
+    private const string TestBarUrl = "http://lol/bar";
+
     /// <summary>The byte length of the "foo" test payload.</summary>
     private const int FooContentLength = 3;
 
-    /// <summary>
-    /// Checks to make sure that the caching functiosn are only called with content.
-    /// </summary>
+    /// <summary>Checks to make sure that the caching functions are only called with content.</summary>
     /// <returns>A task to monitor the progress.</returns>
     [Test]
-    public async Task CachingFunctionShouldBeCalledWithContent()
+    public async Task CachingFunctionShouldBeCalledWithContentAsync()
     {
         var innerHandler = new TestHttpMessageHandler(_ =>
         {
@@ -34,7 +35,7 @@ public class HttpSchedulerCachingTests
             };
 
             ret.Headers.ETag = new("\"worifjw\"");
-            return Observable.Return(ret);
+            return Signal.Emit(ret);
         });
 
         var contentResponses = new List<byte[]>();
@@ -45,7 +46,7 @@ public class HttpSchedulerCachingTests
             cacheResultFunc: async (_, re, _, ct) => contentResponses.Add(await re.Content.ReadAsByteArrayAsync(ct)));
 
         var client = new HttpClient(fixture);
-        var str = await client.GetStringAsync(new Uri("http://lol/bar"));
+        var str = await client.GetStringAsync(new Uri(TestBarUrl));
 
         using (Assert.Multiple())
         {
@@ -56,12 +57,10 @@ public class HttpSchedulerCachingTests
         await Assert.That(contentResponses[0].Length).IsEqualTo(FooContentLength);
     }
 
-    /// <summary>
-    /// Checks to make sure that the cache preserves the http headers.
-    /// </summary>
+    /// <summary>Checks to make sure that the cache preserves the http headers.</summary>
     /// <returns>A task to monitor the progress.</returns>
     [Test]
-    public async Task CachingFunctionShouldPreserveHeaders()
+    public async Task CachingFunctionShouldPreserveHeadersAsync()
     {
         var innerHandler = new TestHttpMessageHandler(_ =>
         {
@@ -72,7 +71,7 @@ public class HttpSchedulerCachingTests
             };
 
             ret.Headers.ETag = new("\"worifjw\"");
-            return Observable.Return(ret);
+            return Signal.Emit(ret);
         });
 
         var etagResponses = new List<string>();
@@ -83,17 +82,65 @@ public class HttpSchedulerCachingTests
         });
 
         var client = new HttpClient(fixture);
-        _ = await client.GetAsync(new Uri("http://lol/bar"));
+        _ = await client.GetAsync(new Uri(TestBarUrl));
         await Assert.That(etagResponses[0]).IsEqualTo("\"worifjw\"");
     }
 
-    /// <summary>
-    /// Does a round trip integration test.
-    /// </summary>
+    /// <summary>Checks that the default NetCache request cache is used when no cache callback is supplied.</summary>
+    /// <returns>A task to monitor the progress.</returns>
+    [Test]
+    public async Task CachingFunctionShouldUseNetCacheRequestCacheByDefaultAsync()
+    {
+        using var scope = new NetCacheTestScope(true);
+        var requestCache = new RecordingRequestCache();
+        NetCache.RequestCache = requestCache;
+
+        var innerHandler = new TestHttpMessageHandler(_ =>
+        {
+            var ret = new HttpResponseMessage
+            {
+                Content = new StringContent("foo", Encoding.UTF8),
+                StatusCode = HttpStatusCode.OK,
+            };
+
+            return Signal.Emit(ret);
+        });
+
+        var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, opQueue: new());
+        using var client = new HttpClient(fixture);
+        var str = await client.GetStringAsync(new Uri(TestBarUrl));
+
+        using (Assert.Multiple())
+        {
+            await Assert.That(str).IsEqualTo("foo");
+            await Assert.That(requestCache.SaveCount).IsEqualTo(1);
+            await Assert.That(requestCache.SavedKey?.StartsWith("HttpSchedulerCache_", StringComparison.Ordinal)).IsTrue();
+            await Assert.That(requestCache.SavedBytes).IsNotNull();
+        }
+
+        await Assert.That(requestCache.SavedBytes!.Length).IsEqualTo(FooContentLength);
+    }
+
+    /// <summary>Checks that authorization headers affect request identity.</summary>
+    /// <returns>A task to monitor the progress.</returns>
+    [Test]
+    public async Task UniqueKeyForRequestShouldIncludeAuthorizationAsync()
+    {
+        using var anonymousRequest = new HttpRequestMessage(HttpMethod.Get, "http://example/foo");
+        using var authorizedRequest = new HttpRequestMessage(HttpMethod.Get, "http://example/foo");
+        authorizedRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "token");
+
+        var anonymousKey = RateLimitedHttpMessageHandler.UniqueKeyForRequest(anonymousRequest);
+        var authorizedKey = RateLimitedHttpMessageHandler.UniqueKeyForRequest(authorizedRequest);
+
+        await Assert.That(authorizedKey == anonymousKey).IsFalse();
+    }
+
+    /// <summary>Does a round trip integration test.</summary>
     /// <returns>A task to monitor the progress.</returns>
     [Test]
     [Skip("Requires updated Akavache version to work properly")]
-    public async Task RoundTripIntegrationTest()
+    public async Task RoundTripIntegrationTestAsync()
     {
         var aka = CacheDatabase.CreateBuilder("Fusillade.Tests").WithSerializerSystemTextJson().Build();
         var cache = new InMemoryBlobCache(aka.Serializer!);
@@ -137,9 +184,7 @@ public class HttpSchedulerCachingTests
         await Assert.That(shouldDie).IsFalse();
     }
 
-    /// <summary>
-    /// Checks that only relevant http methods are cached.
-    /// </summary>
+    /// <summary>Checks that only relevant http methods are cached.</summary>
     /// <param name="method">The name of the method.</param>
     /// <param name="shouldCache">If it should be cached or not.</param>
     /// <returns>A task to monitor the progress.</returns>
@@ -151,7 +196,7 @@ public class HttpSchedulerCachingTests
     [Arguments("PUT", false)]
     [Arguments("WHATEVER", false)]
     [Test]
-    public async Task OnlyCacheRelevantMethods(string method, bool shouldCache)
+    public async Task OnlyCacheRelevantMethodsAsync(string method, bool shouldCache)
     {
         var innerHandler = new TestHttpMessageHandler(_ =>
         {
@@ -161,7 +206,7 @@ public class HttpSchedulerCachingTests
                 StatusCode = HttpStatusCode.OK,
             };
 
-            return Observable.Return(ret);
+            return Signal.Emit(ret);
         });
 
         var cached = false;
@@ -172,7 +217,7 @@ public class HttpSchedulerCachingTests
         });
 
         using var client = new HttpClient(fixture);
-        var request = new HttpRequestMessage(new(method), "http://lol/bar");
+        var request = new HttpRequestMessage(new(method), TestBarUrl);
         await client.SendAsync(request);
 
         await Assert.That(cached).IsEqualTo(shouldCache);

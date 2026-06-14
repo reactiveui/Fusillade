@@ -4,9 +4,7 @@
 
 namespace Fusillade.Tests;
 
-/// <summary>
-/// Checks to make sure the base http scheduler works.
-/// </summary>
+/// <summary>Checks to make sure the base http scheduler works.</summary>
 [InheritsTests]
 public class BaseHttpSchedulerSharedTests : HttpSchedulerSharedTests
 {

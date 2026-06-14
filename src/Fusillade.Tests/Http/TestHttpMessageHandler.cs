@@ -2,14 +2,12 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System.Reactive.Linq;
-using System.Reactive.Threading.Tasks;
+using ReactiveUI.Primitives;
+using ReactiveUI.Primitives.Signals;
 
 namespace Fusillade.Tests;
 
-/// <summary>
-/// Tests the main http scheduler.
-/// </summary>
+/// <summary>Tests the main http scheduler.</summary>
 /// <remarks>
 /// Initializes a new instance of the <see cref="TestHttpMessageHandler"/> class.
 /// </remarks>
@@ -21,7 +19,7 @@ public class TestHttpMessageHandler(Func<HttpRequestMessage, IObservable<HttpRes
     {
         if (cancellationToken.IsCancellationRequested)
         {
-            return Observable.Throw<HttpResponseMessage>(new OperationCanceledException()).ToTask();
+            return Signal.Fail<HttpResponseMessage>(new OperationCanceledException(cancellationToken)).ToTask(cancellationToken);
         }
 
         return createResult(request).ToTask(cancellationToken);

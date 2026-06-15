@@ -7,9 +7,7 @@ using System.Text;
 
 namespace Fusillade.Tests;
 
-/// <summary>
-/// A helper for performing integration tests.
-/// </summary>
+/// <summary>A helper for performing integration tests.</summary>
 public static class IntegrationTestHelper
 {
     /// <summary>The carriage-return byte (CR).</summary>
@@ -21,9 +19,7 @@ public static class IntegrationTestHelper
     /// <summary>The number of bytes in a single CRLF sequence.</summary>
     private const int CrlfLength = 2;
 
-    /// <summary>
-    /// Combines together paths together and then gets a full path.
-    /// </summary>
+    /// <summary>Combines together paths together and then gets a full path.</summary>
     /// <param name="paths">The paths to combine.</param>
     /// <returns>The string path.</returns>
     public static string GetPath(params string[] paths)
@@ -32,9 +28,7 @@ public static class IntegrationTestHelper
         return new FileInfo(paths.Aggregate(ret, Path.Combine)).FullName;
     }
 
-    /// <summary>
-    /// Gets the root directory for the integration test.
-    /// </summary>
+    /// <summary>Gets the root directory for the integration test.</summary>
     /// <returns>The path.</returns>
     public static string GetIntegrationTestRootDirectory() =>
 
@@ -47,9 +41,7 @@ public static class IntegrationTestHelper
         // back at the project directory where the sample files are checked in.
         Directory.GetParent(Directory.GetCurrentDirectory())!.Parent!.FullName;
 
-    /// <summary>
-    /// Creates a response from a sample file with the data.
-    /// </summary>
+    /// <summary>Creates a response from a sample file with the data.</summary>
     /// <param name="paths">The path to the file.</param>
     /// <returns>The generated response.</returns>
     public static HttpResponseMessage GetResponse(params string[] paths)
@@ -69,7 +61,7 @@ public static class IntegrationTestHelper
         var bodyStart = bodyIndex + CrlfLength;
         var ret = new HttpResponseMessage(statusCode)
         {
-            Content = new ByteArrayContent(bytes, bodyStart, bytes.Length - bodyStart)
+            Content = new ByteArrayContent(bytes, bodyStart, bytes.Length - bodyStart),
         };
 
         foreach (var line in lines.Skip(1))
@@ -90,9 +82,7 @@ public static class IntegrationTestHelper
         return ret;
     }
 
-    /// <summary>
-    /// Finds the byte offset of the header/body separator (a double CRLF sequence).
-    /// </summary>
+    /// <summary>Finds the byte offset of the header/body separator (a double CRLF sequence).</summary>
     /// <param name="bytes">The raw response bytes.</param>
     /// <returns>The offset of the separator, or -1 if it is not present.</returns>
     private static int FindBodyIndex(byte[] bytes)

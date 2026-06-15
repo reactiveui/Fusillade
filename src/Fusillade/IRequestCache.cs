@@ -8,11 +8,7 @@ using System.Threading.Tasks;
 
 namespace Fusillade;
 
-/// <summary>
-/// This Interface is a simple cache for HTTP requests - it is intentionally
-/// *not* designed to conform to HTTP caching rules since you most likely want
-/// to override those rules in a client app anyways.
-/// </summary>
+/// <summary>This Interface is a simple cache for HTTP requests and intentionally does not conform to HTTP caching rules.</summary>
 public interface IRequestCache
 {
     /// <summary>
@@ -25,16 +21,14 @@ public interface IRequestCache
     /// <param name="key">A unique key used to identify the request details.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Completion.</returns>
-    Task Save(HttpRequestMessage request, HttpResponseMessage response, string key, CancellationToken ct);
+    Task SaveAsync(HttpRequestMessage request, HttpResponseMessage response, string key, CancellationToken ct);
 
-    /// <summary>
-    /// Implement this by loading the Body of the given request / key.
-    /// </summary>
+    /// <summary>Implement this by loading the Body of the given request / key.</summary>
     /// <param name="request">The originating request.</param>
     /// <param name="key">A unique key used to identify the request details,
-    /// that was given in Save().</param>
+    /// that was given in SaveAsync().</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The Body of the given request, or null if the search
     /// completed successfully but the response was not found.</returns>
-    Task<byte[]?> Fetch(HttpRequestMessage request, string key, CancellationToken ct);
+    Task<byte[]?> FetchAsync(HttpRequestMessage request, string key, CancellationToken ct);
 }

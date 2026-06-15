@@ -14,18 +14,14 @@ namespace Fusillade;
 /// </summary>
 public abstract class LimitingHttpMessageHandler : DelegatingHandler
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="LimitingHttpMessageHandler"/> class.
-    /// </summary>
+    /// <summary>Initializes a new instance of the <see cref="LimitingHttpMessageHandler"/> class.</summary>
     /// <param name="innerHandler">A inner handler we will call to get the data.</param>
     protected LimitingHttpMessageHandler(HttpMessageHandler? innerHandler)
         : base(innerHandler ?? new HttpClientHandler())
     {
     }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="LimitingHttpMessageHandler"/> class.
-    /// </summary>
+    /// <summary>Initializes a new instance of the <see cref="LimitingHttpMessageHandler"/> class.</summary>
     protected LimitingHttpMessageHandler()
     {
     }

@@ -10,23 +10,15 @@ namespace Fusillade;
 /// </summary>
 public enum Priority
 {
-    /// <summary>
-    /// This is a explicit task.
-    /// </summary>
+    /// <summary>This is a explicit task.</summary>
     Explicit = 0,
 
-    /// <summary>
-    /// A speculative priority where we aren't sure.
-    /// </summary>
+    /// <summary>A speculative priority where we aren't sure.</summary>
     Speculative = 10,
 
-    /// <summary>
-    /// This is background based task.
-    /// </summary>
+    /// <summary>This is background based task.</summary>
     Background = 20,
 
-    /// <summary>
-    /// This is a instance which is initiated by the user.
-    /// </summary>
+    /// <summary>This is a instance which is initiated by the user.</summary>
     UserInitiated = 100,
 }

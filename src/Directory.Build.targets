@@ -1,5 +1,6 @@
 <Project>
   <PropertyGroup>  
     <Product>$(AssemblyName) ($(TargetFramework))</Product>
+    <EnableVSTestReferences>false</EnableVSTestReferences>
   </PropertyGroup>
 </Project>

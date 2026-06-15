@@ -26,22 +26,15 @@ namespace System.Diagnostics.CodeAnalysis;
 internal sealed class RequiresDynamicCodeAttribute :
     Attribute
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="RequiresDynamicCodeAttribute"/> class
-    /// with the specified message.
-    /// </summary>
+    /// <summary>Initializes a new instance of the <see cref="RequiresDynamicCodeAttribute"/> class with the specified message.</summary>
     /// <param name="message">A message that contains information about the usage of dynamic code.</param>
     public RequiresDynamicCodeAttribute(string message) =>
         Message = message;
 
-    /// <summary>
-    /// Gets or sets a value indicating whether the annotation should not apply to static members.
-    /// </summary>
+    /// <summary>Gets or sets a value indicating whether the annotation should not apply to static members.</summary>
     public bool ExcludeStatics { get; set; }
 
-    /// <summary>
-    /// Gets a message that contains information about the usage of dynamic code.
-    /// </summary>
+    /// <summary>Gets a message that contains information about the usage of dynamic code.</summary>
     public string Message { get; }
 
     /// <summary>

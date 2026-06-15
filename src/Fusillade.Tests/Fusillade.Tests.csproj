@@ -1,40 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-    <IsPackable>false</IsPackable>
+    <TargetFrameworks>$(NetTargetFrameworks)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
-    <ExcludeFromCodeCoverage>true</ExcludeFromCodeCoverage>
-    <SonarQubeExclude>true</SonarQubeExclude>
-    <Nullable>enable</Nullable>
-
-    <!-- TUnit runs on Microsoft.Testing.Platform; bridge it to `dotnet test`. -->
-    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
-    <TUnitImplicitUsings>true</TUnitImplicitUsings>
-    <TUnitAssertionsImplicitUsings>true</TUnitAssertionsImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../Fusillade/Fusillade.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Akavache.SystemTextJson" />
-    <PackageReference Include="System.Reactive" />
-    <PackageReference Include="Microsoft.Reactive.Testing" />
-    <PackageReference Include="ReactiveUI" />
-    <PackageReference Include="ReactiveUI.Testing" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" />
-    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
-    <PackageReference Include="TUnit" />
-    <PackageReference Include="Verify.TUnit" />
-    <PackageReference Include="PublicApiGenerator" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)../testconfig.json">
-      <Link>$(AssemblyName).testconfig.json</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

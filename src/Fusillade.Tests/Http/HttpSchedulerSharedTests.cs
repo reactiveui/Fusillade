@@ -2,23 +2,13 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System.Collections.Concurrent;
-using System.Net;
-using System.Net.Http.Headers;
-using System.Reactive;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
-using System.Reactive.Threading.Tasks;
-using System.Text;
-using Microsoft.Reactive.Testing;
-using ReactiveUI;
-using ReactiveUI.Testing;
-
+#if REACTIVE_SHIM
+namespace Fusillade.Reactive.Tests;
+#else
 namespace Fusillade.Tests;
+#endif
 
-/// <summary>
-/// Base class full of common requests.
-/// </summary>
+/// <summary>Base class full of common requests.</summary>
 public abstract class HttpSchedulerSharedTests
 {
     /// <summary>The ETag value stamped on the canned responses.</summary>
@@ -51,12 +41,10 @@ public abstract class HttpSchedulerSharedTests
     /// <summary>The upper bound for deterministic waits before a test is considered hung.</summary>
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(2);
 
-    /// <summary>
-    /// Checks to make sure a dummy request is completed.
-    /// </summary>
+    /// <summary>Checks to make sure a dummy request is completed.</summary>
     /// <returns>A task to monitor the progress.</returns>
     [Test]
-    public async Task HttpSchedulerShouldCompleteADummyRequest()
+    public async Task HttpSchedulerShouldCompleteADummyRequestAsync()
     {
         var fixture = CreateFixture(new TestHttpMessageHandler(_ =>
         {
@@ -67,18 +55,19 @@ public abstract class HttpSchedulerSharedTests
             };
 
             ret.Headers.ETag = new(ETagValue);
-            return Observable.Return(ret);
+            return Signal.Emit(ret);
         }));
 
-        var client = new HttpClient(fixture)
+        using var client = new HttpClient(fixture)
         {
             BaseAddress = new(ExampleBaseUrl),
         };
 
         var rq = new HttpRequestMessage(HttpMethod.Get, "/");
 
-        var result = await client.SendAsync(rq).ToObservable()
-            .Timeout(TimeSpan.FromSeconds(2.0), RxSchedulers.TaskpoolScheduler);
+        var result = await Signal.FromTask(client.SendAsync(rq))
+            .Timeout(DefaultTimeout, ThreadPoolSequencer.Instance)
+            .ToTask();
 
         var bytes = await result.Content.ReadAsByteArrayAsync();
 
@@ -89,121 +78,114 @@ public abstract class HttpSchedulerSharedTests
         }
     }
 
-    /// <summary>
-    /// Checks to make sure that the http scheduler doesn't do too much scheduling all at once.
-    /// </summary>
+    /// <summary>Checks to make sure that the http scheduler doesn't do too much scheduling all at once.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
-    public async Task HttpSchedulerShouldntScheduleLotsOfStuffAtOnce()
+    public async Task HttpSchedulerShouldntScheduleLotsOfStuffAtOnceAsync()
     {
-        var blockedRqs = new ConcurrentDictionary<HttpRequestMessage, Subject<Unit>>();
+        var blockedRqs = new ConcurrentDictionary<HttpRequestMessage, Signal<RxVoid>>();
         var scheduledCount = 0;
         var completedCount = 0;
 
         var scheduled5Tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var completed5Tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        await new TestScheduler().WithAsync(async _ =>
+        var fixture = CreateFixture(new TestHttpMessageHandler(rq =>
         {
-            var fixture = CreateFixture(new TestHttpMessageHandler(rq =>
+            var current = Interlocked.Increment(ref scheduledCount);
+            if (current == TotalRequests)
             {
-                var current = Interlocked.Increment(ref scheduledCount);
-                if (current == TotalRequests)
-                {
-                    scheduled5Tcs.TrySetResult();
-                }
+                _ = scheduled5Tcs.TrySetResult();
+            }
 
-                var ret = new HttpResponseMessage
-                {
-                    Content = new StringContent("foo", Encoding.UTF8),
-                    StatusCode = HttpStatusCode.OK,
-                };
-
-                ret.Headers.ETag = new(ETagValue);
-
-                var subj = new Subject<Unit>();
-                blockedRqs[rq] = subj;
-
-                return subj
-                    .Select(_ => ret)
-                    .Finally(() =>
-                    {
-                        var c = Interlocked.Increment(ref completedCount);
-                        if (c != TotalRequests)
-                        {
-                            return;
-                        }
-
-                        completed5Tcs.TrySetResult();
-                    });
-            }));
-
-            var client = new HttpClient(fixture)
+            var ret = new HttpResponseMessage
             {
-                BaseAddress = new(ExampleBaseUrl)
+                Content = new StringContent("foo", Encoding.UTF8),
+                StatusCode = HttpStatusCode.OK,
             };
 
-            var rqs =
-                Enumerable
-                    .Range(0, TotalRequests)
-                    .Select(x => new HttpRequestMessage(HttpMethod.Get, "/" + x))
-                    .ToArray();
+            ret.Headers.ETag = new(ETagValue);
 
-            using var subscription =
-                rqs.ToObservable()
-                   .Select(rq => client.SendAsync(rq))
-                   .Merge()
-                   .Subscribe();
+            var subj = new Signal<RxVoid>();
+            blockedRqs[rq] = subj;
 
-            using (Assert.Multiple())
-            {
-                await Assert.That(SpinWait.SpinUntil(() => Volatile.Read(ref scheduledCount) == MaxConcurrentRequests && blockedRqs.Count == MaxConcurrentRequests, TimeSpan.FromSeconds(2))).IsTrue();
-                await Assert.That(scheduledCount).IsEqualTo(MaxConcurrentRequests);
-                await Assert.That(completedCount).IsEqualTo(0);
-            }
+            return subj
+                .Select(_ => ret)
+                .OnCleanup(() =>
+                {
+                    var c = Interlocked.Increment(ref completedCount);
+                    if (c != TotalRequests)
+                    {
+                        return;
+                    }
 
-            // Complete one request to free a slot and allow the 5th to be scheduled.
-            var firstSubj = blockedRqs.First().Value;
-            firstSubj.OnNext(Unit.Default);
-            firstSubj.OnCompleted();
+                    _ = completed5Tcs.TrySetResult();
+                });
+        }));
 
-            // Wait for the 5th to be scheduled deterministically.
-            await scheduled5Tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var client = new HttpClient(fixture)
+        {
+            BaseAddress = new(ExampleBaseUrl),
+        };
 
-            using (Assert.Multiple())
-            {
-                // Ensure the completedCount advanced for the one we just finished.
-                await Assert.That(SpinWait.SpinUntil(() => Volatile.Read(ref completedCount) >= 1, TimeSpan.FromSeconds(2))).IsTrue();
-                await Assert.That(scheduledCount).IsEqualTo(TotalRequests);
-                await Assert.That(completedCount).IsEqualTo(1);
-            }
+        var rqs = new HttpRequestMessage[TotalRequests];
+        for (var i = 0; i < rqs.Length; i++)
+        {
+            rqs[i] = new(HttpMethod.Get, "/" + i);
+        }
 
-            // Complete all remaining requests (snapshot to avoid concurrent mutation during enumeration).
-            foreach (var v in blockedRqs.Values.ToArray())
-            {
-                v.OnNext(Unit.Default);
-                v.OnCompleted();
-            }
+        var responses = new Task<HttpResponseMessage>[rqs.Length];
+        for (var i = 0; i < rqs.Length; i++)
+        {
+            responses[i] = client.SendAsync(rqs[i]);
+        }
 
-            // Wait until all completed.
-            await completed5Tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        using (Assert.Multiple())
+        {
+            await Assert.That(SpinWait.SpinUntil(() => Volatile.Read(ref scheduledCount) == MaxConcurrentRequests && blockedRqs.Count == MaxConcurrentRequests, TimeSpan.FromSeconds(2))).IsTrue();
+            await Assert.That(scheduledCount).IsEqualTo(MaxConcurrentRequests);
+            await Assert.That(completedCount).IsEqualTo(0);
+        }
 
-            using (Assert.Multiple())
-            {
-                await Assert.That(scheduledCount).IsEqualTo(TotalRequests);
-                await Assert.That(completedCount).IsEqualTo(TotalRequests);
-            }
+        // Complete one request to free a slot and allow the 5th to be scheduled.
+        var firstSubj = GetFirstValue(blockedRqs);
+        firstSubj.OnNext(RxVoid.Default);
+        firstSubj.OnCompleted();
 
-            return Task.CompletedTask;
-        });
+        // Wait for the 5th to be scheduled deterministically.
+        await scheduled5Tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        using (Assert.Multiple())
+        {
+            // Ensure the completedCount advanced for the one we just finished.
+            await Assert.That(SpinWait.SpinUntil(() => Volatile.Read(ref completedCount) >= 1, TimeSpan.FromSeconds(2))).IsTrue();
+            await Assert.That(scheduledCount).IsEqualTo(TotalRequests);
+            await Assert.That(completedCount).IsEqualTo(1);
+        }
+
+        // Complete all remaining requests (snapshot to avoid concurrent mutation during enumeration).
+        foreach (var v in GetValuesSnapshot(blockedRqs))
+        {
+            v.OnNext(RxVoid.Default);
+            v.OnCompleted();
+        }
+
+        // Wait until all completed.
+        await completed5Tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var completedResponses = await Task.WhenAll(responses).WaitAsync(TimeSpan.FromSeconds(2));
+        DisposeCompletedRequests(completedResponses, rqs, blockedRqs.Values);
+
+        using (Assert.Multiple())
+        {
+            await Assert.That(scheduledCount).IsEqualTo(TotalRequests);
+            await Assert.That(completedCount).IsEqualTo(TotalRequests);
+        }
     }
 
-    /// <summary>
-    /// Checks to make sure that the rate limited scheduler stops after content limit has been reached.
-    /// </summary>
+    /// <summary>Checks to make sure that the rate limited scheduler stops after content limit has been reached.</summary>
     /// <returns>A task to monitor the progress.</returns>
     [Test]
-    public async Task RateLimitedSchedulerShouldStopAfterContentLimitReached()
+    public async Task RateLimitedSchedulerShouldStopAfterContentLimitReachedAsync()
     {
         var fixture = CreateFixture(new TestHttpMessageHandler(_ =>
         {
@@ -214,10 +196,10 @@ public abstract class HttpSchedulerSharedTests
             };
 
             ret.Headers.ETag = new(ETagValue);
-            return Observable.Return(ret);
+            return Signal.Emit(ret);
         }));
 
-        var client = new HttpClient(fixture)
+        using var client = new HttpClient(fixture)
         {
             BaseAddress = new(ExampleBaseUrl),
         };
@@ -225,32 +207,30 @@ public abstract class HttpSchedulerSharedTests
         fixture.ResetLimit(RateLimitByteBudget);
 
         // Under the limit => succeed
-        var rq = new HttpRequestMessage(HttpMethod.Get, "/");
-        var resp = await client.SendAsync(rq);
+        using var rq = new HttpRequestMessage(HttpMethod.Get, "/");
+        using var resp = await client.SendAsync(rq);
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Crossing the limit => succeed
-        rq = new(HttpMethod.Get, "/");
-        resp = await client.SendAsync(rq);
-        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        using var secondRequest = new HttpRequestMessage(HttpMethod.Get, "/");
+        using var secondResponse = await client.SendAsync(secondRequest);
+        await Assert.That(secondResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Over the limit => cancelled
-        rq = new(HttpMethod.Get, "/");
-        await Assert.ThrowsAsync<TaskCanceledException>(async () => await client.SendAsync(rq));
+        using var canceledRequest = new HttpRequestMessage(HttpMethod.Get, "/");
+        await Assert.ThrowsAsync<TaskCanceledException>(async () => await client.SendAsync(canceledRequest));
     }
 
-    /// <summary>
-    /// Tests to make sure that concurrent requests aren't debounced.
-    /// </summary>
+    /// <summary>Tests to make sure that concurrent requests aren't debounced.</summary>
     /// <returns>A task to monitor the progress.</returns>
     [Test]
-    public async Task ConcurrentRequestsToTheSameResourceAreDebounced()
+    public async Task ConcurrentRequestsToTheSameResourceAreDebouncedAsync()
     {
         var messageCount = 0;
         using var handlerEntered = new SemaphoreSlim(0);
-        Subject<Unit> gate = new();
+        using var gate = new Signal<RxVoid>();
 
-        var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(_ =>
+        var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(__ =>
         {
             var ret = new HttpResponseMessage
             {
@@ -259,13 +239,13 @@ public abstract class HttpSchedulerSharedTests
             };
 
             ret.Headers.ETag = new(ETagValue);
-            Interlocked.Increment(ref messageCount);
-            handlerEntered.Release();
+            _ = Interlocked.Increment(ref messageCount);
+            _ = handlerEntered.Release();
 
             return gate.Take(1).Select(__ => ret);
         }));
 
-        var client = new HttpClient(fixture)
+        using var client = new HttpClient(fixture)
         {
             BaseAddress = new(ExampleBaseUrl),
         };
@@ -298,11 +278,11 @@ public abstract class HttpSchedulerSharedTests
         }
 
         // Release the handler; both callers observe the same successful response.
-        gate.OnNext(Unit.Default);
-        gate.OnNext(Unit.Default);
+        gate.OnNext(RxVoid.Default);
+        gate.OnCompleted();
 
-        var resp1 = await resp1Task;
-        var resp2 = await resp2Task;
+        using var resp1 = await resp1Task;
+        using var resp2 = await resp2Task;
 
         using (Assert.Multiple())
         {
@@ -312,18 +292,16 @@ public abstract class HttpSchedulerSharedTests
         }
     }
 
-    /// <summary>
-    /// Checks to make sure that requests don't get unfairly cancelled.
-    /// </summary>
+    /// <summary>Checks to make sure that requests don't get unfairly cancelled.</summary>
     /// <returns>A task to monitor the progress.</returns>
     [Test]
-    public async Task DebouncedRequestsDontGetUnfairlyCancelled()
+    public async Task DebouncedRequestsDontGetUnfairlyCancelledAsync()
     {
         var messageCount = 0;
         using var handlerEntered = new SemaphoreSlim(0);
-        Subject<Unit> gate = new();
+        using var gate = new Signal<RxVoid>();
 
-        var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(_ =>
+        var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(__ =>
         {
             var ret = new HttpResponseMessage
             {
@@ -332,13 +310,13 @@ public abstract class HttpSchedulerSharedTests
             };
 
             ret.Headers.ETag = new(ETagValue);
-            Interlocked.Increment(ref messageCount);
-            handlerEntered.Release();
+            _ = Interlocked.Increment(ref messageCount);
+            _ = handlerEntered.Release();
 
             return gate.Take(1).Select(__ => ret);
         }));
 
-        var client = new HttpClient(fixture)
+        using var client = new HttpClient(fixture)
         {
             BaseAddress = new(ExampleBaseUrl),
         };
@@ -365,12 +343,12 @@ public abstract class HttpSchedulerSharedTests
 
         // Cancelling the first caller must not cancel the shared request.
         await cts.CancelAsync();
-
-        gate.OnNext(Unit.Default);
-        gate.OnNext(Unit.Default);
-
         await Assert.ThrowsAsync<TaskCanceledException>(async () => await resp1Task);
-        var resp2 = await resp2Task;
+
+        gate.OnNext(RxVoid.Default);
+        gate.OnCompleted();
+
+        using var resp2 = await resp2Task;
 
         using (Assert.Multiple())
         {
@@ -379,18 +357,16 @@ public abstract class HttpSchedulerSharedTests
         }
     }
 
-    /// <summary>
-    /// Checks to make sure that different paths aren't debounced.
-    /// </summary>
+    /// <summary>Checks to make sure that different paths aren't debounced.</summary>
     /// <returns>A task to monitor the progress.</returns>
     [Test]
-    public async Task RequestsToDifferentPathsArentDebounced()
+    public async Task RequestsToDifferentPathsArentDebouncedAsync()
     {
         var messageCount = 0;
         using var handlerEntered = new SemaphoreSlim(0);
-        Subject<Unit> gate = new();
+        using var gate = new Signal<RxVoid>();
 
-        var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(_ =>
+        var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(__ =>
         {
             var ret = new HttpResponseMessage
             {
@@ -399,13 +375,13 @@ public abstract class HttpSchedulerSharedTests
             };
 
             ret.Headers.ETag = new(ETagValue);
-            Interlocked.Increment(ref messageCount);
-            handlerEntered.Release();
+            _ = Interlocked.Increment(ref messageCount);
+            _ = handlerEntered.Release();
 
             return gate.Take(1).Select(__ => ret);
         }));
 
-        var client = new HttpClient(fixture)
+        using var client = new HttpClient(fixture)
         {
             BaseAddress = new(ExampleBaseUrl),
         };
@@ -432,11 +408,11 @@ public abstract class HttpSchedulerSharedTests
             await Assert.That(Volatile.Read(ref messageCount)).IsEqualTo(DistinctPathRequestCount);
         }
 
-        gate.OnNext(Unit.Default);
-        gate.OnNext(Unit.Default);
+        gate.OnNext(RxVoid.Default);
+        gate.OnCompleted();
 
-        var resp1 = await resp1Task;
-        var resp2 = await resp2Task;
+        using var resp1 = await resp1Task;
+        using var resp2 = await resp2Task;
 
         using (Assert.Multiple())
         {
@@ -446,19 +422,33 @@ public abstract class HttpSchedulerSharedTests
         }
     }
 
-    /// <summary>
-    /// Tests if a debounce is fully cancelling requests.
-    /// </summary>
+    /// <summary>Checks that inner handler exceptions are propagated to the caller.</summary>
     /// <returns>A task to monitor the progress.</returns>
     [Test]
-    public async Task FullyCancelledDebouncedRequestsGetForRealCancelled()
+    public async Task InnerHandlerExceptionsShouldPropagateAsync()
+    {
+        var expected = new InvalidOperationException("boom");
+        var fixture = CreateFixture(new TestHttpMessageHandler(_ => Signal.Fail<HttpResponseMessage>(expected)));
+        using var client = new HttpClient(fixture)
+        {
+            BaseAddress = new(ExampleBaseUrl),
+        };
+
+        var thrown = await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetAsync(new Uri("/", UriKind.Relative)));
+        await Assert.That(ReferenceEquals(thrown, expected)).IsTrue();
+    }
+
+    /// <summary>Tests if a debounce is fully cancelling requests.</summary>
+    /// <returns>A task to monitor the progress.</returns>
+    [Test]
+    public async Task FullyCancelledDebouncedRequestsGetForRealCancelledAsync()
     {
         var messageCount = 0;
         var finalMessageCount = 0;
         using var handlerEntered = new SemaphoreSlim(0);
-        Subject<Unit> gate = new();
+        using var gate = new Signal<RxVoid>();
 
-        var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(_ =>
+        var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(__ =>
         {
             var ret = new HttpResponseMessage
             {
@@ -467,8 +457,8 @@ public abstract class HttpSchedulerSharedTests
             };
 
             ret.Headers.ETag = new(ETagValue);
-            Interlocked.Increment(ref messageCount);
-            handlerEntered.Release();
+            _ = Interlocked.Increment(ref messageCount);
+            _ = handlerEntered.Release();
 
             return gate.Take(1)
                 .Do(__ => Interlocked.Increment(ref finalMessageCount))
@@ -509,8 +499,8 @@ public abstract class HttpSchedulerSharedTests
         await cts.CancelAsync();
         await Assert.That(SpinWait.SpinUntil(() => fixture.InflightRequestCount == 0, DefaultTimeout)).IsTrue();
 
-        gate.OnNext(Unit.Default);
-        gate.OnNext(Unit.Default);
+        gate.OnNext(RxVoid.Default);
+        gate.OnCompleted();
 
         await Assert.ThrowsAsync<TaskCanceledException>(async () => await resp1Task);
         await Assert.ThrowsAsync<TaskCanceledException>(async () => await resp2Task);
@@ -522,13 +512,11 @@ public abstract class HttpSchedulerSharedTests
         }
     }
 
-    /// <summary>
-    /// Attempts to download a release from github to test the filters.
-    /// </summary>
+    /// <summary>Attempts to download a release from github to test the filters.</summary>
     /// <returns>A task to monitor the progress.</returns>
     [Test]
     [Category("Slow")]
-    public async Task DownloadARelease()
+    public async Task DownloadAReleaseAsync()
     {
         const string Input = "https://github.com/akavache/Akavache/releases/download/3.2.0/Akavache.3.2.0.zip";
         var fixture = CreateFixture(new HttpClientHandler
@@ -548,16 +536,73 @@ public abstract class HttpSchedulerSharedTests
         }
     }
 
-    /// <summary>
-    /// Creates the test fixtures using the default inner handler.
-    /// </summary>
+    /// <summary>Creates the test fixtures using the default inner handler.</summary>
     /// <returns>The limiting handler.</returns>
     protected LimitingHttpMessageHandler CreateFixture() => CreateFixture(null);
 
-    /// <summary>
-    /// Creates the test fixtures.
-    /// </summary>
+    /// <summary>Creates the test fixtures.</summary>
     /// <param name="innerHandler">The inner handler.</param>
     /// <returns>The limiting handler.</returns>
     protected abstract LimitingHttpMessageHandler CreateFixture(HttpMessageHandler? innerHandler);
+
+    /// <summary>Gets the first value from a dictionary without using LINQ.</summary>
+    /// <param name="values">The source dictionary.</param>
+    /// <returns>The first value.</returns>
+    private static Signal<RxVoid> GetFirstValue(ConcurrentDictionary<HttpRequestMessage, Signal<RxVoid>> values)
+    {
+        using var enumerator = values.Values.GetEnumerator();
+        if (enumerator.MoveNext())
+        {
+            return enumerator.Current;
+        }
+
+        throw new InvalidOperationException("Expected at least one blocked request.");
+    }
+
+    /// <summary>Gets a stable snapshot of dictionary values without using LINQ.</summary>
+    /// <param name="values">The source dictionary.</param>
+    /// <returns>The value snapshot.</returns>
+    private static Signal<RxVoid>[] GetValuesSnapshot(ConcurrentDictionary<HttpRequestMessage, Signal<RxVoid>> values)
+    {
+        var snapshot = new Signal<RxVoid>[values.Count];
+        var index = 0;
+        foreach (var value in values.Values)
+        {
+            snapshot[index] = value;
+            index++;
+        }
+
+        if (index == snapshot.Length)
+        {
+            return snapshot;
+        }
+
+        Array.Resize(ref snapshot, index);
+        return snapshot;
+    }
+
+    /// <summary>Disposes completed request test resources.</summary>
+    /// <param name="responses">The completed responses.</param>
+    /// <param name="requests">The requests sent by the test.</param>
+    /// <param name="signals">The gate signals used by the test handler.</param>
+    private static void DisposeCompletedRequests(
+        IEnumerable<HttpResponseMessage> responses,
+        IEnumerable<HttpRequestMessage> requests,
+        IEnumerable<Signal<RxVoid>> signals)
+    {
+        foreach (var response in responses)
+        {
+            response.Dispose();
+        }
+
+        foreach (var request in requests)
+        {
+            request.Dispose();
+        }
+
+        foreach (var signal in signals)
+        {
+            signal.Dispose();
+        }
+    }
 }

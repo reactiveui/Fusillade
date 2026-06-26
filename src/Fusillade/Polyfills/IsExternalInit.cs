@@ -6,17 +6,19 @@
 
 // Polyfill implementation adapted from Simon Cropp's Polyfill library
 // https://github.com/SimonCropp/Polyfill
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 
 namespace System.Runtime.CompilerServices;
 
-/// <summary>
-/// Reserved to be used by the compiler for tracking metadata. This class should not be used by developers in source code.
-/// </summary>
+/// <summary>Reserved to be used by the compiler for tracking metadata. This class should not be used by developers in source code.</summary>
 [ExcludeFromCodeCoverage]
 [DebuggerNonUserCode]
-internal static class IsExternalInit;
+internal sealed class IsExternalInit
+{
+    /// <summary>Initializes a new instance of the <see cref="IsExternalInit"/> class.</summary>
+    private IsExternalInit()
+    {
+    }
+}
 
 #else
 using System.Runtime.CompilerServices;

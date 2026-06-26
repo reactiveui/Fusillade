@@ -15,5 +15,7 @@
     <File Path="stylecop.json" />
   </Folder>
   <Project Path="Fusillade.Tests/Fusillade.Tests.csproj" />
+  <Project Path="Fusillade.Reactive.Tests/Fusillade.Reactive.Tests.csproj" />
+  <Project Path="Fusillade.Reactive/Fusillade.Reactive.csproj" />
   <Project Path="Fusillade/Fusillade.csproj" />
 </Solution>

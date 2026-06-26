@@ -1,0 +1,39 @@
+#nullable enable
+abstract Fusillade.LimitingHttpMessageHandler.ResetLimit(long? maxBytesToRead) -> void
+Fusillade.IRequestCache
+Fusillade.IRequestCache.FetchAsync(System.Net.Http.HttpRequestMessage! request, string! key, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task<byte[]?>!
+Fusillade.IRequestCache.SaveAsync(System.Net.Http.HttpRequestMessage! request, System.Net.Http.HttpResponseMessage! response, string! key, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task!
+Fusillade.LimitingHttpMessageHandler
+Fusillade.LimitingHttpMessageHandler.LimitingHttpMessageHandler() -> void
+Fusillade.LimitingHttpMessageHandler.LimitingHttpMessageHandler(System.Net.Http.HttpMessageHandler? innerHandler) -> void
+Fusillade.LimitingHttpMessageHandler.ResetLimit() -> void
+Fusillade.NetCache
+Fusillade.OfflineHttpMessageHandler
+Fusillade.OfflineHttpMessageHandler.OfflineHttpMessageHandler(System.Func<System.Net.Http.HttpRequestMessage!, string!, System.Threading.CancellationToken, System.Threading.Tasks.Task<byte[]?>!>? retrieveBodyFunc) -> void
+Fusillade.Priority
+Fusillade.Priority.Background = 20 -> Fusillade.Priority
+Fusillade.Priority.Explicit = 0 -> Fusillade.Priority
+Fusillade.Priority.Speculative = 10 -> Fusillade.Priority
+Fusillade.Priority.UserInitiated = 100 -> Fusillade.Priority
+Fusillade.RateLimitedHttpMessageHandler
+Fusillade.RateLimitedHttpMessageHandler.RateLimitedHttpMessageHandler(System.Net.Http.HttpMessageHandler? handler, Fusillade.Priority basePriority, int priority = 0, long? maxBytesToRead = null, Punchclock.OperationQueue? operationQueue = null, System.Func<System.Net.Http.HttpRequestMessage!, System.Net.Http.HttpResponseMessage!, string!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>? cacheResultFunc = null) -> void
+override Fusillade.OfflineHttpMessageHandler.SendAsync(System.Net.Http.HttpRequestMessage! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage!>!
+override Fusillade.RateLimitedHttpMessageHandler.ResetLimit(long? maxBytesToRead) -> void
+override Fusillade.RateLimitedHttpMessageHandler.SendAsync(System.Net.Http.HttpRequestMessage! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage!>!
+Splat.Builder.FusilladeSplatBuilderExtensions
+Splat.Builder.FusilladeSplatBuilderExtensions.extension(Splat.Builder.IAppInstance!)
+Splat.Builder.FusilladeSplatBuilderExtensions.extension(Splat.Builder.IAppInstance!).CreateFusilladeNetCache() -> Splat.Builder.IAppInstance!
+static Fusillade.NetCache.Background.get -> System.Net.Http.HttpMessageHandler!
+static Fusillade.NetCache.Background.set -> void
+static Fusillade.NetCache.Offline.get -> System.Net.Http.HttpMessageHandler!
+static Fusillade.NetCache.Offline.set -> void
+static Fusillade.NetCache.OperationQueue.get -> Punchclock.OperationQueue!
+static Fusillade.NetCache.OperationQueue.set -> void
+static Fusillade.NetCache.RequestCache.get -> Fusillade.IRequestCache?
+static Fusillade.NetCache.RequestCache.set -> void
+static Fusillade.NetCache.Speculative.get -> Fusillade.LimitingHttpMessageHandler!
+static Fusillade.NetCache.Speculative.set -> void
+static Fusillade.NetCache.UserInitiated.get -> System.Net.Http.HttpMessageHandler!
+static Fusillade.NetCache.UserInitiated.set -> void
+static Fusillade.RateLimitedHttpMessageHandler.UniqueKeyForRequest(System.Net.Http.HttpRequestMessage! request) -> string!
+static Splat.Builder.FusilladeSplatBuilderExtensions.CreateFusilladeNetCache(this Splat.Builder.IAppInstance! builder) -> Splat.Builder.IAppInstance!

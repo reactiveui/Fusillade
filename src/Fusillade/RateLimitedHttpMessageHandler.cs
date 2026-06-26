@@ -2,25 +2,15 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
-using System.Reactive.Threading.Tasks;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Fusillade.Helpers;
-using Punchclock;
 
+#if REACTIVE_SHIM
+namespace Fusillade.Reactive;
+#else
 namespace Fusillade;
+#endif
 
-/// <summary>
-/// A http handler which will limit the rate at which we can read.
-/// </summary>
+/// <summary>A http handler which will limit the rate at which we can read.</summary>
 /// <remarks>
 /// Initializes a new instance of the <see cref="RateLimitedHttpMessageHandler"/> class.
 /// </remarks>
@@ -28,20 +18,18 @@ namespace Fusillade;
 /// <param name="basePriority">The base priority of the request.</param>
 /// <param name="priority">The priority of the request.</param>
 /// <param name="maxBytesToRead">The maximum number of bytes we can read.</param>
-/// <param name="opQueue">The operation queue on which to run the operation.</param>
+/// <param name="operationQueue">The operation queue on which to run the operation.</param>
 /// <param name="cacheResultFunc">A method that is called if we need to get cached results.</param>
 public class RateLimitedHttpMessageHandler(
     HttpMessageHandler? handler,
     Priority basePriority,
     int priority = 0,
     long? maxBytesToRead = null,
-    OperationQueue? opQueue = null,
+    OperationQueue? operationQueue = null,
     Func<HttpRequestMessage, HttpResponseMessage, string, CancellationToken, Task>? cacheResultFunc = null)
     : LimitingHttpMessageHandler(handler)
 {
-    /// <summary>
-    /// Buffer size (32 KB) used when copying a response body so it can be cached.
-    /// </summary>
+    /// <summary>Buffer size (32 KB) used when copying a response body so it can be cached.</summary>
     private const int CopyBufferSize = 32 * 1024;
 
     /// <summary>The effective queue priority (base priority plus offset).</summary>
@@ -80,40 +68,42 @@ public class RateLimitedHttpMessageHandler(
         {
             lock (_inflightResponses)
             {
-                return _inflightResponses.Values.Sum(static x => x.ReferenceCount);
+                var count = 0;
+                foreach (var request in _inflightResponses.Values)
+                {
+                    count += request.ReferenceCount;
+                }
+
+                return count;
             }
         }
     }
 
-    /// <summary>
-    /// Generates a unique key for a <see cref="HttpRequestMessage"/>.
-    /// This assists with the caching.
-    /// </summary>
+    /// <summary>Generates a unique key for a <see cref="HttpRequestMessage"/>.</summary>
     /// <param name="request">The request to generate a unique key for.</param>
     /// <returns>The unique key.</returns>
     public static string UniqueKeyForRequest(HttpRequestMessage request)
     {
         ArgumentExceptionHelper.ThrowIfNull(request);
 
-        var ret = new[]
+        var keyParts = new[]
         {
-            request.RequestUri!.ToString(),
+            request.RequestUri?.ToString(),
             request.Method.Method,
             request.Headers.Accept.ConcatenateAll(x => x.CharSet + x.MediaType),
             request.Headers.AcceptEncoding.ConcatenateAll(x => x.Value),
             (request.Headers.Referrer ?? new Uri("http://example")).AbsoluteUri,
-            request.Headers.UserAgent.ConcatenateAll(x => x.Product != null ? x.Product.ToString() : x.Comment!),
-        }.Aggregate(
-            new StringBuilder(),
-            (acc, x) =>
-            {
-                acc.AppendLine(x);
-                return acc;
-            });
-
-        if (request.Headers.Authorization != null)
+            request.Headers.UserAgent.ConcatenateAll(x => x.Product is not null ? x.Product.ToString() : x.Comment!),
+        };
+        var ret = new StringBuilder();
+        foreach (var keyPart in keyParts)
         {
-            ret.Append(request.Headers.Authorization.Parameter).AppendLine(request.Headers.Authorization.Scheme);
+            _ = ret.AppendLine(keyPart);
+        }
+
+        if (request.Headers.Authorization is not null)
+        {
+            _ = ret.Append(request.Headers.Authorization.Parameter).AppendLine(request.Headers.Authorization.Scheme);
         }
 
         return "HttpSchedulerCache_" + ret.ToString().GetHashCode().ToString("x", CultureInfo.InvariantCulture);
@@ -135,13 +125,13 @@ public class RateLimitedHttpMessageHandler(
 
         if (_maxBytesToRead < 0)
         {
-            return CreateCancelledTask(cancellationToken);
+            return CreateCancelledTaskAsync(cancellationToken);
         }
 
         var cacheResult = cacheResultFunc;
-        if (cacheResult == null && NetCache.RequestCache != null)
+        if (cacheResult is null && NetCache.RequestCache is not null)
         {
-            cacheResult = NetCache.RequestCache.Save;
+            cacheResult = NetCache.RequestCache.SaveAsync;
         }
 
         var key = UniqueKeyForRequest(request);
@@ -153,9 +143,8 @@ public class RateLimitedHttpMessageHandler(
             if (_inflightResponses.TryGetValue(key, out var existingRequest))
             {
                 existingRequest.AddRef();
-                cancellationToken.Register(existingRequest.Cancel);
 
-                return existingRequest.Response.ToTask(cancellationToken);
+                return existingRequest.WaitAsync(cancellationToken);
             }
 
             realToken = new();
@@ -164,7 +153,7 @@ public class RateLimitedHttpMessageHandler(
             {
                 lock (_inflightResponses)
                 {
-                    _inflightResponses.Remove(key);
+                    _ = _inflightResponses.Remove(key);
                 }
 
                 try
@@ -181,39 +170,30 @@ public class RateLimitedHttpMessageHandler(
             _inflightResponses[key] = ret;
         }
 
-        cancellationToken.Register(ret.Cancel);
+        var queue = operationQueue ?? NetCache.OperationQueue;
 
-        var queue = opQueue ?? NetCache.OperationQueue;
+        _ = CompleteInflightRequestAsync(queue, ret, request, key, realToken, cacheResult);
 
-        queue.Enqueue(
-                _priority,
-                null!,
-                () => FetchAndCacheAsync(request, key, realToken, cacheResult),
-                realToken.Token)
-            .ToObservable()
-            .Subscribe(ret.Response);
-
-        return ret.Response.ToTask(cancellationToken);
+        return ret.WaitAsync(cancellationToken);
     }
 
     /// <summary>Creates a task that is already in the cancelled state.</summary>
     /// <param name="cancellationToken">The token to associate with the cancellation.</param>
     /// <returns>A cancelled task.</returns>
     [SuppressMessage("Major Code Smell", "S1172:Unused method parameters should be removed", Justification = "Not used in net framework")]
-    private static Task<HttpResponseMessage> CreateCancelledTask(CancellationToken cancellationToken)
+    private static Task<HttpResponseMessage> CreateCancelledTaskAsync(CancellationToken cancellationToken)
     {
         var tcs = new TaskCompletionSource<HttpResponseMessage>();
 #if NET5_0_OR_GREATER
         tcs.SetCanceled(cancellationToken);
 #else
+        _ = cancellationToken;
         tcs.SetCanceled();
 #endif
         return tcs.Task;
     }
 
-    /// <summary>
-    /// Buffers the response body so it can be cached, returning a fresh response with the buffered content.
-    /// </summary>
+    /// <summary>Buffers the response body so it can be cached, returning a fresh response with the buffered content.</summary>
     /// <param name="request">The originating request.</param>
     /// <param name="response">The response whose body is buffered.</param>
     /// <param name="key">The cache key for the request.</param>
@@ -229,9 +209,9 @@ public class RateLimitedHttpMessageHandler(
     {
         var ms = new MemoryStream();
 #if NET5_0_OR_GREATER
-        var stream = await response.Content!.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
 #else
-        var stream = await response.Content!.ReadAsStreamAsync().ConfigureAwait(false);
+        var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 #endif
         await stream.CopyToAsync(ms, CopyBufferSize, cancellationToken).ConfigureAwait(false);
 
@@ -240,13 +220,13 @@ public class RateLimitedHttpMessageHandler(
         var newResp = new HttpResponseMessage();
         foreach (var kvp in response.Headers)
         {
-            newResp.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value);
+            _ = newResp.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value);
         }
 
         var newContent = new ByteArrayContent(ms.ToArray());
-        foreach (var kvp in response.Content!.Headers)
+        foreach (var kvp in response.Content.Headers)
         {
-            newContent.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value);
+            _ = newContent.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value);
         }
 
         newResp.Content = newContent;
@@ -256,16 +236,17 @@ public class RateLimitedHttpMessageHandler(
         return newResp;
     }
 
-    /// <summary>
-    /// Sends the request through the inner handler, optionally caching the result, and
-    /// always disposes <paramref name="realToken"/> and removes the in-flight entry when done.
-    /// </summary>
-    /// <param name="request">The request to send.</param>
+    /// <summary>Completes a shared in-flight response from the queued operation.</summary>
+    /// <param name="queue">The queue that schedules the request.</param>
+    /// <param name="inflightRequest">The shared in-flight request state.</param>
+    /// <param name="request">The originating request.</param>
     /// <param name="key">The cache key for the request.</param>
     /// <param name="realToken">The cancellation source that owns the underlying request.</param>
     /// <param name="cacheResult">The optional callback that persists the response.</param>
-    /// <returns>The response from the inner handler.</returns>
-    private async Task<HttpResponseMessage> FetchAndCacheAsync(
+    /// <returns>A task representing the completion publication.</returns>
+    private async Task CompleteInflightRequestAsync(
+        OperationQueue queue,
+        InflightRequest inflightRequest,
         HttpRequestMessage request,
         string key,
         CancellationTokenSource realToken,
@@ -273,28 +254,62 @@ public class RateLimitedHttpMessageHandler(
     {
         try
         {
-            var resp = await base.SendAsync(request, realToken.Token).ConfigureAwait(false);
+            var response = await queue.Enqueue(
+                    _priority,
+                    null!,
+                    () => FetchAndCacheAsync(request, key, cacheResult, realToken.Token),
+                    realToken.Token)
+                .ConfigureAwait(false);
 
-            if (_maxBytesToRead != null && resp.Content?.Headers.ContentLength != null)
-            {
-                _maxBytesToRead -= resp.Content.Headers.ContentLength;
-            }
-
-            if (cacheResult != null && resp.Content != null)
-            {
-                resp = await CopyAndCacheResponseAsync(request, resp, key, cacheResult, realToken.Token).ConfigureAwait(false);
-            }
-
-            return resp;
+            _ = inflightRequest.TrySetResult(response);
+        }
+        catch (OperationCanceledException) when (realToken.IsCancellationRequested)
+        {
+            _ = inflightRequest.TrySetCanceled(realToken.Token);
+        }
+        catch (Exception ex)
+        {
+            _ = inflightRequest.TrySetException(ex);
         }
         finally
         {
             lock (_inflightResponses)
             {
-                _inflightResponses.Remove(key);
+                if (_inflightResponses.TryGetValue(key, out var currentRequest) &&
+                    ReferenceEquals(currentRequest, inflightRequest))
+                {
+                    _ = _inflightResponses.Remove(key);
+                }
             }
 
             realToken.Dispose();
         }
+    }
+
+    /// <summary>Sends the request through the inner handler and optionally caches the result.</summary>
+    /// <param name="request">The request to send.</param>
+    /// <param name="key">The cache key for the request.</param>
+    /// <param name="cacheResult">The optional callback that persists the response.</param>
+    /// <param name="cancellationToken">A token used to cancel the operation.</param>
+    /// <returns>The response from the inner handler.</returns>
+    private async Task<HttpResponseMessage> FetchAndCacheAsync(
+        HttpRequestMessage request,
+        string key,
+        Func<HttpRequestMessage, HttpResponseMessage, string, CancellationToken, Task>? cacheResult,
+        CancellationToken cancellationToken)
+    {
+        var resp = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+
+        if (_maxBytesToRead is not null && resp.Content?.Headers.ContentLength is not null)
+        {
+            _maxBytesToRead -= resp.Content.Headers.ContentLength;
+        }
+
+        if (cacheResult is not null && resp.Content is not null)
+        {
+            resp = await CopyAndCacheResponseAsync(request, resp, key, cacheResult, cancellationToken).ConfigureAwait(false);
+        }
+
+        return resp;
     }
 }

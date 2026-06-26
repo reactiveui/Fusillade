@@ -10,7 +10,7 @@ namespace System.Diagnostics.CodeAnalysis;
 
 /// <summary>
 /// Indicates that the specified method requires dynamic access to code that is not referenced
-/// statically, for example through <see cref="System.Reflection"/>.
+/// statically, for example through <see cref="Reflection"/>.
 /// </summary>
 /// <remarks>
 /// Link: https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.codeanalysis.requiresunreferencedcodeattribute.
@@ -24,17 +24,12 @@ namespace System.Diagnostics.CodeAnalysis;
     Inherited = false)]
 internal sealed class RequiresUnreferencedCodeAttribute : Attribute
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="RequiresUnreferencedCodeAttribute"/> class
-    /// with the specified message.
-    /// </summary>
+    /// <summary>Initializes a new instance of the <see cref="RequiresUnreferencedCodeAttribute"/> class with the specified message.</summary>
     /// <param name="message">A message that contains information about the usage of unreferenced code.</param>
     public RequiresUnreferencedCodeAttribute(string message) =>
         Message = message;
 
-    /// <summary>
-    /// Gets a message that contains information about the usage of unreferenced code.
-    /// </summary>
+    /// <summary>Gets a message that contains information about the usage of unreferenced code.</summary>
     public string Message { get; }
 
     /// <summary>
@@ -47,5 +42,5 @@ internal sealed class RequiresUnreferencedCodeAttribute : Attribute
 #else
 using System.Runtime.CompilerServices;
 
-[assembly: TypeForwardedTo(typeof(System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute))]
+[assembly: TypeForwardedTo(typeof(RequiresUnreferencedCodeAttribute))]
 #endif

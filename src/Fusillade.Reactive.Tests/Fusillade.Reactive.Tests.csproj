@@ -14,11 +14,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="Punchclock.Reactive" />
     <Using Include="Fusillade.Reactive" />
     <Using Include="Fusillade.Reactive.Helpers" />
     <Using Include="Fusillade.Reactive.Tests" />
     <Using Include="Fusillade.Reactive.Tests.Http" />
     <Using Include="ReactiveUI.Primitives" />
+    <Using Include="ReactiveUI.Primitives.Concurrency" />
     <Using Include="ReactiveUI.Primitives.Signals" />
+    <Using Include="System.Net" />
+    <Using Include="System.Text" />
+    <Using Include="System.Collections.Concurrent" />
   </ItemGroup>
 </Project>

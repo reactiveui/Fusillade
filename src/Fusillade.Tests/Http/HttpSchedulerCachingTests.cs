@@ -2,17 +2,8 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System.Net;
-using System.Net.Http.Headers;
-using System.Text;
 using Akavache;
 using Akavache.SystemTextJson;
-#if REACTIVE_SHIM
-using Punchclock.Reactive;
-#else
-using Punchclock;
-#endif
-using ReactiveUI.Primitives.Signals;
 
 #if REACTIVE_SHIM
 namespace Fusillade.Reactive.Tests.Http;

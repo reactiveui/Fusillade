@@ -8,4 +8,14 @@
     <ProjectReference Include="../Fusillade/Fusillade.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="Punchclock" />
+    <Using Include="System.Net" />
+    <Using Include="System.Text" />
+    <Using Include="ReactiveUI.Primitives" />
+    <Using Include="ReactiveUI.Primitives.Concurrency" />
+    <Using Include="ReactiveUI.Primitives.Signals" />
+    <Using Include="System.Collections.Concurrent" />
+  </ItemGroup>
+
 </Project>

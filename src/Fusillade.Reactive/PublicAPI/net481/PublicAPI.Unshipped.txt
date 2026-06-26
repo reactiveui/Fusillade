@@ -16,7 +16,7 @@ Fusillade.Reactive.Priority.Explicit = 0 -> Fusillade.Reactive.Priority
 Fusillade.Reactive.Priority.Speculative = 10 -> Fusillade.Reactive.Priority
 Fusillade.Reactive.Priority.UserInitiated = 100 -> Fusillade.Reactive.Priority
 Fusillade.Reactive.RateLimitedHttpMessageHandler
-Fusillade.Reactive.RateLimitedHttpMessageHandler.RateLimitedHttpMessageHandler(System.Net.Http.HttpMessageHandler? handler, Fusillade.Reactive.Priority basePriority, int priority = 0, long? maxBytesToRead = null, Punchclock.Reactive.OperationQueue? opQueue = null, System.Func<System.Net.Http.HttpRequestMessage!, System.Net.Http.HttpResponseMessage!, string!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>? cacheResultFunc = null) -> void
+Fusillade.Reactive.RateLimitedHttpMessageHandler.RateLimitedHttpMessageHandler(System.Net.Http.HttpMessageHandler? handler, Fusillade.Reactive.Priority basePriority, int priority = 0, long? maxBytesToRead = null, Punchclock.Reactive.OperationQueue? operationQueue = null, System.Func<System.Net.Http.HttpRequestMessage!, System.Net.Http.HttpResponseMessage!, string!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>? cacheResultFunc = null) -> void
 override Fusillade.Reactive.OfflineHttpMessageHandler.SendAsync(System.Net.Http.HttpRequestMessage! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage!>!
 override Fusillade.Reactive.RateLimitedHttpMessageHandler.ResetLimit(long? maxBytesToRead) -> void
 override Fusillade.Reactive.RateLimitedHttpMessageHandler.SendAsync(System.Net.Http.HttpRequestMessage! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage!>!

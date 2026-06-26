@@ -1,5 +1,5 @@
-// Copyright (c) 2016-2026 ReactiveUI and Contributors. All rights reserved.
-// ReactiveUI and Contributors licenses this file to you under the MIT license.
+// Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.
+// ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 #if REACTIVE_SHIM
@@ -26,7 +26,12 @@ public static class IntegrationTestHelper
     public static string GetPath(params string[] paths)
     {
         var ret = GetIntegrationTestRootDirectory();
-        return new FileInfo(paths.Aggregate(ret, Path.Combine)).FullName;
+        foreach (var path in paths)
+        {
+            ret = Path.Combine(ret, path);
+        }
+
+        return new FileInfo(ret).FullName;
     }
 
     /// <summary>Gets the root directory for the integration test.</summary>
@@ -68,8 +73,9 @@ public static class IntegrationTestHelper
             Content = new ByteArrayContent(bytes, bodyStart, bytes.Length - bodyStart),
         };
 
-        foreach (var line in lines.Skip(1))
+        for (var i = 1; i < lines.Length; i++)
         {
+            var line = lines[i];
             var separatorIndex = line.IndexOf(':');
             var key = line[0..(0 + separatorIndex)];
             var val = line.Substring(separatorIndex + CrlfLength).TrimEnd();
@@ -79,8 +85,8 @@ public static class IntegrationTestHelper
                 continue;
             }
 
-            ret.Headers.TryAddWithoutValidation(key, val);
-            ret.Content.Headers.TryAddWithoutValidation(key, val);
+            _ = ret.Headers.TryAddWithoutValidation(key, val);
+            _ = ret.Content.Headers.TryAddWithoutValidation(key, val);
         }
 
         return ret;

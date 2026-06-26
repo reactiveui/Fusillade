@@ -1,5 +1,5 @@
-// Copyright (c) 2016-2026 ReactiveUI and Contributors. All rights reserved.
-// ReactiveUI and Contributors licenses this file to you under the MIT license.
+// Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.
+// ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 #if !NET
@@ -9,12 +9,16 @@
 
 namespace System.Runtime.CompilerServices;
 
-/// <summary>
-/// Reserved to be used by the compiler for tracking metadata. This class should not be used by developers in source code.
-/// </summary>
+/// <summary>Reserved to be used by the compiler for tracking metadata. This class should not be used by developers in source code.</summary>
 [ExcludeFromCodeCoverage]
 [DebuggerNonUserCode]
-internal static class IsExternalInit;
+internal sealed class IsExternalInit
+{
+    /// <summary>Initializes a new instance of the <see cref="IsExternalInit"/> class.</summary>
+    private IsExternalInit()
+    {
+    }
+}
 
 #else
 using System.Runtime.CompilerServices;

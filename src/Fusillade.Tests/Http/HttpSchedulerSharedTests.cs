@@ -1,5 +1,5 @@
-// Copyright (c) 2016-2026 ReactiveUI and Contributors. All rights reserved.
-// ReactiveUI and Contributors licenses this file to you under the MIT license.
+// Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.
+// ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 #if REACTIVE_SHIM
@@ -95,7 +95,7 @@ public abstract class HttpSchedulerSharedTests
             var current = Interlocked.Increment(ref scheduledCount);
             if (current == TotalRequests)
             {
-                scheduled5Tcs.TrySetResult();
+                _ = scheduled5Tcs.TrySetResult();
             }
 
             var ret = new HttpResponseMessage
@@ -119,7 +119,7 @@ public abstract class HttpSchedulerSharedTests
                         return;
                     }
 
-                    completed5Tcs.TrySetResult();
+                    _ = completed5Tcs.TrySetResult();
                 });
         }));
 
@@ -128,13 +128,17 @@ public abstract class HttpSchedulerSharedTests
             BaseAddress = new(ExampleBaseUrl),
         };
 
-        var rqs =
-            Enumerable
-                .Range(0, TotalRequests)
-                .Select(x => new HttpRequestMessage(HttpMethod.Get, "/" + x))
-                .ToArray();
+        var rqs = new HttpRequestMessage[TotalRequests];
+        for (var i = 0; i < rqs.Length; i++)
+        {
+            rqs[i] = new(HttpMethod.Get, "/" + i);
+        }
 
-        var responses = rqs.Select(client.SendAsync).ToArray();
+        var responses = new Task<HttpResponseMessage>[rqs.Length];
+        for (var i = 0; i < rqs.Length; i++)
+        {
+            responses[i] = client.SendAsync(rqs[i]);
+        }
 
         using (Assert.Multiple())
         {
@@ -144,7 +148,7 @@ public abstract class HttpSchedulerSharedTests
         }
 
         // Complete one request to free a slot and allow the 5th to be scheduled.
-        var firstSubj = blockedRqs.First().Value;
+        var firstSubj = GetFirstValue(blockedRqs);
         firstSubj.OnNext(RxVoid.Default);
         firstSubj.OnCompleted();
 
@@ -160,7 +164,7 @@ public abstract class HttpSchedulerSharedTests
         }
 
         // Complete all remaining requests (snapshot to avoid concurrent mutation during enumeration).
-        foreach (var v in blockedRqs.Values.ToArray())
+        foreach (var v in GetValuesSnapshot(blockedRqs))
         {
             v.OnNext(RxVoid.Default);
             v.OnCompleted();
@@ -226,7 +230,7 @@ public abstract class HttpSchedulerSharedTests
         using var handlerEntered = new SemaphoreSlim(0);
         using var gate = new Signal<RxVoid>();
 
-        var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(_ =>
+        var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(__ =>
         {
             var ret = new HttpResponseMessage
             {
@@ -235,8 +239,8 @@ public abstract class HttpSchedulerSharedTests
             };
 
             ret.Headers.ETag = new(ETagValue);
-            Interlocked.Increment(ref messageCount);
-            handlerEntered.Release();
+            _ = Interlocked.Increment(ref messageCount);
+            _ = handlerEntered.Release();
 
             return gate.Take(1).Select(__ => ret);
         }));
@@ -297,7 +301,7 @@ public abstract class HttpSchedulerSharedTests
         using var handlerEntered = new SemaphoreSlim(0);
         using var gate = new Signal<RxVoid>();
 
-        var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(_ =>
+        var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(__ =>
         {
             var ret = new HttpResponseMessage
             {
@@ -306,8 +310,8 @@ public abstract class HttpSchedulerSharedTests
             };
 
             ret.Headers.ETag = new(ETagValue);
-            Interlocked.Increment(ref messageCount);
-            handlerEntered.Release();
+            _ = Interlocked.Increment(ref messageCount);
+            _ = handlerEntered.Release();
 
             return gate.Take(1).Select(__ => ret);
         }));
@@ -362,7 +366,7 @@ public abstract class HttpSchedulerSharedTests
         using var handlerEntered = new SemaphoreSlim(0);
         using var gate = new Signal<RxVoid>();
 
-        var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(_ =>
+        var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(__ =>
         {
             var ret = new HttpResponseMessage
             {
@@ -371,8 +375,8 @@ public abstract class HttpSchedulerSharedTests
             };
 
             ret.Headers.ETag = new(ETagValue);
-            Interlocked.Increment(ref messageCount);
-            handlerEntered.Release();
+            _ = Interlocked.Increment(ref messageCount);
+            _ = handlerEntered.Release();
 
             return gate.Take(1).Select(__ => ret);
         }));
@@ -444,7 +448,7 @@ public abstract class HttpSchedulerSharedTests
         using var handlerEntered = new SemaphoreSlim(0);
         using var gate = new Signal<RxVoid>();
 
-        var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(_ =>
+        var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(__ =>
         {
             var ret = new HttpResponseMessage
             {
@@ -453,8 +457,8 @@ public abstract class HttpSchedulerSharedTests
             };
 
             ret.Headers.ETag = new(ETagValue);
-            Interlocked.Increment(ref messageCount);
-            handlerEntered.Release();
+            _ = Interlocked.Increment(ref messageCount);
+            _ = handlerEntered.Release();
 
             return gate.Take(1)
                 .Do(__ => Interlocked.Increment(ref finalMessageCount))
@@ -540,6 +544,42 @@ public abstract class HttpSchedulerSharedTests
     /// <param name="innerHandler">The inner handler.</param>
     /// <returns>The limiting handler.</returns>
     protected abstract LimitingHttpMessageHandler CreateFixture(HttpMessageHandler? innerHandler);
+
+    /// <summary>Gets the first value from a dictionary without using LINQ.</summary>
+    /// <param name="values">The source dictionary.</param>
+    /// <returns>The first value.</returns>
+    private static Signal<RxVoid> GetFirstValue(ConcurrentDictionary<HttpRequestMessage, Signal<RxVoid>> values)
+    {
+        using var enumerator = values.Values.GetEnumerator();
+        if (enumerator.MoveNext())
+        {
+            return enumerator.Current;
+        }
+
+        throw new InvalidOperationException("Expected at least one blocked request.");
+    }
+
+    /// <summary>Gets a stable snapshot of dictionary values without using LINQ.</summary>
+    /// <param name="values">The source dictionary.</param>
+    /// <returns>The value snapshot.</returns>
+    private static Signal<RxVoid>[] GetValuesSnapshot(ConcurrentDictionary<HttpRequestMessage, Signal<RxVoid>> values)
+    {
+        var snapshot = new Signal<RxVoid>[values.Count];
+        var index = 0;
+        foreach (var value in values.Values)
+        {
+            snapshot[index] = value;
+            index++;
+        }
+
+        if (index == snapshot.Length)
+        {
+            return snapshot;
+        }
+
+        Array.Resize(ref snapshot, index);
+        return snapshot;
+    }
 
     /// <summary>Disposes completed request test resources.</summary>
     /// <param name="responses">The completed responses.</param>

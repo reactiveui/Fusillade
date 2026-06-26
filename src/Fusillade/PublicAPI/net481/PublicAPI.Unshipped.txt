@@ -16,7 +16,7 @@ Fusillade.Priority.Explicit = 0 -> Fusillade.Priority
 Fusillade.Priority.Speculative = 10 -> Fusillade.Priority
 Fusillade.Priority.UserInitiated = 100 -> Fusillade.Priority
 Fusillade.RateLimitedHttpMessageHandler
-Fusillade.RateLimitedHttpMessageHandler.RateLimitedHttpMessageHandler(System.Net.Http.HttpMessageHandler? handler, Fusillade.Priority basePriority, int priority = 0, long? maxBytesToRead = null, Punchclock.OperationQueue? opQueue = null, System.Func<System.Net.Http.HttpRequestMessage!, System.Net.Http.HttpResponseMessage!, string!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>? cacheResultFunc = null) -> void
+Fusillade.RateLimitedHttpMessageHandler.RateLimitedHttpMessageHandler(System.Net.Http.HttpMessageHandler? handler, Fusillade.Priority basePriority, int priority = 0, long? maxBytesToRead = null, Punchclock.OperationQueue? operationQueue = null, System.Func<System.Net.Http.HttpRequestMessage!, System.Net.Http.HttpResponseMessage!, string!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>? cacheResultFunc = null) -> void
 override Fusillade.OfflineHttpMessageHandler.SendAsync(System.Net.Http.HttpRequestMessage! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage!>!
 override Fusillade.RateLimitedHttpMessageHandler.ResetLimit(long? maxBytesToRead) -> void
 override Fusillade.RateLimitedHttpMessageHandler.SendAsync(System.Net.Http.HttpRequestMessage! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage!>!

@@ -1,5 +1,5 @@
-// Copyright (c) 2016-2026 ReactiveUI and Contributors. All rights reserved.
-// ReactiveUI and Contributors licenses this file to you under the MIT license.
+// Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.
+// ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 using System.Globalization;
@@ -23,14 +23,14 @@ namespace Fusillade;
 /// <param name="basePriority">The base priority of the request.</param>
 /// <param name="priority">The priority of the request.</param>
 /// <param name="maxBytesToRead">The maximum number of bytes we can read.</param>
-/// <param name="opQueue">The operation queue on which to run the operation.</param>
+/// <param name="operationQueue">The operation queue on which to run the operation.</param>
 /// <param name="cacheResultFunc">A method that is called if we need to get cached results.</param>
 public class RateLimitedHttpMessageHandler(
     HttpMessageHandler? handler,
     Priority basePriority,
     int priority = 0,
     long? maxBytesToRead = null,
-    OperationQueue? opQueue = null,
+    OperationQueue? operationQueue = null,
     Func<HttpRequestMessage, HttpResponseMessage, string, CancellationToken, Task>? cacheResultFunc = null)
     : LimitingHttpMessageHandler(handler)
 {
@@ -73,7 +73,13 @@ public class RateLimitedHttpMessageHandler(
         {
             lock (_inflightResponses)
             {
-                return _inflightResponses.Values.Sum(static x => x.ReferenceCount);
+                var count = 0;
+                foreach (var request in _inflightResponses.Values)
+                {
+                    count += request.ReferenceCount;
+                }
+
+                return count;
             }
         }
     }
@@ -85,7 +91,7 @@ public class RateLimitedHttpMessageHandler(
     {
         ArgumentExceptionHelper.ThrowIfNull(request);
 
-        var ret = new[]
+        var keyParts = new[]
         {
             request.RequestUri?.ToString(),
             request.Method.Method,
@@ -93,17 +99,16 @@ public class RateLimitedHttpMessageHandler(
             request.Headers.AcceptEncoding.ConcatenateAll(x => x.Value),
             (request.Headers.Referrer ?? new Uri("http://example")).AbsoluteUri,
             request.Headers.UserAgent.ConcatenateAll(x => x.Product is not null ? x.Product.ToString() : x.Comment!),
-        }.Aggregate(
-            new StringBuilder(),
-            (acc, x) =>
-            {
-                acc.AppendLine(x);
-                return acc;
-            });
+        };
+        var ret = new StringBuilder();
+        foreach (var keyPart in keyParts)
+        {
+            _ = ret.AppendLine(keyPart);
+        }
 
         if (request.Headers.Authorization is not null)
         {
-            ret.Append(request.Headers.Authorization.Parameter).AppendLine(request.Headers.Authorization.Scheme);
+            _ = ret.Append(request.Headers.Authorization.Parameter).AppendLine(request.Headers.Authorization.Scheme);
         }
 
         return "HttpSchedulerCache_" + ret.ToString().GetHashCode().ToString("x", CultureInfo.InvariantCulture);
@@ -153,7 +158,7 @@ public class RateLimitedHttpMessageHandler(
             {
                 lock (_inflightResponses)
                 {
-                    _inflightResponses.Remove(key);
+                    _ = _inflightResponses.Remove(key);
                 }
 
                 try
@@ -170,7 +175,7 @@ public class RateLimitedHttpMessageHandler(
             _inflightResponses[key] = ret;
         }
 
-        var queue = opQueue ?? NetCache.OperationQueue;
+        var queue = operationQueue ?? NetCache.OperationQueue;
 
         _ = CompleteInflightRequestAsync(queue, ret, request, key, realToken, cacheResult);
 
@@ -193,9 +198,7 @@ public class RateLimitedHttpMessageHandler(
         return tcs.Task;
     }
 
-    /// <summary>
-    /// Buffers the response body so it can be cached, returning a fresh response with the buffered content.
-    /// </summary>
+    /// <summary>Buffers the response body so it can be cached, returning a fresh response with the buffered content.</summary>
     /// <param name="request">The originating request.</param>
     /// <param name="response">The response whose body is buffered.</param>
     /// <param name="key">The cache key for the request.</param>
@@ -222,13 +225,13 @@ public class RateLimitedHttpMessageHandler(
         var newResp = new HttpResponseMessage();
         foreach (var kvp in response.Headers)
         {
-            newResp.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value);
+            _ = newResp.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value);
         }
 
         var newContent = new ByteArrayContent(ms.ToArray());
         foreach (var kvp in response.Content.Headers)
         {
-            newContent.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value);
+            _ = newContent.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value);
         }
 
         newResp.Content = newContent;
@@ -263,15 +266,15 @@ public class RateLimitedHttpMessageHandler(
                     realToken.Token)
                 .ConfigureAwait(false);
 
-            inflightRequest.TrySetResult(response);
+            _ = inflightRequest.TrySetResult(response);
         }
         catch (OperationCanceledException) when (realToken.IsCancellationRequested)
         {
-            inflightRequest.TrySetCanceled(realToken.Token);
+            _ = inflightRequest.TrySetCanceled(realToken.Token);
         }
         catch (Exception ex)
         {
-            inflightRequest.TrySetException(ex);
+            _ = inflightRequest.TrySetException(ex);
         }
         finally
         {
@@ -280,7 +283,7 @@ public class RateLimitedHttpMessageHandler(
                 if (_inflightResponses.TryGetValue(key, out var currentRequest) &&
                     ReferenceEquals(currentRequest, inflightRequest))
                 {
-                    _inflightResponses.Remove(key);
+                    _ = _inflightResponses.Remove(key);
                 }
             }
 

@@ -1,5 +1,5 @@
-// Copyright (c) 2016-2026 ReactiveUI and Contributors. All rights reserved.
-// ReactiveUI and Contributors licenses this file to you under the MIT license.
+// Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.
+// ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 #if REACTIVE_SHIM
@@ -112,7 +112,7 @@ internal sealed class InflightRequest(Action onFullyCancelled) : IDisposable
         var remaining = Interlocked.Decrement(ref _refCount);
         if (remaining < 0)
         {
-            Interlocked.Increment(ref _refCount);
+            _ = Interlocked.Increment(ref _refCount);
             return;
         }
 
@@ -153,7 +153,7 @@ internal sealed class InflightRequest(Action onFullyCancelled) : IDisposable
     {
         foreach (var header in source)
         {
-            target.TryAddWithoutValidation(header.Key, header.Value);
+            _ = target.TryAddWithoutValidation(header.Key, header.Value);
         }
     }
 
@@ -196,7 +196,7 @@ internal sealed class InflightRequest(Action onFullyCancelled) : IDisposable
             }
             finally
             {
-                _responseBufferGate.Release();
+                _ = _responseBufferGate.Release();
             }
         }
 
@@ -230,7 +230,7 @@ internal sealed class InflightRequest(Action onFullyCancelled) : IDisposable
         {
             var (request, completion, token) = ((InflightRequest Request, TaskCompletionSource<HttpResponseMessage> Completion, CancellationToken Token))state!;
             request.Cancel();
-            completion.TrySetCanceled(token);
+            _ = completion.TrySetCanceled(token);
         }
 
 #if NET8_0_OR_GREATER

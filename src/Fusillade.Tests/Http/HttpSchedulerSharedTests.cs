@@ -66,7 +66,7 @@ public abstract class HttpSchedulerSharedTests
             return Signal.Emit(ret);
         }));
 
-        var client = new HttpClient(fixture)
+        using var client = new HttpClient(fixture)
         {
             BaseAddress = new(ExampleBaseUrl),
         };
@@ -176,7 +176,8 @@ public abstract class HttpSchedulerSharedTests
 
         // Wait until all completed.
         await completed5Tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
-        await Task.WhenAll(responses).WaitAsync(TimeSpan.FromSeconds(2));
+        var completedResponses = await Task.WhenAll(responses).WaitAsync(TimeSpan.FromSeconds(2));
+        DisposeCompletedRequests(completedResponses, rqs, blockedRqs.Values);
 
         using (Assert.Multiple())
         {
@@ -202,7 +203,7 @@ public abstract class HttpSchedulerSharedTests
             return Signal.Emit(ret);
         }));
 
-        var client = new HttpClient(fixture)
+        using var client = new HttpClient(fixture)
         {
             BaseAddress = new(ExampleBaseUrl),
         };
@@ -210,18 +211,18 @@ public abstract class HttpSchedulerSharedTests
         fixture.ResetLimit(RateLimitByteBudget);
 
         // Under the limit => succeed
-        var rq = new HttpRequestMessage(HttpMethod.Get, "/");
-        var resp = await client.SendAsync(rq);
+        using var rq = new HttpRequestMessage(HttpMethod.Get, "/");
+        using var resp = await client.SendAsync(rq);
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Crossing the limit => succeed
-        rq = new(HttpMethod.Get, "/");
-        resp = await client.SendAsync(rq);
-        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        using var secondRequest = new HttpRequestMessage(HttpMethod.Get, "/");
+        using var secondResponse = await client.SendAsync(secondRequest);
+        await Assert.That(secondResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Over the limit => cancelled
-        rq = new(HttpMethod.Get, "/");
-        await Assert.ThrowsAsync<TaskCanceledException>(async () => await client.SendAsync(rq));
+        using var canceledRequest = new HttpRequestMessage(HttpMethod.Get, "/");
+        await Assert.ThrowsAsync<TaskCanceledException>(async () => await client.SendAsync(canceledRequest));
     }
 
     /// <summary>Tests to make sure that concurrent requests aren't debounced.</summary>
@@ -231,7 +232,7 @@ public abstract class HttpSchedulerSharedTests
     {
         var messageCount = 0;
         using var handlerEntered = new SemaphoreSlim(0);
-        Signal<RxVoid> gate = new();
+        using var gate = new Signal<RxVoid>();
 
         var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(_ =>
         {
@@ -248,7 +249,7 @@ public abstract class HttpSchedulerSharedTests
             return gate.Take(1).Select(__ => ret);
         }));
 
-        var client = new HttpClient(fixture)
+        using var client = new HttpClient(fixture)
         {
             BaseAddress = new(ExampleBaseUrl),
         };
@@ -284,8 +285,8 @@ public abstract class HttpSchedulerSharedTests
         gate.OnNext(RxVoid.Default);
         gate.OnCompleted();
 
-        var resp1 = await resp1Task;
-        var resp2 = await resp2Task;
+        using var resp1 = await resp1Task;
+        using var resp2 = await resp2Task;
 
         using (Assert.Multiple())
         {
@@ -302,7 +303,7 @@ public abstract class HttpSchedulerSharedTests
     {
         var messageCount = 0;
         using var handlerEntered = new SemaphoreSlim(0);
-        Signal<RxVoid> gate = new();
+        using var gate = new Signal<RxVoid>();
 
         var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(_ =>
         {
@@ -319,7 +320,7 @@ public abstract class HttpSchedulerSharedTests
             return gate.Take(1).Select(__ => ret);
         }));
 
-        var client = new HttpClient(fixture)
+        using var client = new HttpClient(fixture)
         {
             BaseAddress = new(ExampleBaseUrl),
         };
@@ -351,7 +352,7 @@ public abstract class HttpSchedulerSharedTests
         gate.OnNext(RxVoid.Default);
         gate.OnCompleted();
 
-        var resp2 = await resp2Task;
+        using var resp2 = await resp2Task;
 
         using (Assert.Multiple())
         {
@@ -367,7 +368,7 @@ public abstract class HttpSchedulerSharedTests
     {
         var messageCount = 0;
         using var handlerEntered = new SemaphoreSlim(0);
-        Signal<RxVoid> gate = new();
+        using var gate = new Signal<RxVoid>();
 
         var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(_ =>
         {
@@ -384,7 +385,7 @@ public abstract class HttpSchedulerSharedTests
             return gate.Take(1).Select(__ => ret);
         }));
 
-        var client = new HttpClient(fixture)
+        using var client = new HttpClient(fixture)
         {
             BaseAddress = new(ExampleBaseUrl),
         };
@@ -414,8 +415,8 @@ public abstract class HttpSchedulerSharedTests
         gate.OnNext(RxVoid.Default);
         gate.OnCompleted();
 
-        var resp1 = await resp1Task;
-        var resp2 = await resp2Task;
+        using var resp1 = await resp1Task;
+        using var resp2 = await resp2Task;
 
         using (Assert.Multiple())
         {
@@ -432,7 +433,7 @@ public abstract class HttpSchedulerSharedTests
     {
         var expected = new InvalidOperationException("boom");
         var fixture = CreateFixture(new TestHttpMessageHandler(_ => Signal.Fail<HttpResponseMessage>(expected)));
-        var client = new HttpClient(fixture)
+        using var client = new HttpClient(fixture)
         {
             BaseAddress = new(ExampleBaseUrl),
         };
@@ -449,7 +450,7 @@ public abstract class HttpSchedulerSharedTests
         var messageCount = 0;
         var finalMessageCount = 0;
         using var handlerEntered = new SemaphoreSlim(0);
-        Signal<RxVoid> gate = new();
+        using var gate = new Signal<RxVoid>();
 
         var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(_ =>
         {
@@ -547,4 +548,29 @@ public abstract class HttpSchedulerSharedTests
     /// <param name="innerHandler">The inner handler.</param>
     /// <returns>The limiting handler.</returns>
     protected abstract LimitingHttpMessageHandler CreateFixture(HttpMessageHandler? innerHandler);
+
+    /// <summary>Disposes completed request test resources.</summary>
+    /// <param name="responses">The completed responses.</param>
+    /// <param name="requests">The requests sent by the test.</param>
+    /// <param name="signals">The gate signals used by the test handler.</param>
+    private static void DisposeCompletedRequests(
+        IEnumerable<HttpResponseMessage> responses,
+        IEnumerable<HttpRequestMessage> requests,
+        IEnumerable<Signal<RxVoid>> signals)
+    {
+        foreach (var response in responses)
+        {
+            response.Dispose();
+        }
+
+        foreach (var request in requests)
+        {
+            request.Dispose();
+        }
+
+        foreach (var signal in signals)
+        {
+            signal.Dispose();
+        }
+    }
 }

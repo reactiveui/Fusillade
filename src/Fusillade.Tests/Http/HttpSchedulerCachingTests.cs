@@ -7,6 +7,11 @@ using System.Net.Http.Headers;
 using System.Text;
 using Akavache;
 using Akavache.SystemTextJson;
+#if REACTIVE_SHIM
+using Punchclock.Reactive;
+#else
+using Punchclock;
+#endif
 using ReactiveUI.Primitives.Signals;
 
 #if REACTIVE_SHIM
@@ -88,8 +93,8 @@ public class HttpSchedulerCachingTests
             return Task.FromResult(true);
         });
 
-        var client = new HttpClient(fixture);
-        _ = await client.GetAsync(new Uri(TestBarUrl));
+        using var client = new HttpClient(fixture);
+        using var response = await client.GetAsync(new Uri(TestBarUrl));
         await Assert.That(etagResponses[0]).IsEqualTo("\"worifjw\"");
     }
 
@@ -113,9 +118,11 @@ public class HttpSchedulerCachingTests
             return Signal.Emit(ret);
         });
 
-        var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, opQueue: new());
+        using var operationQueue = new OperationQueue();
+        var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, opQueue: operationQueue);
         using var client = new HttpClient(fixture);
-        var str = await client.GetStringAsync(new Uri(TestBarUrl));
+        using var response = await client.GetAsync(new Uri(TestBarUrl));
+        var str = await response.Content.ReadAsStringAsync();
 
         using (Assert.Multiple())
         {
@@ -174,7 +181,7 @@ public class HttpSchedulerCachingTests
             await cache.Insert(key, data);
         });
 
-        var client = new HttpClient(cachingHandler);
+        using var client = new HttpClient(cachingHandler);
         var origData = await client.GetStringAsync(new Uri("http://httpbin.org/get"));
 
         await Assert.That(origData).Contains("origin");
@@ -188,15 +195,15 @@ public class HttpSchedulerCachingTests
 
         var offlineHandler = new OfflineHttpMessageHandler(async (_, key, _) => await cache.Get(key));
 
-        client = new(offlineHandler);
-        var newData = await client.GetStringAsync(new Uri("http://httpbin.org/get"));
+        using var offlineClient = new HttpClient(offlineHandler);
+        var newData = await offlineClient.GetStringAsync(new Uri("http://httpbin.org/get"));
 
         await Assert.That(origData).IsEqualTo(newData);
 
         var shouldDie = true;
         try
         {
-            await client.GetStringAsync(new Uri("http://httpbin.org/gzip"));
+            await offlineClient.GetStringAsync(new Uri("http://httpbin.org/gzip"));
         }
         catch (Exception ex)
         {
@@ -240,8 +247,8 @@ public class HttpSchedulerCachingTests
         });
 
         using var client = new HttpClient(fixture);
-        var request = new HttpRequestMessage(new(method), TestBarUrl);
-        await client.SendAsync(request);
+        using var request = new HttpRequestMessage(new(method), TestBarUrl);
+        using var response = await client.SendAsync(request);
 
         await Assert.That(cached).IsEqualTo(shouldCache);
     }

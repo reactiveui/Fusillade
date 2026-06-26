@@ -41,6 +41,7 @@
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
     <TUnitImplicitUsings>true</TUnitImplicitUsings>
     <TUnitAssertionsImplicitUsings>true</TUnitAssertionsImplicitUsings>
+    <UseAppHost>false</UseAppHost>
     <SonarQubeExclude>true</SonarQubeExclude>
     <ExcludeFromCodeCoverage>true</ExcludeFromCodeCoverage>
     <IsPackable>false</IsPackable>

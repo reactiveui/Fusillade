@@ -43,12 +43,12 @@ public class NetCacheTests
     public async Task ValuesShouldBeResolvedFromCurrentResolverAsync()
     {
         using var scope = new NetCacheTestScope();
-        var resolver = new ModernDependencyResolver();
+        using var resolver = new ModernDependencyResolver();
         using var speculative = new TestLimitingHttpMessageHandler(null);
         using var userInitiated = new HttpClientHandler();
         using var background = new HttpClientHandler();
         using var offline = new HttpClientHandler();
-        var operationQueue = new OperationQueue();
+        using var operationQueue = new OperationQueue();
 
         resolver.RegisterConstant<LimitingHttpMessageHandler>(speculative, "Speculative");
         resolver.RegisterConstant<HttpMessageHandler>(userInitiated, "UserInitiated");

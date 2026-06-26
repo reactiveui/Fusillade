@@ -21,7 +21,7 @@ public class SplatBuilderTests
     public async Task CreateFusilladeNetCacheShouldUseBuilderResolverAsync()
     {
         using var scope = new NetCacheTestScope();
-        var resolver = new ModernDependencyResolver();
+        using var resolver = new ModernDependencyResolver();
         IAppInstance app = new AppBuilder(resolver).Build();
 
         var result = app.CreateFusilladeNetCache();

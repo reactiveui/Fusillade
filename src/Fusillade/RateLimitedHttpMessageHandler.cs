@@ -2,20 +2,18 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Fusillade.Helpers;
+#if REACTIVE_SHIM
+using Punchclock.Reactive;
+#else
 using Punchclock;
+#endif
 
+#if REACTIVE_SHIM
+namespace Fusillade.Reactive;
+#else
 namespace Fusillade;
+#endif
 
 /// <summary>A http handler which will limit the rate at which we can read.</summary>
 /// <remarks>
@@ -89,7 +87,7 @@ public class RateLimitedHttpMessageHandler(
 
         var ret = new[]
         {
-            request.RequestUri!.ToString(),
+            request.RequestUri?.ToString(),
             request.Method.Method,
             request.Headers.Accept.ConcatenateAll(x => x.CharSet + x.MediaType),
             request.Headers.AcceptEncoding.ConcatenateAll(x => x.Value),
@@ -213,9 +211,9 @@ public class RateLimitedHttpMessageHandler(
     {
         var ms = new MemoryStream();
 #if NET5_0_OR_GREATER
-        var stream = await response.Content!.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
 #else
-        var stream = await response.Content!.ReadAsStreamAsync().ConfigureAwait(false);
+        var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 #endif
         await stream.CopyToAsync(ms, CopyBufferSize, cancellationToken).ConfigureAwait(false);
 
@@ -228,7 +226,7 @@ public class RateLimitedHttpMessageHandler(
         }
 
         var newContent = new ByteArrayContent(ms.ToArray());
-        foreach (var kvp in response.Content!.Headers)
+        foreach (var kvp in response.Content.Headers)
         {
             newContent.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value);
         }

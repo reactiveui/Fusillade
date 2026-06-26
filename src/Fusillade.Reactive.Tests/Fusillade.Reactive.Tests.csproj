@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>$(NetTargetFrameworks)</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <DefineConstants>$(DefineConstants);REACTIVE_SHIM</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Fusillade.Tests\**\*.cs" Exclude="..\Fusillade.Tests\bin\**;..\Fusillade.Tests\obj\**" Link="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fusillade.Reactive\Fusillade.Reactive.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Fusillade.Reactive" />
+    <Using Include="Fusillade.Reactive.Helpers" />
+    <Using Include="Fusillade.Reactive.Tests" />
+    <Using Include="Fusillade.Reactive.Tests.Http" />
+    <Using Include="ReactiveUI.Primitives" />
+    <Using Include="ReactiveUI.Primitives.Signals" />
+  </ItemGroup>
+</Project>

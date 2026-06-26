@@ -10,7 +10,11 @@ using ReactiveUI.Primitives;
 using ReactiveUI.Primitives.Concurrency;
 using ReactiveUI.Primitives.Signals;
 
+#if REACTIVE_SHIM
+namespace Fusillade.Reactive.Tests;
+#else
 namespace Fusillade.Tests;
+#endif
 
 /// <summary>Base class full of common requests.</summary>
 public abstract class HttpSchedulerSharedTests
@@ -87,7 +91,7 @@ public abstract class HttpSchedulerSharedTests
     [Test]
     public async Task HttpSchedulerShouldntScheduleLotsOfStuffAtOnceAsync()
     {
-        var blockedRqs = new ConcurrentDictionary<HttpRequestMessage, FinalSignal<RxVoid>>();
+        var blockedRqs = new ConcurrentDictionary<HttpRequestMessage, Signal<RxVoid>>();
         var scheduledCount = 0;
         var completedCount = 0;
 
@@ -110,7 +114,7 @@ public abstract class HttpSchedulerSharedTests
 
             ret.Headers.ETag = new(ETagValue);
 
-            var subj = new FinalSignal<RxVoid>();
+            var subj = new Signal<RxVoid>();
             blockedRqs[rq] = subj;
 
             return subj
@@ -227,7 +231,7 @@ public abstract class HttpSchedulerSharedTests
     {
         var messageCount = 0;
         using var handlerEntered = new SemaphoreSlim(0);
-        FinalSignal<RxVoid> gate = new();
+        Signal<RxVoid> gate = new();
 
         var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(_ =>
         {
@@ -298,7 +302,7 @@ public abstract class HttpSchedulerSharedTests
     {
         var messageCount = 0;
         using var handlerEntered = new SemaphoreSlim(0);
-        FinalSignal<RxVoid> gate = new();
+        Signal<RxVoid> gate = new();
 
         var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(_ =>
         {
@@ -342,11 +346,11 @@ public abstract class HttpSchedulerSharedTests
 
         // Cancelling the first caller must not cancel the shared request.
         await cts.CancelAsync();
+        await Assert.ThrowsAsync<TaskCanceledException>(async () => await resp1Task);
 
         gate.OnNext(RxVoid.Default);
         gate.OnCompleted();
 
-        await Assert.ThrowsAsync<TaskCanceledException>(async () => await resp1Task);
         var resp2 = await resp2Task;
 
         using (Assert.Multiple())
@@ -363,7 +367,7 @@ public abstract class HttpSchedulerSharedTests
     {
         var messageCount = 0;
         using var handlerEntered = new SemaphoreSlim(0);
-        FinalSignal<RxVoid> gate = new();
+        Signal<RxVoid> gate = new();
 
         var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(_ =>
         {
@@ -421,6 +425,22 @@ public abstract class HttpSchedulerSharedTests
         }
     }
 
+    /// <summary>Checks that inner handler exceptions are propagated to the caller.</summary>
+    /// <returns>A task to monitor the progress.</returns>
+    [Test]
+    public async Task InnerHandlerExceptionsShouldPropagateAsync()
+    {
+        var expected = new InvalidOperationException("boom");
+        var fixture = CreateFixture(new TestHttpMessageHandler(_ => Signal.Fail<HttpResponseMessage>(expected)));
+        var client = new HttpClient(fixture)
+        {
+            BaseAddress = new(ExampleBaseUrl),
+        };
+
+        var thrown = await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetAsync(new Uri("/", UriKind.Relative)));
+        await Assert.That(ReferenceEquals(thrown, expected)).IsTrue();
+    }
+
     /// <summary>Tests if a debounce is fully cancelling requests.</summary>
     /// <returns>A task to monitor the progress.</returns>
     [Test]
@@ -429,7 +449,7 @@ public abstract class HttpSchedulerSharedTests
         var messageCount = 0;
         var finalMessageCount = 0;
         using var handlerEntered = new SemaphoreSlim(0);
-        FinalSignal<RxVoid> gate = new();
+        Signal<RxVoid> gate = new();
 
         var fixture = (RateLimitedHttpMessageHandler)CreateFixture(new TestHttpMessageHandler(_ =>
         {

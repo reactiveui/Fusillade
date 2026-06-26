@@ -2,7 +2,11 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
+#if REACTIVE_SHIM
+namespace Fusillade.Reactive.Tests;
+#else
 namespace Fusillade.Tests;
+#endif
 
 /// <summary>Request cache implementation that records calls for tests.</summary>
 internal sealed class RecordingRequestCache : IRequestCache
@@ -25,7 +29,7 @@ internal sealed class RecordingRequestCache : IRequestCache
         _ = request;
         SaveCount++;
         SavedKey = key;
-        SavedBytes = await response.Content!.ReadAsByteArrayAsync(ct);
+        SavedBytes = await response.Content.ReadAsByteArrayAsync(ct);
     }
 
     /// <inheritdoc />

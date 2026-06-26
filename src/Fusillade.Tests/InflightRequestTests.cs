@@ -5,7 +5,11 @@
 using System.Net;
 using ReactiveUI.Primitives;
 
+#if REACTIVE_SHIM
+namespace Fusillade.Reactive.Tests;
+#else
 namespace Fusillade.Tests;
+#endif
 
 /// <summary>Checks shared in-flight request behavior.</summary>
 public class InflightRequestTests

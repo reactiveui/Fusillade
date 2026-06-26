@@ -5,7 +5,11 @@
 using Splat;
 using Splat.Builder;
 
+#if REACTIVE_SHIM
+namespace Fusillade.Reactive.Tests;
+#else
 namespace Fusillade.Tests;
+#endif
 
 /// <summary>Checks Fusillade's Splat builder integration.</summary>
 [NotInParallel]

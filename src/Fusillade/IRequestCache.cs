@@ -2,11 +2,11 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
-
+#if REACTIVE_SHIM
+namespace Fusillade.Reactive;
+#else
 namespace Fusillade;
+#endif
 
 /// <summary>This Interface is a simple cache for HTTP requests and intentionally does not conform to HTTP caching rules.</summary>
 public interface IRequestCache

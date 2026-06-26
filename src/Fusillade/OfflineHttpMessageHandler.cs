@@ -1,14 +1,14 @@
-﻿// Copyright (c) 2016-2026 ReactiveUI and Contributors. All rights reserved.
+// Copyright (c) 2016-2026 ReactiveUI and Contributors. All rights reserved.
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System;
 using System.Net;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 
+#if REACTIVE_SHIM
+namespace Fusillade.Reactive;
+#else
 namespace Fusillade;
+#endif
 
 /// <summary>A http handler that will make a response even if the HttpClient is offline.</summary>
 /// <remarks>

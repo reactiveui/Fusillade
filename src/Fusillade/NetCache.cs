@@ -2,13 +2,18 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System;
-using System.Net.Http;
-using Fusillade.Helpers;
+#if REACTIVE_SHIM
+using Punchclock.Reactive;
+#else
 using Punchclock;
+#endif
 using Splat;
 
+#if REACTIVE_SHIM
+namespace Fusillade.Reactive;
+#else
 namespace Fusillade;
+#endif
 
 /// <summary>Handles caching for our Http requests.</summary>
 public static class NetCache

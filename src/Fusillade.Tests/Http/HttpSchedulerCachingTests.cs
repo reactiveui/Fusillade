@@ -9,7 +9,11 @@ using Akavache;
 using Akavache.SystemTextJson;
 using ReactiveUI.Primitives.Signals;
 
+#if REACTIVE_SHIM
+namespace Fusillade.Reactive.Tests.Http;
+#else
 namespace Fusillade.Tests.Http;
+#endif
 
 /// <summary>Checks to make sure that the http scheduler caches correctly.</summary>
 [NotInParallel]
@@ -17,6 +21,9 @@ public class HttpSchedulerCachingTests
 {
     /// <summary>The repeated test URL used by cache tests.</summary>
     private const string TestBarUrl = "http://lol/bar";
+
+    /// <summary>The repeated unique key test URL.</summary>
+    private const string UniqueKeyTestUrl = "http://example/foo";
 
     /// <summary>The byte length of the "foo" test payload.</summary>
     private const int FooContentLength = 3;
@@ -126,14 +133,30 @@ public class HttpSchedulerCachingTests
     [Test]
     public async Task UniqueKeyForRequestShouldIncludeAuthorizationAsync()
     {
-        using var anonymousRequest = new HttpRequestMessage(HttpMethod.Get, "http://example/foo");
-        using var authorizedRequest = new HttpRequestMessage(HttpMethod.Get, "http://example/foo");
-        authorizedRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "token");
+        using var anonymousRequest = new HttpRequestMessage(HttpMethod.Get, UniqueKeyTestUrl);
+        using var authorizedRequest = new HttpRequestMessage(HttpMethod.Get, UniqueKeyTestUrl);
+        authorizedRequest.Headers.Authorization = new("Bearer", "token");
 
         var anonymousKey = RateLimitedHttpMessageHandler.UniqueKeyForRequest(anonymousRequest);
         var authorizedKey = RateLimitedHttpMessageHandler.UniqueKeyForRequest(authorizedRequest);
 
         await Assert.That(authorizedKey == anonymousKey).IsFalse();
+    }
+
+    /// <summary>Checks that comment-only user-agent values affect request identity.</summary>
+    /// <returns>A task to monitor the progress.</returns>
+    [Test]
+    public async Task UniqueKeyForRequestShouldIncludeCommentUserAgentAsync()
+    {
+        using var productRequest = new HttpRequestMessage(HttpMethod.Get, UniqueKeyTestUrl);
+        using var commentRequest = new HttpRequestMessage(HttpMethod.Get, UniqueKeyTestUrl);
+        productRequest.Headers.UserAgent.ParseAdd("FusilladeTests/1.0");
+        commentRequest.Headers.UserAgent.ParseAdd("(FusilladeTests)");
+
+        var productKey = RateLimitedHttpMessageHandler.UniqueKeyForRequest(productRequest);
+        var commentKey = RateLimitedHttpMessageHandler.UniqueKeyForRequest(commentRequest);
+
+        await Assert.That(commentKey == productKey).IsFalse();
     }
 
     /// <summary>Does a round trip integration test.</summary>

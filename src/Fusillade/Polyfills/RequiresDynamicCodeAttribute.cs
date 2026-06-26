@@ -13,8 +13,7 @@ using Targets = System.AttributeTargets;
 namespace System.Diagnostics.CodeAnalysis;
 
 /// <summary>
-/// Indicates that the specified method requires the ability to generate new code at runtime,
-/// for example through <see cref="System.Reflection"/>.
+/// Indicates that the use of dynamic code is required by the target member. Dynamic code is code that is generated at runtime, such as through reflection or expression trees.
 /// </summary>
 [ExcludeFromCodeCoverage]
 [DebuggerNonUserCode]
@@ -44,7 +43,6 @@ internal sealed class RequiresDynamicCodeAttribute :
     public string? Url { get; set; }
 }
 #else
-using System.Runtime.CompilerServices;
 
-[assembly: TypeForwardedTo(typeof(System.Diagnostics.CodeAnalysis.RequiresDynamicCodeAttribute))]
+[assembly: TypeForwardedTo(typeof(RequiresDynamicCodeAttribute))]
 #endif

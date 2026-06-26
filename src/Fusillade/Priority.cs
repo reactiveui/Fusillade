@@ -2,7 +2,11 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
+#if REACTIVE_SHIM
+namespace Fusillade.Reactive;
+#else
 namespace Fusillade;
+#endif
 
 /// <summary>
 /// This enumeration defines the default base priorities associated with the

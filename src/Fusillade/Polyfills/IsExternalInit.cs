@@ -6,8 +6,6 @@
 
 // Polyfill implementation adapted from Simon Cropp's Polyfill library
 // https://github.com/SimonCropp/Polyfill
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 
 namespace System.Runtime.CompilerServices;
 

@@ -1,33 +1,41 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
-    <PackageId>fusillade</PackageId>
+    <PackageId>fusillade.reactive</PackageId>
     <Nullable>enable</Nullable>
+    <DefineConstants>$(DefineConstants);REACTIVE_SHIM</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="punchclock" />
+    <Compile Include="..\Fusillade\**\*.cs" Exclude="..\Fusillade\bin\**;..\Fusillade\obj\**" Link="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Punchclock.Reactive" />
     <PackageReference Include="ReactiveUI.Primitives" />
+    <PackageReference Include="ReactiveUI.Primitives.Reactive" />
     <PackageReference Include="Splat" />
     <PackageReference Include="System.Net.Http" Condition="'$(TargetFramework)' == 'net462' OR '$(TargetFramework)' == 'net472' OR '$(TargetFramework)' == 'net48' OR '$(TargetFramework)' == 'net481'" />
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Fusillade.Tests" />
     <InternalsVisibleTo Include="Fusillade.Reactive.Tests" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="System" />
+    <Using Include="System.Collections.Generic" />
     <Using Include="System.Text" />
     <Using Include="System.Diagnostics" />
     <Using Include="System.Diagnostics.CodeAnalysis" />
     <Using Include="System.Runtime.CompilerServices" />
     <Using Include="System.Net.Http" />
     <Using Include="System.Net.Http.Headers" />
+    <Using Include="System.Threading" />
+    <Using Include="System.Threading.Tasks" />
     <Using Include="ReactiveUI.Primitives" />
     <Using Include="ReactiveUI.Primitives.Signals" />
-    <Using Include="Fusillade" />
-    <Using Include="Fusillade.Helpers" />
+    <Using Include="Fusillade.Reactive" />
+    <Using Include="Fusillade.Reactive.Helpers" />
   </ItemGroup>
 </Project>

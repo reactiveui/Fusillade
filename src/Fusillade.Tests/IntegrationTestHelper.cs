@@ -5,7 +5,11 @@
 using System.Net;
 using System.Text;
 
+#if REACTIVE_SHIM
+namespace Fusillade.Reactive.Tests;
+#else
 namespace Fusillade.Tests;
+#endif
 
 /// <summary>A helper for performing integration tests.</summary>
 public static class IntegrationTestHelper
@@ -30,8 +34,8 @@ public static class IntegrationTestHelper
 
     /// <summary>Gets the root directory for the integration test.</summary>
     /// <returns>The path.</returns>
-    public static string GetIntegrationTestRootDirectory() =>
-
+    public static string GetIntegrationTestRootDirectory()
+    {
         // The test fixtures live next to the source, but at runtime the assembly is
         // executed from its build output (e.g. bin/<config>/<tfm>). We deliberately
         // avoid Assembly.Location here: many test runners shadow-copy or relocate the
@@ -39,7 +43,10 @@ public static class IntegrationTestHelper
         // finding the fixtures. The current working directory, however, is the build
         // output folder, so walking up two levels (out of <tfm> and <config>) lands
         // back at the project directory where the sample files are checked in.
-        Directory.GetParent(Directory.GetCurrentDirectory())!.Parent!.FullName;
+        var targetFrameworkDirectory = Directory.GetParent(Directory.GetCurrentDirectory());
+        var configurationDirectory = targetFrameworkDirectory?.Parent;
+        return configurationDirectory?.FullName ?? throw new InvalidOperationException("Could not locate the integration test root directory.");
+    }
 
     /// <summary>Creates a response from a sample file with the data.</summary>
     /// <param name="paths">The path to the file.</param>
@@ -67,7 +74,7 @@ public static class IntegrationTestHelper
         foreach (var line in lines.Skip(1))
         {
             var separatorIndex = line.IndexOf(':');
-            var key = line.Substring(0, separatorIndex);
+            var key = line[0..(0 + separatorIndex)];
             var val = line.Substring(separatorIndex + CrlfLength).TrimEnd();
 
             if (string.IsNullOrWhiteSpace(line))

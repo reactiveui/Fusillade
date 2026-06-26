@@ -2,11 +2,11 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-
+#if REACTIVE_SHIM
+namespace Fusillade.Reactive.Helpers;
+#else
 namespace Fusillade.Helpers;
+#endif
 
 /// <summary>
 /// Provides helper methods for argument validation.

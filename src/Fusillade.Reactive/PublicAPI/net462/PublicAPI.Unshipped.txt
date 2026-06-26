@@ -1,0 +1,39 @@
+#nullable enable
+abstract Fusillade.Reactive.LimitingHttpMessageHandler.ResetLimit(long? maxBytesToRead) -> void
+Fusillade.Reactive.IRequestCache
+Fusillade.Reactive.IRequestCache.FetchAsync(System.Net.Http.HttpRequestMessage! request, string! key, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task<byte[]?>!
+Fusillade.Reactive.IRequestCache.SaveAsync(System.Net.Http.HttpRequestMessage! request, System.Net.Http.HttpResponseMessage! response, string! key, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task!
+Fusillade.Reactive.LimitingHttpMessageHandler
+Fusillade.Reactive.LimitingHttpMessageHandler.LimitingHttpMessageHandler() -> void
+Fusillade.Reactive.LimitingHttpMessageHandler.LimitingHttpMessageHandler(System.Net.Http.HttpMessageHandler? innerHandler) -> void
+Fusillade.Reactive.LimitingHttpMessageHandler.ResetLimit() -> void
+Fusillade.Reactive.NetCache
+Fusillade.Reactive.OfflineHttpMessageHandler
+Fusillade.Reactive.OfflineHttpMessageHandler.OfflineHttpMessageHandler(System.Func<System.Net.Http.HttpRequestMessage!, string!, System.Threading.CancellationToken, System.Threading.Tasks.Task<byte[]?>!>? retrieveBodyFunc) -> void
+Fusillade.Reactive.Priority
+Fusillade.Reactive.Priority.Background = 20 -> Fusillade.Reactive.Priority
+Fusillade.Reactive.Priority.Explicit = 0 -> Fusillade.Reactive.Priority
+Fusillade.Reactive.Priority.Speculative = 10 -> Fusillade.Reactive.Priority
+Fusillade.Reactive.Priority.UserInitiated = 100 -> Fusillade.Reactive.Priority
+Fusillade.Reactive.RateLimitedHttpMessageHandler
+Fusillade.Reactive.RateLimitedHttpMessageHandler.RateLimitedHttpMessageHandler(System.Net.Http.HttpMessageHandler? handler, Fusillade.Reactive.Priority basePriority, int priority = 0, long? maxBytesToRead = null, Punchclock.Reactive.OperationQueue? opQueue = null, System.Func<System.Net.Http.HttpRequestMessage!, System.Net.Http.HttpResponseMessage!, string!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>? cacheResultFunc = null) -> void
+override Fusillade.Reactive.OfflineHttpMessageHandler.SendAsync(System.Net.Http.HttpRequestMessage! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage!>!
+override Fusillade.Reactive.RateLimitedHttpMessageHandler.ResetLimit(long? maxBytesToRead) -> void
+override Fusillade.Reactive.RateLimitedHttpMessageHandler.SendAsync(System.Net.Http.HttpRequestMessage! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage!>!
+Splat.Builder.FusilladeSplatBuilderExtensions
+Splat.Builder.FusilladeSplatBuilderExtensions.extension(Splat.Builder.IAppInstance!)
+Splat.Builder.FusilladeSplatBuilderExtensions.extension(Splat.Builder.IAppInstance!).CreateFusilladeNetCache() -> Splat.Builder.IAppInstance!
+static Fusillade.Reactive.NetCache.Background.get -> System.Net.Http.HttpMessageHandler!
+static Fusillade.Reactive.NetCache.Background.set -> void
+static Fusillade.Reactive.NetCache.Offline.get -> System.Net.Http.HttpMessageHandler!
+static Fusillade.Reactive.NetCache.Offline.set -> void
+static Fusillade.Reactive.NetCache.OperationQueue.get -> Punchclock.Reactive.OperationQueue!
+static Fusillade.Reactive.NetCache.OperationQueue.set -> void
+static Fusillade.Reactive.NetCache.RequestCache.get -> Fusillade.Reactive.IRequestCache?
+static Fusillade.Reactive.NetCache.RequestCache.set -> void
+static Fusillade.Reactive.NetCache.Speculative.get -> Fusillade.Reactive.LimitingHttpMessageHandler!
+static Fusillade.Reactive.NetCache.Speculative.set -> void
+static Fusillade.Reactive.NetCache.UserInitiated.get -> System.Net.Http.HttpMessageHandler!
+static Fusillade.Reactive.NetCache.UserInitiated.set -> void
+static Fusillade.Reactive.RateLimitedHttpMessageHandler.UniqueKeyForRequest(System.Net.Http.HttpRequestMessage! request) -> string!
+static Splat.Builder.FusilladeSplatBuilderExtensions.CreateFusilladeNetCache(this Splat.Builder.IAppInstance! builder) -> Splat.Builder.IAppInstance!

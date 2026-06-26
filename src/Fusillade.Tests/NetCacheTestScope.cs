@@ -6,7 +6,11 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Splat;
 
+#if REACTIVE_SHIM
+namespace Fusillade.Reactive.Tests;
+#else
 namespace Fusillade.Tests;
+#endif
 
 /// <summary>Restores NetCache and mode-detector static state around tests that intentionally touch it.</summary>
 [SuppressMessage(
@@ -16,15 +20,15 @@ namespace Fusillade.Tests;
 internal sealed class NetCacheTestScope : IDisposable
 {
     /// <summary>The current mode detector backing field.</summary>
-    private static readonly FieldInfo ModeDetectorCurrentField =
-        typeof(ModeDetector).GetField("<Current>k__BackingField", BindingFlags.NonPublic | BindingFlags.Static)!;
+    private static readonly FieldInfo? ModeDetectorCurrentField =
+        typeof(ModeDetector).GetField("<Current>k__BackingField", BindingFlags.NonPublic | BindingFlags.Static);
 
     /// <summary>The cached unit-test result backing field.</summary>
-    private static readonly FieldInfo ModeDetectorCacheField =
-        typeof(ModeDetector).GetField("_cachedInUnitTestRunnerResult", BindingFlags.NonPublic | BindingFlags.Static)!;
+    private static readonly FieldInfo? ModeDetectorCacheField =
+        typeof(ModeDetector).GetField("_cachedInUnitTestRunnerResult", BindingFlags.NonPublic | BindingFlags.Static);
 
     /// <summary>The NetCache fields restored when the scope is disposed.</summary>
-    private static readonly FieldInfo[] TrackedFields =
+    private static readonly FieldInfo?[] TrackedFields =
     [
         GetField("_speculative"),
         GetField("_unitTestSpeculative"),
@@ -45,7 +49,7 @@ internal sealed class NetCacheTestScope : IDisposable
     private readonly Dictionary<FieldInfo, object?> _fieldValues;
 
     /// <summary>The mode-detector state captured at construction time.</summary>
-    private readonly IModeDetector _modeDetector;
+    private readonly IModeDetector? _modeDetector;
 
     /// <summary>The cached unit-test detection result captured at construction time.</summary>
     private readonly bool? _cachedInUnitTestRunnerResult;
@@ -54,9 +58,9 @@ internal sealed class NetCacheTestScope : IDisposable
     /// <param name="inUnitTestRunner">Optional mode-detector result to force for the scope.</param>
     public NetCacheTestScope(bool? inUnitTestRunner = null)
     {
-        _modeDetector = (IModeDetector)ModeDetectorCurrentField.GetValue(null)!;
-        _cachedInUnitTestRunnerResult = (bool?)ModeDetectorCacheField.GetValue(null);
-        _fieldValues = TrackedFields.ToDictionary(static field => field, static field => field.GetValue(null));
+        _modeDetector = (IModeDetector?)ModeDetectorCurrentField?.GetValue(null);
+        _cachedInUnitTestRunnerResult = (bool?)ModeDetectorCacheField?.GetValue(null);
+        _fieldValues = TrackedFields.ToDictionary(static field => field!, static field => field?.GetValue(null));
 
         ClearThreadStaticOverrides();
 
@@ -76,14 +80,14 @@ internal sealed class NetCacheTestScope : IDisposable
             field.SetValue(null, value);
         }
 
-        ModeDetectorCurrentField.SetValue(null, _modeDetector);
-        ModeDetectorCacheField.SetValue(null, _cachedInUnitTestRunnerResult);
+        ModeDetectorCurrentField?.SetValue(null, _modeDetector);
+        ModeDetectorCacheField?.SetValue(null, _cachedInUnitTestRunnerResult);
     }
 
     /// <summary>Sets a tracked private NetCache field.</summary>
     /// <param name="name">The field name.</param>
     /// <param name="value">The value to set.</param>
-    private static void SetNetCacheField(string name, object? value) => GetField(name).SetValue(null, value);
+    private static void SetNetCacheField(string name, object? value) => GetField(name)?.SetValue(null, value);
 
     /// <summary>Clears the thread-static NetCache test overrides.</summary>
     private static void ClearThreadStaticOverrides()
@@ -99,8 +103,8 @@ internal sealed class NetCacheTestScope : IDisposable
     /// <summary>Gets a private static NetCache field.</summary>
     /// <param name="name">The field name.</param>
     /// <returns>The matching field.</returns>
-    private static FieldInfo GetField(string name) =>
-        typeof(NetCache).GetField(name, BindingFlags.NonPublic | BindingFlags.Static)!;
+    private static FieldInfo? GetField(string name) =>
+        typeof(NetCache).GetField(name, BindingFlags.NonPublic | BindingFlags.Static);
 
     /// <summary>Mode detector with a fixed unit-test result.</summary>
     /// <param name="result">The result returned by <see cref="IModeDetector.InUnitTestRunner"/>.</param>

@@ -10,7 +10,7 @@ namespace System.Diagnostics.CodeAnalysis;
 
 /// <summary>
 /// Indicates that the specified method requires dynamic access to code that is not referenced
-/// statically, for example through <see cref="System.Reflection"/>.
+/// statically, for example through <see cref="Reflection"/>.
 /// </summary>
 /// <remarks>
 /// Link: https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.codeanalysis.requiresunreferencedcodeattribute.
@@ -42,5 +42,5 @@ internal sealed class RequiresUnreferencedCodeAttribute : Attribute
 #else
 using System.Runtime.CompilerServices;
 
-[assembly: TypeForwardedTo(typeof(System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute))]
+[assembly: TypeForwardedTo(typeof(RequiresUnreferencedCodeAttribute))]
 #endif

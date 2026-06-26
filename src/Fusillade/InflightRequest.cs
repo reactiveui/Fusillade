@@ -1,17 +1,12 @@
-﻿// Copyright (c) 2016-2026 ReactiveUI and Contributors. All rights reserved.
+// Copyright (c) 2016-2026 ReactiveUI and Contributors. All rights reserved.
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Threading;
-using System.Threading.Tasks;
-using ReactiveUI.Primitives;
-using ReactiveUI.Primitives.Signals;
-
+#if REACTIVE_SHIM
+namespace Fusillade.Reactive;
+#else
 namespace Fusillade;
+#endif
 
 /// <summary>
 /// Tracks a single in-flight request that may be shared by several callers,
@@ -21,7 +16,7 @@ namespace Fusillade;
 internal sealed class InflightRequest(Action onFullyCancelled) : IDisposable
 {
     /// <summary>The shared response signal observed by all attached callers.</summary>
-    private readonly FinalSignal<HttpResponseMessage> _response = new();
+    private readonly AsyncSignal<HttpResponseMessage> _response = new();
 
     /// <summary>Serializes buffering of the shared response body for per-caller clones.</summary>
     private readonly SemaphoreSlim _responseBufferGate = new(1, 1);
@@ -178,18 +173,21 @@ internal sealed class InflightRequest(Action onFullyCancelled) : IDisposable
     private async Task<HttpResponseMessage> CloneResponseForCallerAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         byte[]? contentBytes = null;
-        if (response.Content is not null)
+        HttpContentHeaders? contentHeaders = null;
+        var content = response.Content;
+        if (content is not null)
         {
+            contentHeaders = content.Headers;
             await _responseBufferGate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 if (!_contentBuffered)
                 {
 #if NET5_0_OR_GREATER
-                    _bufferedContent = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+                    _bufferedContent = await content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
 #else
                     _ = cancellationToken;
-                    _bufferedContent = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                    _bufferedContent = await content.ReadAsByteArrayAsync().ConfigureAwait(false);
 #endif
                     _contentBuffered = true;
                 }
@@ -211,10 +209,10 @@ internal sealed class InflightRequest(Action onFullyCancelled) : IDisposable
 
         CopyHeaders(response.Headers, clone.Headers);
 
-        if (contentBytes is not null)
+        if (contentBytes is not null && contentHeaders is not null)
         {
             clone.Content = new ByteArrayContent(contentBytes);
-            CopyHeaders(response.Content!.Headers, clone.Content.Headers);
+            CopyHeaders(contentHeaders, clone.Content.Headers);
         }
 
         return clone;

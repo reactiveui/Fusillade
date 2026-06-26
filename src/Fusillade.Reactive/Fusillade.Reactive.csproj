@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
     <PackageId>fusillade.reactive</PackageId>
@@ -11,9 +11,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Punchclock.Reactive" />
-    <PackageReference Include="ReactiveUI.Primitives" />
-    <PackageReference Include="ReactiveUI.Primitives.Reactive" />
+    <PackageReference Include="Punchclock.Reactive" ExcludeAssets="analyzers" />
+    <PackageReference Include="ReactiveUI.Primitives" ExcludeAssets="analyzers" />
+    <PackageReference Include="ReactiveUI.Primitives.Reactive" ExcludeAssets="analyzers" />
     <PackageReference Include="Splat" />
     <PackageReference Include="System.Net.Http" Condition="'$(TargetFramework)' == 'net462' OR '$(TargetFramework)' == 'net472' OR '$(TargetFramework)' == 'net48' OR '$(TargetFramework)' == 'net481'" />
   </ItemGroup>

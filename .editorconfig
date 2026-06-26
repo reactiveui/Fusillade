@@ -1122,7 +1122,7 @@ dotnet_diagnostic.RCS0063.severity = none # Remove unnecessary blank line — co
 ###################
 # StyleSharp Analyzers (SST)
 ###################
-file_header_template = Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.\nReactiveUI Association Incorporated licenses this file to you under the MIT license.\nSee the LICENSE file in the project root for full license information.
+file_header_template = Copyright (c) 2016-2026 ReactiveUI and Contributors. All rights reserved.\nReactiveUI and Contributors licenses this file to you under the MIT license.\nSee the LICENSE file in the project root for full license information.
 stylesharp.summary_single_line_max_length = 120
 
 # Documentation coverage scope (SST1600/SST1601/SST1602/SST1654).

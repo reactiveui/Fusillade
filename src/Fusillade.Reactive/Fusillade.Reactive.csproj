@@ -37,5 +37,6 @@
     <Using Include="ReactiveUI.Primitives.Signals" />
     <Using Include="Fusillade.Reactive" />
     <Using Include="Fusillade.Reactive.Helpers" />
+    <Using Include="Punchclock.Reactive" />
   </ItemGroup>
 </Project>

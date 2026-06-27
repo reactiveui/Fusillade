@@ -2,205 +2,434 @@
 
 <br />
 <a href="https://github.com/reactiveui/fusillade">
-  <img width="120" heigth="120" src="https://raw.githubusercontent.com/reactiveui/styleguide/master/logo_fusillade/main.png">
+  <img width="120" height="120" src="https://raw.githubusercontent.com/reactiveui/styleguide/master/logo_fusillade/main.png">
 </a>
 
 ## Fusillade: An opinionated HTTP library for .NET apps
 
-Fusillade helps you write efficient, resilient networked apps by composing HttpMessageHandlers for HttpClient. It focuses on:
+Fusillade helps you write efficient, resilient networked apps by composing `HttpMessageHandler` instances for `HttpClient`. It focuses on:
 
 - Request de-duplication for relevant HTTP methods
-- Concurrency limiting via a priority-aware operation queue
+- Priority-aware concurrency limiting through Punchclock
 - Request prioritization for predictable UX
 - Speculative background fetching with byte-budget limits
-- Optional caching of responses and an offline replay handler
+- Optional response caching and offline replay
 
 Design inspirations include Android's Volley and Picasso.
 
-Supported targets: library is built for .NET 4.6.2+, .NET 8/9/10, for modern .Net applications.
+Supported targets: `net8.0`, `net9.0`, `net10.0`, `net11.0`, `net462`, `net472`, `net48`, and `net481`.
 
+## V6.0.x Breaking Changes
 
-## Install
+Fusillade `6.0.x` moved the primary package from a System.Reactive-based dependency stack to `ReactiveUI.Primitives`.
 
-- Package Manager: Install-Package fusillade
-- .NET CLI: dotnet add package fusillade
+The main `fusillade` package:
 
-Optional (examples below): Akavache for caching.
+- Uses `ReactiveUI.Primitives` and the lean `punchclock` package.
+- Does not require `System.Reactive`.
+- Keeps the public Fusillade API handler-first: `HttpMessageHandler`, `HttpClient`, `Task`, `CancellationToken`, and `IRequestCache`.
+- Keeps the namespace as `Fusillade`.
 
-- .NET CLI: dotnet add package Akavache.SystemTextJson
+The new `fusillade.reactive` package:
 
+- Uses `ReactiveUI.Primitives.Reactive` and `Punchclock.Reactive`.
+- Is intended for System.Reactive-first applications.
+- Uses the namespace `Fusillade.Reactive`.
+- Mirrors the `fusillade` API surface so Rx applications can migrate with minimal code changes.
 
-## Quick start
+If your application only uses `HttpClient` handlers, install `fusillade`. If your application also relies on System.Reactive conventions through the surrounding queue or reactive infrastructure, install `fusillade.reactive`.
 
-Create HttpClient instances by picking the right handler from NetCache:
+### Package Selection
+
+| Scenario | Package | Namespace | Queue type |
+| --- | --- | --- | --- |
+| New code or non-Rx applications | `fusillade` | `Fusillade` | `Punchclock.OperationQueue` |
+| Existing System.Reactive applications | `fusillade.reactive` | `Fusillade.Reactive` | `Punchclock.Reactive.OperationQueue` |
+| R3 applications | `fusillade` plus `ReactiveUI.Primitives` and `R3` | `Fusillade`, `ReactiveUI.Primitives.R3Bridge` | `Punchclock.OperationQueue` |
+
+### Migration From System.Reactive To V6
+
+For the lean `fusillade` package:
 
 ```csharp
 using Fusillade;
-using System.Net.Http;
+using Punchclock;
 
-// Highest priority: the user is waiting now
-var client = new HttpClient(NetCache.UserInitiated);
+NetCache.OperationQueue = new OperationQueue(maxConcurrency: 6);
+
+using var client = new HttpClient(NetCache.UserInitiated, disposeHandler: false);
+var json = await client.GetStringAsync("https://example.com/api/items");
+```
+
+For the System.Reactive-compatible package:
+
+```csharp
+using Fusillade.Reactive;
+using Punchclock.Reactive;
+using System.Reactive.Linq;
+
+NetCache.OperationQueue = new OperationQueue(maxConcurrency: 6);
+
+using var client = new HttpClient(NetCache.UserInitiated, disposeHandler: false);
+IObservable<string> json = Observable.FromAsync(
+    ct => client.GetStringAsync("https://example.com/api/items", ct));
+```
+
+If both packages are referenced in the same project, use aliases at the boundary to avoid namespace ambiguity:
+
+```csharp
+using LeanNetCache = Fusillade.NetCache;
+using RxNetCache = Fusillade.Reactive.NetCache;
+
+using var leanClient = new HttpClient(LeanNetCache.Background, disposeHandler: false);
+using var rxClient = new HttpClient(RxNetCache.Background, disposeHandler: false);
+```
+
+### R3 Source Generator Bridge
+
+Do not reference the ReactiveUI.Primitives R3 bridge generator package directly. The generator is packed as an analyzer by `ReactiveUI.Primitives` and emits bridge methods when the consuming project references the required R3 symbols. Add a direct `ReactiveUI.Primitives` package reference in the consuming project so the analyzer is present.
+
+```bash
+dotnet add package fusillade
+dotnet add package ReactiveUI.Primitives
+dotnet add package R3
+```
+
+```csharp
+using Fusillade;
+using ReactiveUI.Primitives.R3Bridge;
+
+R3.Observable<Uri> selectedUris = GetSelectedUris();
+
+// Generated when R3 and ReactiveUI.Primitives are both referenced.
+System.IObservable<Uri> primitivesUris = selectedUris.AsPrimitivesSignal();
+
+// Convert back to R3 at a boundary if the rest of the app remains R3-first.
+R3.Observable<Uri> r3Uris = primitivesUris.AsR3Observable();
+
+using var client = new HttpClient(NetCache.Background, disposeHandler: false);
+```
+
+Keep bridge calls at package or application boundaries. Keep the internal pipeline in one reactive model after conversion.
+
+## Install
+
+```bash
+dotnet add package fusillade
+```
+
+For System.Reactive-first applications:
+
+```bash
+dotnet add package fusillade.reactive
+```
+
+## Quick Start
+
+Create `HttpClient` instances by selecting the right handler from `NetCache`.
+
+```csharp
+using Fusillade;
+
+using var client = new HttpClient(NetCache.UserInitiated, disposeHandler: false);
 var json = await client.GetStringAsync("https://httpbin.org/get");
 ```
 
 Available built-ins:
 
-- NetCache.UserInitiated: foreground work the user is waiting for
-- NetCache.Background: background work that should not block UI work
-- NetCache.Speculative: background prefetching with a byte budget
-- NetCache.Offline: fetch from cache only (no network)
+- `NetCache.UserInitiated`: foreground work the user is waiting for.
+- `NetCache.Background`: background work that should not block UI work.
+- `NetCache.Speculative`: background prefetching with a byte budget.
+- `NetCache.Offline`: fetch from cache only.
 
-By default, requests are processed four at a time via an operation queue.
+By default, requests are processed four at a time through an `OperationQueue`.
 
+## Core Ideas
 
-## Core ideas
+### Request De-Duplication
 
-### 1) Request de-duplication
+Fusillade de-duplicates concurrent `GET`, `HEAD`, and `OPTIONS` requests for the same resource. If multiple callers request the same URL concurrently through the same `RateLimitedHttpMessageHandler`, one network request is made and the callers receive independent response instances.
 
-Fusillade de-duplicates concurrent requests for the same resource when the method is GET, HEAD, or OPTIONS. If multiple callers request the same URL concurrently, only one on-the-wire request is made; the others join the same in-flight response.
+```csharp
+using Fusillade;
 
-This happens transparently in RateLimitedHttpMessageHandler.
+var handler = new RateLimitedHttpMessageHandler(new HttpClientHandler(), Priority.UserInitiated);
+using var client = new HttpClient(handler);
 
-### 2) Concurrency limiting and prioritization
+var first = client.GetAsync("https://example.com/profile/42");
+var second = client.GetAsync("https://example.com/profile/42");
 
-All work is scheduled through an OperationQueue (default parallelism is 4). Each handler has an effective priority:
+using var firstResponse = await first;
+using var secondResponse = await second;
+```
 
-- Priority.UserInitiated (100)
-- Priority.Background (20)
-- Priority.Speculative (10)
-- Priority.Explicit (custom base with offset)
+### Concurrency Limiting And Prioritization
 
-Higher numbers run before lower ones. You can set a custom base (Explicit) and an offset to fit your scenario.
+All rate-limited work is scheduled through an `OperationQueue`. The effective priority is the selected `Priority` value plus the optional `priority` offset.
 
 ```csharp
 using Fusillade;
 using Punchclock;
-using System.Net.Http;
 
-// Custom queue with 2 concurrent slots
-var queue = new OperationQueue(2);
+var queue = new OperationQueue(maxConcurrency: 2);
 
 var handler = new RateLimitedHttpMessageHandler(
-    new HttpClientHandler(),
+    handler: new HttpClientHandler(),
     basePriority: Priority.Explicit,
-    priority: 500,           // higher runs earlier
-    opQueue: queue);
+    priority: 500,
+    maxBytesToRead: null,
+    operationQueue: queue);
 
-var client = new HttpClient(handler);
+using var client = new HttpClient(handler);
 ```
 
-### 3) Speculative background fetching with byte budgets
-
-Use NetCache.Speculative for prefetching scenarios. Limit the total number of bytes fetched; once the limit is reached, further speculative requests are canceled.
+Priority values:
 
 ```csharp
-// Reset byte budget to 5 MB (e.g., on app resume)
+var explicitPriority = (int)Priority.Explicit;      // 0
+var speculative = (int)Priority.Speculative;        // 10
+var background = (int)Priority.Background;          // 20
+var userInitiated = (int)Priority.UserInitiated;    // 100
+```
+
+### Speculative Background Fetching
+
+Use `NetCache.Speculative` for prefetching. Reset its byte budget when a new prefetch window starts.
+
+```csharp
+using Fusillade;
+
 NetCache.Speculative.ResetLimit(5 * 1024 * 1024);
 
-var prefetch = new HttpClient(NetCache.Speculative);
-_ = prefetch.GetStringAsync("https://example.com/expensive-data");
+using var prefetch = new HttpClient(NetCache.Speculative, disposeHandler: false);
+_ = prefetch.GetStringAsync("https://example.com/likely-next-screen");
 ```
 
-To stop speculative fetching immediately:
+Stop further speculative work:
 
 ```csharp
-NetCache.Speculative.ResetLimit(-1); // any further requests will be canceled
+NetCache.Speculative.ResetLimit(-1);
 ```
 
+Clear the byte limit:
 
-## Caching and offline
+```csharp
+NetCache.Speculative.ResetLimit();
+```
 
-Fusillade can optionally cache responses (body bytes + headers) and replay them when offline.
+## Public API Reference
 
-There are two ways to wire caching:
+The `fusillade.reactive` package mirrors these APIs under `Fusillade.Reactive` and uses `Punchclock.Reactive.OperationQueue` where the lean package uses `Punchclock.OperationQueue`.
 
-1) Provide a cacheResultFunc to RateLimitedHttpMessageHandler, which gets called with the response and a unique request key when a response is received.
+### `NetCache`
 
-2) Set NetCache.RequestCache with an implementation of IRequestCache. Fusillade will invoke Save and Fetch automatically.
+`NetCache` owns the shared handlers and app-wide queue/cache configuration.
 
-### IRequestCache
+```csharp
+using Fusillade;
+using Punchclock;
+
+NetCache.OperationQueue = new OperationQueue(maxConcurrency: 6);
+NetCache.RequestCache = new MemoryRequestCache();
+
+using var foreground = new HttpClient(NetCache.UserInitiated, disposeHandler: false);
+using var background = new HttpClient(NetCache.Background, disposeHandler: false);
+using var speculative = new HttpClient(NetCache.Speculative, disposeHandler: false);
+using var offline = new HttpClient(NetCache.Offline, disposeHandler: false);
+```
+
+Public members:
+
+```csharp
+public static LimitingHttpMessageHandler Speculative { get; set; }
+public static HttpMessageHandler UserInitiated { get; set; }
+public static HttpMessageHandler Background { get; set; }
+public static HttpMessageHandler Offline { get; set; }
+public static OperationQueue OperationQueue { get; set; }
+public static IRequestCache? RequestCache { get; set; }
+```
+
+### `RateLimitedHttpMessageHandler`
+
+`RateLimitedHttpMessageHandler` performs prioritization, de-duplication, optional byte limiting, and optional cache saving.
+
+```csharp
+using Fusillade;
+using Punchclock;
+
+var handler = new RateLimitedHttpMessageHandler(
+    handler: new HttpClientHandler(),
+    basePriority: Priority.Background,
+    priority: 25,
+    maxBytesToRead: 10 * 1024 * 1024,
+    operationQueue: new OperationQueue(maxConcurrency: 4),
+    cacheResultFunc: async (request, response, key, ct) =>
+    {
+        var bytes = await response.Content.ReadAsByteArrayAsync(ct);
+        await File.WriteAllBytesAsync($"{key}.bin", bytes, ct);
+    });
+
+using var client = new HttpClient(handler);
+```
+
+Generate the same cache key Fusillade uses internally:
+
+```csharp
+using Fusillade;
+
+using var request = new HttpRequestMessage(HttpMethod.Get, "https://example.com/data");
+var key = RateLimitedHttpMessageHandler.UniqueKeyForRequest(request);
+```
+
+Public members:
+
+```csharp
+public RateLimitedHttpMessageHandler(
+    HttpMessageHandler? handler,
+    Priority basePriority,
+    int priority = 0,
+    long? maxBytesToRead = null,
+    OperationQueue? operationQueue = null,
+    Func<HttpRequestMessage, HttpResponseMessage, string, CancellationToken, Task>? cacheResultFunc = null);
+
+public static string UniqueKeyForRequest(HttpRequestMessage request);
+public override void ResetLimit(long? maxBytesToRead);
+```
+
+### `LimitingHttpMessageHandler`
+
+`LimitingHttpMessageHandler` is the base class for handlers that can limit the total number of response bytes read.
+
+```csharp
+using Fusillade;
+
+LimitingHttpMessageHandler handler = NetCache.Speculative;
+
+handler.ResetLimit(1_000_000);
+handler.ResetLimit();
+```
+
+Public members:
+
+```csharp
+public void ResetLimit();
+public abstract void ResetLimit(long? maxBytesToRead);
+```
+
+### `IRequestCache`
+
+Implement `IRequestCache` when you want `NetCache.RequestCache`, `RateLimitedHttpMessageHandler`, and `OfflineHttpMessageHandler` to share the same cache.
+
+```csharp
+using System.Collections.Concurrent;
+using Fusillade;
+
+public sealed class MemoryRequestCache : IRequestCache
+{
+    private readonly ConcurrentDictionary<string, byte[]> _responses = new();
+
+    public async Task SaveAsync(
+        HttpRequestMessage request,
+        HttpResponseMessage response,
+        string key,
+        CancellationToken ct)
+    {
+        if (response.Content is null)
+        {
+            return;
+        }
+
+        _responses[key] = await response.Content.ReadAsByteArrayAsync(ct);
+    }
+
+    public Task<byte[]?> FetchAsync(
+        HttpRequestMessage request,
+        string key,
+        CancellationToken ct)
+    {
+        _responses.TryGetValue(key, out var bytes);
+        return Task.FromResult<byte[]?>(bytes);
+    }
+}
+```
+
+Public members:
 
 ```csharp
 public interface IRequestCache
 {
-    Task Save(HttpRequestMessage request, HttpResponseMessage response, string key, CancellationToken ct);
-    Task<byte[]> Fetch(HttpRequestMessage request, string key, CancellationToken ct);
+    Task SaveAsync(HttpRequestMessage request, HttpResponseMessage response, string key, CancellationToken ct);
+    Task<byte[]?> FetchAsync(HttpRequestMessage request, string key, CancellationToken ct);
 }
 ```
 
-- Save is called once the handler has fully buffered the body (as ByteArrayContent) and cloned headers.
-- Fetch should return the previously saved body bytes for the key (or null if not found).
+### `OfflineHttpMessageHandler`
 
-Keys are generated by RateLimitedHttpMessageHandler.UniqueKeyForRequest(request). Treat the key as an implementation detail; persist what you receive and return it during Fetch.
+`OfflineHttpMessageHandler` serves cached data without touching the network. It returns `200 OK` when a cached body is found and `503 Service Unavailable` when no cached body exists.
 
-### Simple Akavache-based cache
+Use the shared `NetCache.RequestCache`:
 
 ```csharp
-using Akavache;
-using Akavache.SystemTextJson;
 using Fusillade;
-using System.Net.Http;
 
-// Initialize a simple in-memory Akavache cache
-var database = CacheDatabase.CreateBuilder().WithSerializerSystemTextJson().Build();
-var blobCache = new InMemoryBlobCache(database.Serializer);
+NetCache.RequestCache = new MemoryRequestCache();
 
-// Option A: Provide a cacheResultFunc directly
-var cachingHandler = new RateLimitedHttpMessageHandler(
-    new HttpClientHandler(),
-    Priority.UserInitiated,
-    cacheResultFunc: async (rq, resp, key, ct) =>
+using var offline = new HttpClient(NetCache.Offline, disposeHandler: false);
+var cached = await offline.GetStringAsync("https://example.com/data");
+```
+
+Or pass a cache lookup directly:
+
+```csharp
+using Fusillade;
+
+var handler = new OfflineHttpMessageHandler(
+    retrieveBodyFunc: async (request, key, ct) =>
     {
-        var data = await resp.Content.ReadAsByteArrayAsync(ct);
-        await blobCache.Insert(key, data);
+        var path = Path.Combine("cache", $"{key}.bin");
+        return File.Exists(path)
+            ? await File.ReadAllBytesAsync(path, ct)
+            : null;
     });
 
-var client = new HttpClient(cachingHandler);
-var fresh = await client.GetStringAsync("https://httpbin.org/get");
-
-// Option B: Implement IRequestCache and set NetCache.RequestCache
-NetCache.RequestCache = new MyRequestCache(blobCache);
+using var offline = new HttpClient(handler);
 ```
 
+Public member:
+
 ```csharp
-// Example IRequestCache wrapper over Akavache
-class MyRequestCache : IRequestCache
+public OfflineHttpMessageHandler(
+    Func<HttpRequestMessage, string, CancellationToken, Task<byte[]?>>? retrieveBodyFunc);
+```
+
+### `Priority`
+
+`Priority` defines the base scheduling priorities used by `RateLimitedHttpMessageHandler`.
+
+```csharp
+using Fusillade;
+
+var userWork = new RateLimitedHttpMessageHandler(new HttpClientHandler(), Priority.UserInitiated);
+var backgroundWork = new RateLimitedHttpMessageHandler(new HttpClientHandler(), Priority.Background);
+var prefetchWork = new RateLimitedHttpMessageHandler(new HttpClientHandler(), Priority.Speculative);
+var customWork = new RateLimitedHttpMessageHandler(new HttpClientHandler(), Priority.Explicit, priority: 250);
+```
+
+Public values:
+
+```csharp
+public enum Priority
 {
-    private readonly IBlobCache _cache;
-    public MyRequestCache(IBlobCache cache) => _cache = cache;
-
-    public async Task Save(HttpRequestMessage request, HttpResponseMessage response, string key, CancellationToken ct)
-    {
-        var bytes = await response.Content.ReadAsByteArrayAsync(ct);
-        await _cache.Insert(key, bytes);
-    }
-
-    public Task<byte[]> Fetch(HttpRequestMessage request, string key, CancellationToken ct)
-        => _cache.Get(key);
+    Explicit = 0,
+    Speculative = 10,
+    Background = 20,
+    UserInitiated = 100,
 }
 ```
 
-### Offline replay
+### Splat Builder Integration
 
-Use OfflineHttpMessageHandler to serve cached data only (no network). This handler asks IRequestCache (or your custom retrieveBodyFunc) for the cached body and returns:
-
-- 200 OK with the cached body, or
-- 503 Service Unavailable if not found
-
-```csharp
-// Use NetCache.Offline after setting NetCache.RequestCache
-var offline = new HttpClient(NetCache.Offline);
-var data = await offline.GetStringAsync("https://httpbin.org/get");
-
-// Or construct explicitly
-var offlineExplicit = new HttpClient(new OfflineHttpMessageHandler(
-    async (rq, key, ct) => await blobCache.Get(key)));
-```
-
-
-## Dependency injection and Splat integration
-
-If you use Splat, you can initialize NetCache to use your container’s services via the provided extension:
+Call `CreateFusilladeNetCache` when using Splat's builder pipeline. This initializes the shared `NetCache` instances from the current resolver.
 
 ```csharp
 using Splat.Builder;
@@ -209,62 +438,148 @@ var app = AppBuilder.CreateSplatBuilder().Build();
 app.CreateFusilladeNetCache();
 ```
 
-You can also register a platform-specific HttpMessageHandler (e.g., NSUrlSessionHandler on iOS, AndroidMessageHandler on Android) in your container beforehand; NetCache will pick it up as the inner HTTP handler.
-
-
-## Advanced configuration
-
-- Custom OperationQueue: override NetCache.OperationQueue with your own queue to control concurrency for the entire app.
+Public member:
 
 ```csharp
-using Punchclock;
-NetCache.OperationQueue = new OperationQueue(maxConcurrency: 6);
+public static IAppInstance CreateFusilladeNetCache(this IAppInstance builder);
 ```
 
-- Custom priorities: compose RateLimitedHttpMessageHandler with Priority.Explicit and an offset to place certain pipelines ahead or behind the defaults.
+## Caching And Offline
+
+Fusillade can optionally cache response bodies and replay them when offline.
+
+There are two supported cache paths:
+
+1. Pass `cacheResultFunc` to `RateLimitedHttpMessageHandler`.
+2. Set `NetCache.RequestCache` to an `IRequestCache` implementation.
+
+When caching through `RateLimitedHttpMessageHandler`, Fusillade buffers the response content and forwards the buffered response to your cache callback. The key is generated by `RateLimitedHttpMessageHandler.UniqueKeyForRequest(request)`.
+
+### File-Based Cache Example
 
 ```csharp
-var urgent = new RateLimitedHttpMessageHandler(new HttpClientHandler(), Priority.Explicit, priority: 1_000);
-var slow   = new RateLimitedHttpMessageHandler(new HttpClientHandler(), Priority.Explicit, priority: -50);
+using Fusillade;
+
+var cacheDirectory = Path.Combine(
+    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+    "fusillade-cache");
+
+Directory.CreateDirectory(cacheDirectory);
+
+var cachingHandler = new RateLimitedHttpMessageHandler(
+    new HttpClientHandler(),
+    Priority.UserInitiated,
+    cacheResultFunc: async (request, response, key, ct) =>
+    {
+        var data = await response.Content.ReadAsByteArrayAsync(ct);
+        var path = Path.Combine(cacheDirectory, $"{key}.bin");
+        await File.WriteAllBytesAsync(path, data, ct);
+    });
+
+using var client = new HttpClient(cachingHandler);
+var fresh = await client.GetStringAsync("https://httpbin.org/get");
 ```
 
-- Deduplication scope: deduplication is per-HttpMessageHandler instance via an in-memory in-flight map. Multiple handlers mean multiple scopes.
+```csharp
+using Fusillade;
 
+public sealed class FileRequestCache(string cacheDirectory) : IRequestCache
+{
+    public async Task SaveAsync(
+        HttpRequestMessage request,
+        HttpResponseMessage response,
+        string key,
+        CancellationToken ct)
+    {
+        var bytes = await response.Content.ReadAsByteArrayAsync(ct);
+        var path = Path.Combine(cacheDirectory, $"{key}.bin");
+        await File.WriteAllBytesAsync(path, bytes, ct);
+    }
 
-## Usage recipes
+    public Task<byte[]?> FetchAsync(
+        HttpRequestMessage request,
+        string key,
+        CancellationToken ct)
+    {
+        var path = Path.Combine(cacheDirectory, $"{key}.bin");
+        return File.Exists(path)
+            ? File.ReadAllBytesAsync(path, ct)
+            : Task.FromResult<byte[]?>(null);
+    }
+}
+```
 
-- Image gallery / avatars
-  - Use RateLimitedHttpMessageHandler for GETs
-  - De-dup prevents duplicate downloads for the same URL
-  - Use Background for preloading next images; switch to UserInitiated for visible images
+## Usage Recipes
 
-- Boot-time warmup
-  - On app start/resume, set NetCache.Speculative.ResetLimit to a sensible budget
-  - Queue speculative GETs for likely-next screens to reduce perceived latency
+### Image Gallery Or Avatars
 
-- Offline-first data views
-  - Populate cache during online sessions using cacheResultFunc or IRequestCache
-  - When network is unavailable, point HttpClient to NetCache.Offline
+Use `RateLimitedHttpMessageHandler` for visible images and `NetCache.Background` for preloading. De-duplication prevents duplicate downloads for the same URL while the first request is still in flight.
 
+```csharp
+using Fusillade;
+
+using var visibleImages = new HttpClient(NetCache.UserInitiated, disposeHandler: false);
+using var preloadImages = new HttpClient(NetCache.Background, disposeHandler: false);
+
+var avatar = await visibleImages.GetByteArrayAsync("https://example.com/users/42/avatar.png");
+_ = preloadImages.GetByteArrayAsync("https://example.com/users/43/avatar.png");
+```
+
+### Boot-Time Warmup
+
+On app start or resume, reset `NetCache.Speculative` to a sensible byte budget and queue likely-next requests.
+
+```csharp
+using Fusillade;
+
+NetCache.Speculative.ResetLimit(2 * 1024 * 1024);
+
+using var warmup = new HttpClient(NetCache.Speculative, disposeHandler: false);
+_ = warmup.GetAsync("https://example.com/bootstrap/menu");
+_ = warmup.GetAsync("https://example.com/bootstrap/profile");
+```
+
+### Offline-First Views
+
+Populate `NetCache.RequestCache` during online sessions and switch to `NetCache.Offline` when network access is unavailable.
+
+```csharp
+using Fusillade;
+
+NetCache.RequestCache = new MemoryRequestCache();
+
+using var online = new HttpClient(NetCache.UserInitiated, disposeHandler: false);
+_ = await online.GetStringAsync("https://example.com/data");
+
+using var offline = new HttpClient(NetCache.Offline, disposeHandler: false);
+var cached = await offline.GetStringAsync("https://example.com/data");
+```
 
 ## FAQ
 
-- How many requests run at once?
-  - Default is 4 (OperationQueue with concurrency 4). Override via NetCache.OperationQueue or pass a custom queue to a handler.
+### How many requests run at once?
 
-- Which methods are de-duplicated?
-  - GET, HEAD, and OPTIONS.
+The default `OperationQueue` processes four requests at a time. Override it with `NetCache.OperationQueue` or pass an explicit queue to `RateLimitedHttpMessageHandler`.
 
-- How are cache keys generated?
-  - Via RateLimitedHttpMessageHandler.UniqueKeyForRequest(request). Treat this as an implementation detail; persist and reuse as given.
+### Which methods are de-duplicated?
 
-- Can I cancel a request?
-  - Use CancellationToken in HttpClient APIs; dedup ensures the underlying request cancels only when all dependents cancel.
+`GET`, `HEAD`, and `OPTIONS`.
 
+### How are cache keys generated?
+
+`RateLimitedHttpMessageHandler.UniqueKeyForRequest(request)` generates keys from the request URI, method, selected headers, referrer, user agent, and authorization header. Treat keys as implementation details; persist and reuse the key passed to your cache callback.
+
+### Can I cancel a request?
+
+Use `CancellationToken` with normal `HttpClient` APIs. If several callers share a de-duplicated request, the underlying request is cancelled only after every joined caller has cancelled.
+
+### Should I dispose `HttpClient` instances that use `NetCache` handlers?
+
+Use `new HttpClient(NetCache.UserInitiated, disposeHandler: false)` for shared `NetCache` handlers. This lets you dispose the client without disposing the process-wide handler.
 
 ## Contribute
 
-Fusillade is developed under an OSI-approved open source license, making it freely usable and distributable, even for commercial use. We ❤ our contributors and welcome new contributors of all experience levels.
+Fusillade is developed under an OSI-approved open source license, making it freely usable and distributable, even for commercial use. We welcome contributors of all experience levels.
 
 - Answer questions on StackOverflow: https://stackoverflow.com/questions/tagged/fusillade
 - Share knowledge and mentor the next generation of developers
@@ -273,7 +588,6 @@ Fusillade is developed under an OSI-approved open source license, making it free
 - Improve documentation and examples
 - Contribute features and bugfixes via PRs
 
+## What's With The Name?
 
-## What’s with the name?
-
-“Fusillade” is a synonym for Volley 🙂
+"Fusillade" is a synonym for Volley.

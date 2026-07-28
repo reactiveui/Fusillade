@@ -31,7 +31,7 @@
     <!-- Central package versions -->
     <PackageVersion Include="punchclock" Version="7.1.0" />
     <PackageVersion Include="Punchclock.Reactive" Version="7.1.0" />
-    <PackageVersion Include="Splat" Version="20.1.0" />
+    <PackageVersion Include="Splat" Version="20.2.0" />
     <PackageVersion Include="System.Net.Http" Version="4.3.4" />
     <PackageVersion Include="Akavache.SystemTextJson" Version="12.1.1" />
   </ItemGroup>

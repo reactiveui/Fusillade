@@ -7,7 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\Fusillade\**\*.cs" Exclude="..\Fusillade\bin\**;..\Fusillade\obj\**" Link="%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\Fusillade\**\*.cs" Exclude="..\Fusillade\bin\**;..\Fusillade\obj\**;..\Fusillade\Polyfills\NotNullAttribute.cs" Link="%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\Fusillade\Polyfills\NotNullAttribute.cs" Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'" Link="Polyfills\%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

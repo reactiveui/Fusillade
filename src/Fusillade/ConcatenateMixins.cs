@@ -9,7 +9,6 @@ namespace Fusillade;
 #endif
 
 /// <summary>Extension helpers for joining sequences into a single delimited string.</summary>
-[SuppressMessage("Roslynator", "RCS1263:Invalid reference in documentation comment", Justification = "Roslynator does not yet understand C# extension block receiver documentation.")]
 internal static class ConcatenateMixins
 {
     /// <summary>Concatenation extension methods for sequences.</summary>
@@ -21,7 +20,7 @@ internal static class ConcatenateMixins
         /// <param name="selector">Projects each element to a string.</param>
         /// <param name="separator">The separator appended after each value.</param>
         /// <returns>The concatenated string.</returns>
-        public string ConcatenateAll(Func<T, string> selector, char separator = '|')
+        internal string ConcatenateAll(Func<T, string> selector, char separator = '|')
         {
             var builder = new StringBuilder();
 

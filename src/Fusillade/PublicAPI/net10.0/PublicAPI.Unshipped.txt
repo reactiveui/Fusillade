@@ -54,4 +54,3 @@ System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute.Url.set -> voi
 System.Runtime.CompilerServices.CallerArgumentExpressionAttribute (forwarded, contained in System.Runtime)
 System.Runtime.CompilerServices.CallerArgumentExpressionAttribute.CallerArgumentExpressionAttribute(string! parameterName) -> void (forwarded, contained in System.Runtime)
 System.Runtime.CompilerServices.CallerArgumentExpressionAttribute.ParameterName.get -> string! (forwarded, contained in System.Runtime)
-System.Runtime.CompilerServices.IsExternalInit (forwarded, contained in System.Runtime)

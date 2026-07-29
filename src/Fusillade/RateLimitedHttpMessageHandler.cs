@@ -26,8 +26,7 @@ public class RateLimitedHttpMessageHandler(
     int priority = 0,
     long? maxBytesToRead = null,
     OperationQueue? operationQueue = null,
-    Func<HttpRequestMessage, HttpResponseMessage, string, CancellationToken, Task>? cacheResultFunc = null)
-    : LimitingHttpMessageHandler(handler)
+    Func<HttpRequestMessage, HttpResponseMessage, string, CancellationToken, Task>? cacheResultFunc = null) : LimitingHttpMessageHandler(handler)
 {
     /// <summary>Buffer size (32 KB) used when copying a response body so it can be cached.</summary>
     private const int CopyBufferSize = 32 * 1024;
@@ -90,10 +89,10 @@ public class RateLimitedHttpMessageHandler(
         {
             request.RequestUri?.ToString(),
             request.Method.Method,
-            request.Headers.Accept.ConcatenateAll(x => x.CharSet + x.MediaType),
-            request.Headers.AcceptEncoding.ConcatenateAll(x => x.Value),
+            request.Headers.Accept.ConcatenateAll(static x => x.CharSet + x.MediaType),
+            request.Headers.AcceptEncoding.ConcatenateAll(static x => x.Value),
             (request.Headers.Referrer ?? new Uri("http://example")).AbsoluteUri,
-            request.Headers.UserAgent.ConcatenateAll(x => x.Product is not null ? x.Product.ToString() : x.Comment!),
+            request.Headers.UserAgent.ConcatenateAll(static x => x.Product is not null ? x.Product.ToString() : x.Comment!),
         };
         var ret = new StringBuilder();
         foreach (var keyPart in keyParts)
@@ -106,7 +105,7 @@ public class RateLimitedHttpMessageHandler(
             _ = ret.Append(request.Headers.Authorization.Parameter).AppendLine(request.Headers.Authorization.Scheme);
         }
 
-        return "HttpSchedulerCache_" + ret.ToString().GetHashCode().ToString("x", CultureInfo.InvariantCulture);
+        return $"HttpSchedulerCache_{ret.ToString().GetHashCode().ToString("x", CultureInfo.InvariantCulture)}";
     }
 
     /// <inheritdoc />
@@ -135,7 +134,7 @@ public class RateLimitedHttpMessageHandler(
         }
 
         var key = UniqueKeyForRequest(request);
-        CancellationTokenSource realToken;
+        CancellationTokenSource? realToken = null;
         InflightRequest ret;
 
         lock (_inflightResponses)
@@ -143,31 +142,37 @@ public class RateLimitedHttpMessageHandler(
             if (_inflightResponses.TryGetValue(key, out var existingRequest))
             {
                 existingRequest.AddRef();
-
-                return existingRequest.WaitAsync(cancellationToken);
+                ret = existingRequest;
             }
-
-            realToken = new();
-            var token = realToken;
-            ret = new(() =>
+            else
             {
-                lock (_inflightResponses)
+                realToken = new();
+                var token = realToken;
+                ret = new(() =>
                 {
-                    _ = _inflightResponses.Remove(key);
-                }
+                    lock (_inflightResponses)
+                    {
+                        _ = _inflightResponses.Remove(key);
+                    }
 
-                try
-                {
-                    token.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // The underlying request already completed and disposed the
-                    // token, so there is nothing left to cancel.
-                }
-            });
+                    try
+                    {
+                        token.Cancel();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // The underlying request already completed and disposed the
+                        // token, so there is nothing left to cancel.
+                    }
+                });
 
-            _inflightResponses[key] = ret;
+                _inflightResponses[key] = ret;
+            }
+        }
+
+        if (realToken is null)
+        {
+            return ret.WaitAsync(cancellationToken);
         }
 
         var queue = operationQueue ?? NetCache.OperationQueue;
@@ -180,10 +185,9 @@ public class RateLimitedHttpMessageHandler(
     /// <summary>Creates a task that is already in the cancelled state.</summary>
     /// <param name="cancellationToken">The token to associate with the cancellation.</param>
     /// <returns>A cancelled task.</returns>
-    [SuppressMessage("Major Code Smell", "S1172:Unused method parameters should be removed", Justification = "Not used in net framework")]
     private static Task<HttpResponseMessage> CreateCancelledTaskAsync(CancellationToken cancellationToken)
     {
-        var tcs = new TaskCompletionSource<HttpResponseMessage>();
+        var tcs = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
 #if NET5_0_OR_GREATER
         tcs.SetCanceled(cancellationToken);
 #else
@@ -275,8 +279,8 @@ public class RateLimitedHttpMessageHandler(
         {
             lock (_inflightResponses)
             {
-                if (_inflightResponses.TryGetValue(key, out var currentRequest) &&
-                    ReferenceEquals(currentRequest, inflightRequest))
+                if (_inflightResponses.TryGetValue(key, out var currentRequest)
+                    && ReferenceEquals(currentRequest, inflightRequest))
                 {
                     _ = _inflightResponses.Remove(key);
                 }

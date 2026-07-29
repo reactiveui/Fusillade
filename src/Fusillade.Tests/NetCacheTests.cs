@@ -138,31 +138,31 @@ public class NetCacheTests
 
         using (Assert.Multiple())
         {
-            await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            await Assert.ThrowsAsync<ArgumentNullException>(static () =>
             {
                 NetCache.Speculative = null!;
                 return Task.CompletedTask;
             });
 
-            await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            await Assert.ThrowsAsync<ArgumentNullException>(static () =>
             {
                 NetCache.UserInitiated = null!;
                 return Task.CompletedTask;
             });
 
-            await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            await Assert.ThrowsAsync<ArgumentNullException>(static () =>
             {
                 NetCache.Background = null!;
                 return Task.CompletedTask;
             });
 
-            await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            await Assert.ThrowsAsync<ArgumentNullException>(static () =>
             {
                 NetCache.Offline = null!;
                 return Task.CompletedTask;
             });
 
-            await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            await Assert.ThrowsAsync<ArgumentNullException>(static () =>
             {
                 NetCache.OperationQueue = null!;
                 return Task.CompletedTask;
@@ -175,9 +175,6 @@ public class NetCacheTests
     private sealed class TestLimitingHttpMessageHandler(HttpMessageHandler? innerHandler) : LimitingHttpMessageHandler(innerHandler)
     {
         /// <inheritdoc />
-        public override void ResetLimit(long? maxBytesToRead)
-        {
-            _ = maxBytesToRead;
-        }
+        public override void ResetLimit(long? maxBytesToRead) => _ = maxBytesToRead;
     }
 }

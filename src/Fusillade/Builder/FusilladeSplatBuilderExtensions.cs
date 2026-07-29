@@ -5,7 +5,6 @@
 namespace Splat.Builder;
 
 /// <summary>Splat module for configuring Fusillade.</summary>
-[SuppressMessage("Roslynator", "RCS1263:Invalid reference in documentation comment", Justification = "Roslynator does not yet understand C# extension block receiver documentation.")]
 public static class FusilladeSplatBuilderExtensions
 {
     /// <summary>Extension methods for <see cref="IAppInstance"/>.</summary>

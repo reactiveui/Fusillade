@@ -1,6 +1,7 @@
 // Copyright (c) 2016-2026 ReactiveUI and Contributors. All rights reserved.
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
+
 #if !NETCOREAPP3_0_OR_GREATER && !NETSTANDARD2_1_OR_GREATER
 
 // Polyfill implementation adapted from Simon Cropp's Polyfill library
@@ -11,9 +12,9 @@ namespace System.Diagnostics.CodeAnalysis;
 [ExcludeFromCodeCoverage]
 [DebuggerNonUserCode]
 [AttributeUsage(
-    validOn: AttributeTargets.Field |
-             AttributeTargets.Parameter |
-             AttributeTargets.Property |
-             AttributeTargets.ReturnValue)]
+    validOn: AttributeTargets.Field
+        | AttributeTargets.Parameter
+        | AttributeTargets.Property
+        | AttributeTargets.ReturnValue)]
 internal sealed class NotNullAttribute : Attribute;
 #endif

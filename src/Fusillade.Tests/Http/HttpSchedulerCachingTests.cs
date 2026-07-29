@@ -16,10 +16,19 @@ namespace Fusillade.Tests.Http;
 public class HttpSchedulerCachingTests
 {
     /// <summary>The repeated test URL used by cache tests.</summary>
-    private const string TestBarUrl = "http://lol/bar";
+    private const string TestBarUrl = "https://lol/bar";
 
     /// <summary>The repeated unique key test URL.</summary>
-    private const string UniqueKeyTestUrl = "http://example/foo";
+    private const string UniqueKeyTestUrl = "https://example/foo";
+
+    /// <summary>The test response payload.</summary>
+    private const string FooContent = "foo";
+
+    /// <summary>The test response entity tag.</summary>
+    private const string FooEntityTag = "\"worifjw\"";
+
+    /// <summary>The cache-key prefix used by the scheduler.</summary>
+    private const string CacheKeyPrefix = "HttpSchedulerCache_";
 
     /// <summary>The byte length of the "foo" test payload.</summary>
     private const int FooContentLength = 3;
@@ -29,15 +38,11 @@ public class HttpSchedulerCachingTests
     [Test]
     public async Task CachingFunctionShouldBeCalledWithContentAsync()
     {
-        var innerHandler = new TestHttpMessageHandler(_ =>
+        var innerHandler = new TestHttpMessageHandler(static _ =>
         {
-            var ret = new HttpResponseMessage
-            {
-                Content = new StringContent("foo", Encoding.UTF8),
-                StatusCode = HttpStatusCode.OK,
-            };
+            var ret = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(FooContent, Encoding.UTF8) };
 
-            ret.Headers.ETag = new("\"worifjw\"");
+            ret.Headers.ETag = new(FooEntityTag);
             return Signal.Emit(ret);
         });
 
@@ -48,8 +53,8 @@ public class HttpSchedulerCachingTests
             Priority.UserInitiated,
             cacheResultFunc: async (_, re, _, ct) => contentResponses.Add(await re.Content.ReadAsByteArrayAsync(ct)));
 
-        var client = new HttpClient(fixture);
-        var str = await client.GetStringAsync(new Uri(TestBarUrl));
+        using var client = new HttpMessageInvoker(fixture);
+        var str = await GetStringAsync(client, TestBarUrl);
 
         using (Assert.Multiple())
         {
@@ -65,15 +70,11 @@ public class HttpSchedulerCachingTests
     [Test]
     public async Task CachingFunctionShouldPreserveHeadersAsync()
     {
-        var innerHandler = new TestHttpMessageHandler(_ =>
+        var innerHandler = new TestHttpMessageHandler(static _ =>
         {
-            var ret = new HttpResponseMessage
-            {
-                Content = new StringContent("foo", Encoding.UTF8),
-                StatusCode = HttpStatusCode.OK,
-            };
+            var ret = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(FooContent, Encoding.UTF8) };
 
-            ret.Headers.ETag = new("\"worifjw\"");
+            ret.Headers.ETag = new(FooEntityTag);
             return Signal.Emit(ret);
         });
 
@@ -81,12 +82,12 @@ public class HttpSchedulerCachingTests
         var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: (_, re, _, _) =>
         {
             etagResponses.Add(re.Headers.ETag!.Tag);
-            return Task.FromResult(true);
+            return Task.CompletedTask;
         });
 
-        using var client = new HttpClient(fixture);
-        using var response = await client.GetAsync(new Uri(TestBarUrl));
-        await Assert.That(etagResponses[0]).IsEqualTo("\"worifjw\"");
+        using var client = new HttpMessageInvoker(fixture);
+        using var response = await SendGetAsync(client, TestBarUrl);
+        await Assert.That(etagResponses[0]).IsEqualTo(FooEntityTag);
     }
 
     /// <summary>Checks that the default NetCache request cache is used when no cache callback is supplied.</summary>
@@ -98,28 +99,24 @@ public class HttpSchedulerCachingTests
         var requestCache = new RecordingRequestCache();
         NetCache.RequestCache = requestCache;
 
-        var innerHandler = new TestHttpMessageHandler(_ =>
+        var innerHandler = new TestHttpMessageHandler(static _ =>
         {
-            var ret = new HttpResponseMessage
-            {
-                Content = new StringContent("foo", Encoding.UTF8),
-                StatusCode = HttpStatusCode.OK,
-            };
+            var ret = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(FooContent, Encoding.UTF8) };
 
             return Signal.Emit(ret);
         });
 
         using var operationQueue = new OperationQueue();
         var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, operationQueue: operationQueue);
-        using var client = new HttpClient(fixture);
-        using var response = await client.GetAsync(new Uri(TestBarUrl));
+        using var client = new HttpMessageInvoker(fixture);
+        using var response = await SendGetAsync(client, TestBarUrl);
         var str = await response.Content.ReadAsStringAsync();
 
         using (Assert.Multiple())
         {
             await Assert.That(str).IsEqualTo("foo");
             await Assert.That(requestCache.SaveCount).IsEqualTo(1);
-            await Assert.That(requestCache.SavedKey?.StartsWith("HttpSchedulerCache_", StringComparison.Ordinal)).IsTrue();
+            await Assert.That(requestCache.SavedKey?.StartsWith(CacheKeyPrefix, StringComparison.Ordinal)).IsTrue();
             await Assert.That(requestCache.SavedBytes).IsNotNull();
         }
 
@@ -172,8 +169,8 @@ public class HttpSchedulerCachingTests
             await cache.Insert(key, data);
         });
 
-        using var client = new HttpClient(cachingHandler);
-        var origData = await client.GetStringAsync(new Uri("http://httpbin.org/get"));
+        using var client = new HttpMessageInvoker(cachingHandler);
+        var origData = await GetStringAsync(client, "https://httpbin.org/get");
 
         await Assert.That(origData).Contains("origin");
 
@@ -181,25 +178,24 @@ public class HttpSchedulerCachingTests
         using (Assert.Multiple())
         {
             await Assert.That(string.IsNullOrEmpty(singleKey)).IsFalse();
-            await Assert.That(singleKey.StartsWith("HttpSchedulerCache_", StringComparison.Ordinal)).IsTrue();
+            await Assert.That(singleKey.StartsWith(CacheKeyPrefix, StringComparison.Ordinal)).IsTrue();
         }
 
         var offlineHandler = new OfflineHttpMessageHandler(async (_, key, _) => await cache.Get(key));
 
-        using var offlineClient = new HttpClient(offlineHandler);
-        var newData = await offlineClient.GetStringAsync(new Uri("http://httpbin.org/get"));
+        using var offlineClient = new HttpMessageInvoker(offlineHandler);
+        var newData = await GetStringAsync(offlineClient, "https://httpbin.org/get");
 
         await Assert.That(origData).IsEqualTo(newData);
 
         var shouldDie = true;
         try
         {
-            await offlineClient.GetStringAsync(new Uri("http://httpbin.org/gzip"));
+            await GetStringAsync(offlineClient, "https://httpbin.org/gzip");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             shouldDie = false;
-            Console.WriteLine(ex);
         }
 
         await Assert.That(shouldDie).IsFalse();
@@ -219,13 +215,9 @@ public class HttpSchedulerCachingTests
     [Test]
     public async Task OnlyCacheRelevantMethodsAsync(string method, bool shouldCache)
     {
-        var innerHandler = new TestHttpMessageHandler(_ =>
+        var innerHandler = new TestHttpMessageHandler(static _ =>
         {
-            var ret = new HttpResponseMessage
-            {
-                Content = new StringContent("foo", Encoding.UTF8),
-                StatusCode = HttpStatusCode.OK,
-            };
+            var ret = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(FooContent, Encoding.UTF8) };
 
             return Signal.Emit(ret);
         });
@@ -234,13 +226,33 @@ public class HttpSchedulerCachingTests
         var fixture = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, cacheResultFunc: (_, _, _, _) =>
         {
             cached = true;
-            return Task.FromResult(true);
+            return Task.CompletedTask;
         });
 
-        using var client = new HttpClient(fixture);
+        using var client = new HttpMessageInvoker(fixture);
         using var request = new HttpRequestMessage(new(method), TestBarUrl);
-        using var response = await client.SendAsync(request);
+        using var response = await client.SendAsync(request, CancellationToken.None);
 
         await Assert.That(cached).IsEqualTo(shouldCache);
+    }
+
+    /// <summary>Gets the string response for a request sent through an invoker.</summary>
+    /// <param name="client">The invoker that sends the request.</param>
+    /// <param name="requestUrl">The absolute request URL.</param>
+    /// <returns>The response content.</returns>
+    private static async Task<string> GetStringAsync(HttpMessageInvoker client, string requestUrl)
+    {
+        using var response = await SendGetAsync(client, requestUrl);
+        return await response.Content.ReadAsStringAsync();
+    }
+
+    /// <summary>Sends a GET request through an invoker.</summary>
+    /// <param name="client">The invoker that sends the request.</param>
+    /// <param name="requestUrl">The absolute request URL.</param>
+    /// <returns>The HTTP response.</returns>
+    private static async Task<HttpResponseMessage> SendGetAsync(HttpMessageInvoker client, string requestUrl)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+        return await client.SendAsync(request, CancellationToken.None);
     }
 }

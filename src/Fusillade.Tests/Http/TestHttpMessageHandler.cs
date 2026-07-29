@@ -16,10 +16,8 @@ namespace Fusillade.Tests;
 public class TestHttpMessageHandler(Func<HttpRequestMessage, IObservable<HttpResponseMessage>> createResult) : HttpMessageHandler
 {
     /// <inheritdoc/>
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-    {
-        return cancellationToken.IsCancellationRequested
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+        cancellationToken.IsCancellationRequested
             ? Signal.Fail<HttpResponseMessage>(new OperationCanceledException(cancellationToken)).ToTask(cancellationToken)
             : createResult(request).ToTask(cancellationToken);
-    }
 }

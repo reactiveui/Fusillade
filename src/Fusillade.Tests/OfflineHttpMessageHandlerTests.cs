@@ -22,12 +22,9 @@ public class OfflineHttpMessageHandlerTests
     {
         using var scope = new NetCacheTestScope();
         using var handler = new OfflineHttpMessageHandler(null);
-        using var client = new HttpClient(handler)
-        {
-            BaseAddress = new(ExampleBaseUrl),
-        };
+        using var client = new HttpMessageInvoker(handler, disposeHandler: false);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetAsync(new Uri("/", UriKind.Relative)));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => SendGetAsync(client));
     }
 
     /// <summary>Verifies that a cache miss returns service unavailable.</summary>
@@ -35,13 +32,10 @@ public class OfflineHttpMessageHandlerTests
     [Test]
     public async Task SendAsyncShouldReturnUnavailableWhenBodyIsMissingAsync()
     {
-        using var handler = new OfflineHttpMessageHandler((_, _, _) => Task.FromResult<byte[]?>(null));
-        using var client = new HttpClient(handler)
-        {
-            BaseAddress = new(ExampleBaseUrl),
-        };
+        using var handler = new OfflineHttpMessageHandler(static (_, _, _) => Task.FromResult<byte[]?>(null));
+        using var client = new HttpMessageInvoker(handler, disposeHandler: false);
 
-        var response = await client.GetAsync(new Uri("/", UriKind.Relative));
+        using var response = await SendGetAsync(client);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.ServiceUnavailable);
     }
 
@@ -50,14 +44,11 @@ public class OfflineHttpMessageHandlerTests
     [Test]
     public async Task SendAsyncShouldReturnCachedBodyAsync()
     {
-        const string? expected = "cached";
-        using var handler = new OfflineHttpMessageHandler((_, _, _) => Task.FromResult<byte[]?>(Encoding.UTF8.GetBytes(expected)));
-        using var client = new HttpClient(handler)
-        {
-            BaseAddress = new(ExampleBaseUrl),
-        };
+        const string expected = "cached";
+        using var handler = new OfflineHttpMessageHandler(static (_, _, _) => Task.FromResult<byte[]?>("cached"u8.ToArray()));
+        using var client = new HttpMessageInvoker(handler, disposeHandler: false);
 
-        var response = await client.GetAsync(new Uri("/", UriKind.Relative));
+        using var response = await SendGetAsync(client);
         var body = await response.Content.ReadAsStringAsync();
 
         using (Assert.Multiple())
@@ -72,20 +63,16 @@ public class OfflineHttpMessageHandlerTests
     [Test]
     public async Task SendAsyncShouldUseRequestCacheWhenFetchDelegateIsMissingAsync()
     {
-        const string? expected = "cached";
+        const string expected = "cached";
         using var scope = new NetCacheTestScope(true);
-        NetCache.RequestCache = new RecordingRequestCache
-        {
-            FetchedBytes = Encoding.UTF8.GetBytes(expected),
-        };
+        var requestCache = new RecordingRequestCache();
+        requestCache.SetFetchedBytes("cached"u8.ToArray());
+        NetCache.RequestCache = requestCache;
 
         using var handler = new OfflineHttpMessageHandler(null);
-        using var client = new HttpClient(handler)
-        {
-            BaseAddress = new(ExampleBaseUrl),
-        };
+        using var client = new HttpMessageInvoker(handler, disposeHandler: false);
 
-        var response = await client.GetAsync(new Uri("/", UriKind.Relative));
+        using var response = await SendGetAsync(client);
         var body = await response.Content.ReadAsStringAsync();
 
         using (Assert.Multiple())
@@ -93,5 +80,14 @@ public class OfflineHttpMessageHandlerTests
             await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
             await Assert.That(body).IsEqualTo(expected);
         }
+    }
+
+    /// <summary>Sends the standard offline test request through an invoker.</summary>
+    /// <param name="client">The invoker that sends the request.</param>
+    /// <returns>The HTTP response.</returns>
+    private static async Task<HttpResponseMessage> SendGetAsync(HttpMessageInvoker client)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, ExampleBaseUrl);
+        return await client.SendAsync(request, CancellationToken.None);
     }
 }

@@ -213,7 +213,184 @@ public static class NetCache
     /// <param name="current">The current.</param>
     internal static void CreateDefaultInstances(IReadonlyDependencyResolver? current) => _current = current;
 
+    /// <summary>Captures the process-wide and current-thread cache state.</summary>
+    /// <returns>An opaque snapshot that can restore the captured state.</returns>
+    internal static NetCacheState CaptureState() => NetCacheState.Capture();
+
+    /// <summary>Restores a state previously returned by <see cref="CaptureState"/>.</summary>
+    /// <param name="state">The state snapshot to restore.</param>
+    internal static void RestoreState(NetCacheState state)
+    {
+        ArgumentExceptionHelper.ThrowIfNull(state);
+        state.Restore();
+    }
+
     /// <summary>Gets the current dependency resolver, falling back to <see cref="AppLocator.Current"/>.</summary>
     /// <returns>The dependency resolver.</returns>
     private static IReadonlyDependencyResolver GetCurrent() => _current ??= AppLocator.Current;
+
+    /// <summary>An opaque snapshot of the process-wide and current-thread cache state.</summary>
+    internal sealed class NetCacheState
+    {
+        /// <summary>The captured process-wide state.</summary>
+        private readonly GlobalState _globalState;
+
+        /// <summary>The captured state for the current thread.</summary>
+        private readonly ThreadState _threadState;
+
+        /// <summary>Initializes a new instance of the <see cref="NetCacheState"/> class.</summary>
+        /// <param name="globalState">The captured process-wide state.</param>
+        /// <param name="threadState">The captured state for the current thread.</param>
+        private NetCacheState(GlobalState globalState, ThreadState threadState)
+        {
+            _globalState = globalState;
+            _threadState = threadState;
+        }
+
+        /// <summary>Captures the current state.</summary>
+        /// <returns>The captured state.</returns>
+        internal static NetCacheState Capture() => new(GlobalState.Capture(), ThreadState.Capture());
+
+        /// <summary>Restores the captured state.</summary>
+        internal void Restore()
+        {
+            _globalState.Restore();
+            _threadState.Restore();
+        }
+
+        /// <summary>A snapshot of process-wide state.</summary>
+        private sealed class GlobalState
+        {
+            /// <summary>The captured speculative handler.</summary>
+            private readonly LimitingHttpMessageHandler _speculativeState;
+
+            /// <summary>The captured user-initiated handler.</summary>
+            private readonly HttpMessageHandler _userInitiatedState;
+
+            /// <summary>The captured background handler.</summary>
+            private readonly HttpMessageHandler _backgroundState;
+
+            /// <summary>The captured offline handler.</summary>
+            private readonly HttpMessageHandler _offlineState;
+
+            /// <summary>The captured operation queue.</summary>
+            private readonly OperationQueue _operationQueueState;
+
+            /// <summary>The captured request cache.</summary>
+            private readonly IRequestCache? _requestCacheState;
+
+            /// <summary>The captured dependency resolver.</summary>
+            private readonly IReadonlyDependencyResolver? _currentState;
+
+            /// <summary>Initializes a new instance of the <see cref="GlobalState"/> class.</summary>
+            /// <param name="speculativeState">The speculative handler.</param>
+            /// <param name="userInitiatedState">The user-initiated handler.</param>
+            /// <param name="backgroundState">The background handler.</param>
+            /// <param name="offlineState">The offline handler.</param>
+            /// <param name="operationQueueState">The operation queue.</param>
+            /// <param name="requestCacheState">The request cache.</param>
+            /// <param name="currentState">The dependency resolver.</param>
+            private GlobalState(
+                LimitingHttpMessageHandler speculativeState,
+                HttpMessageHandler userInitiatedState,
+                HttpMessageHandler backgroundState,
+                HttpMessageHandler offlineState,
+                OperationQueue operationQueueState,
+                IRequestCache? requestCacheState,
+                IReadonlyDependencyResolver? currentState)
+            {
+                _speculativeState = speculativeState;
+                _userInitiatedState = userInitiatedState;
+                _backgroundState = backgroundState;
+                _offlineState = offlineState;
+                _operationQueueState = operationQueueState;
+                _requestCacheState = requestCacheState;
+                _currentState = currentState;
+            }
+
+            /// <summary>Captures the process-wide state.</summary>
+            /// <returns>The captured state.</returns>
+            internal static GlobalState Capture() =>
+                new(_speculative, _userInitiated, _background, _offline, _operationQueue, _requestCache, _current);
+
+            /// <summary>Restores the process-wide state.</summary>
+            internal void Restore()
+            {
+                _speculative = _speculativeState;
+                _userInitiated = _userInitiatedState;
+                _background = _backgroundState;
+                _offline = _offlineState;
+                _operationQueue = _operationQueueState;
+                _requestCache = _requestCacheState;
+                _current = _currentState;
+            }
+        }
+
+        /// <summary>A snapshot of state held for the current thread.</summary>
+        private sealed class ThreadState
+        {
+            /// <summary>The captured speculative handler override.</summary>
+            private readonly LimitingHttpMessageHandler? _speculativeState;
+
+            /// <summary>The captured user-initiated handler override.</summary>
+            private readonly HttpMessageHandler? _userInitiatedState;
+
+            /// <summary>The captured background handler override.</summary>
+            private readonly HttpMessageHandler? _backgroundState;
+
+            /// <summary>The captured offline handler override.</summary>
+            private readonly HttpMessageHandler? _offlineState;
+
+            /// <summary>The captured operation queue override.</summary>
+            private readonly OperationQueue? _operationQueueState;
+
+            /// <summary>The captured request cache override.</summary>
+            private readonly IRequestCache? _requestCacheState;
+
+            /// <summary>Initializes a new instance of the <see cref="ThreadState"/> class.</summary>
+            /// <param name="speculativeState">The speculative handler override.</param>
+            /// <param name="userInitiatedState">The user-initiated handler override.</param>
+            /// <param name="backgroundState">The background handler override.</param>
+            /// <param name="offlineState">The offline handler override.</param>
+            /// <param name="operationQueueState">The operation queue override.</param>
+            /// <param name="requestCacheState">The request cache override.</param>
+            private ThreadState(
+                LimitingHttpMessageHandler? speculativeState,
+                HttpMessageHandler? userInitiatedState,
+                HttpMessageHandler? backgroundState,
+                HttpMessageHandler? offlineState,
+                OperationQueue? operationQueueState,
+                IRequestCache? requestCacheState)
+            {
+                _speculativeState = speculativeState;
+                _userInitiatedState = userInitiatedState;
+                _backgroundState = backgroundState;
+                _offlineState = offlineState;
+                _operationQueueState = operationQueueState;
+                _requestCacheState = requestCacheState;
+            }
+
+            /// <summary>Captures the current thread's state.</summary>
+            /// <returns>The captured state.</returns>
+            internal static ThreadState Capture() =>
+                new(
+                    _unitTestSpeculative,
+                    _unitTestUserInitiated,
+                    _unitTestBackground,
+                    _unitTestOffline,
+                    _unitTestOperationQueue,
+                    _unitTestRequestCache);
+
+            /// <summary>Restores the current thread's state.</summary>
+            internal void Restore()
+            {
+                _unitTestSpeculative = _speculativeState;
+                _unitTestUserInitiated = _userInitiatedState;
+                _unitTestBackground = _backgroundState;
+                _unitTestOffline = _offlineState;
+                _unitTestOperationQueue = _operationQueueState;
+                _unitTestRequestCache = _requestCacheState;
+            }
+        }
+    }
 }

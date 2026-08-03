@@ -17,6 +17,10 @@
     <InternalsVisibleTo Include="Fusillade.Reactive.Tests" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETCoreApp'">
+    <Compile Remove="Polyfills\NotNullAttribute.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <Using Include="System" />
     <Using Include="System.Text" />

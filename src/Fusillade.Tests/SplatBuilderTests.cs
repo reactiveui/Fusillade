@@ -32,12 +32,10 @@ public class SplatBuilderTests
     /// <summary>Verifies that the builder extension rejects a null builder.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
-    public async Task CreateFusilladeNetCacheShouldRejectNullBuilderAsync()
-    {
-        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+    public async Task CreateFusilladeNetCacheShouldRejectNullBuilderAsync() =>
+        await Assert.ThrowsAsync<ArgumentNullException>(static () =>
         {
             _ = ((IAppInstance)null!).CreateFusilladeNetCache();
             return Task.CompletedTask;
         });
-    }
 }

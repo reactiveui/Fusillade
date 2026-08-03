@@ -37,18 +37,25 @@ internal sealed class InflightRequest(Action onFullyCancelled) : IDisposable
     private int _isFullyCancelled;
 
     /// <summary>Gets the number of callers currently sharing this request.</summary>
-    public int ReferenceCount => Volatile.Read(ref _refCount);
+    internal int ReferenceCount => Volatile.Read(ref _refCount);
 
     /// <summary>Gets the signal that yields the shared response.</summary>
-    public IObservable<HttpResponseMessage> Response => _response;
+    internal IObservable<HttpResponseMessage> Response => _response;
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        _response.Dispose();
+        _responseBufferGate.Dispose();
+    }
 
     /// <summary>Adds a caller reference to this request.</summary>
-    public void AddRef() => Interlocked.Increment(ref _refCount);
+    internal void AddRef() => Interlocked.Increment(ref _refCount);
 
     /// <summary>Completes the shared response successfully.</summary>
     /// <param name="response">The response to publish to all callers.</param>
     /// <returns><see langword="true"/> when the response was completed by this call.</returns>
-    public bool TrySetResult(HttpResponseMessage response)
+    internal bool TrySetResult(HttpResponseMessage response)
     {
         if (Interlocked.Exchange(ref _isCompleted, 1) != 0)
         {
@@ -63,7 +70,7 @@ internal sealed class InflightRequest(Action onFullyCancelled) : IDisposable
     /// <summary>Completes the shared response with an exception.</summary>
     /// <param name="exception">The exception to publish to all callers.</param>
     /// <returns><see langword="true"/> when the response was completed by this call.</returns>
-    public bool TrySetException(Exception exception)
+    internal bool TrySetException(Exception exception)
     {
         if (Interlocked.Exchange(ref _isCompleted, 1) != 0)
         {
@@ -77,15 +84,13 @@ internal sealed class InflightRequest(Action onFullyCancelled) : IDisposable
     /// <summary>Completes the shared response as cancelled.</summary>
     /// <param name="cancellationToken">The token that cancelled the shared work.</param>
     /// <returns><see langword="true"/> when the response was completed by this call.</returns>
-    public bool TrySetCanceled(CancellationToken cancellationToken)
-    {
-        return TrySetException(new OperationCanceledException(cancellationToken));
-    }
+    internal bool TrySetCanceled(CancellationToken cancellationToken) =>
+        TrySetException(new OperationCanceledException(cancellationToken));
 
     /// <summary>Waits for the shared response, cancelling only this caller when requested.</summary>
     /// <param name="cancellationToken">The caller cancellation token.</param>
     /// <returns>The shared response task for this caller.</returns>
-    public Task<HttpResponseMessage> WaitAsync(CancellationToken cancellationToken)
+    internal Task<HttpResponseMessage> WaitAsync(CancellationToken cancellationToken)
     {
         if (!cancellationToken.CanBeCanceled || _response.IsCompleted)
         {
@@ -102,7 +107,7 @@ internal sealed class InflightRequest(Action onFullyCancelled) : IDisposable
     }
 
     /// <summary>Removes a caller reference, fully cancelling once none remain.</summary>
-    public void Cancel()
+    internal void Cancel()
     {
         if (Volatile.Read(ref _isCompleted) != 0)
         {
@@ -124,19 +129,12 @@ internal sealed class InflightRequest(Action onFullyCancelled) : IDisposable
         onFullyCancelled();
     }
 
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        _response.Dispose();
-        _responseBufferGate.Dispose();
-    }
-
     /// <summary>Creates a task that is already in the cancelled state.</summary>
     /// <param name="cancellationToken">The token to associate with the cancellation.</param>
     /// <returns>A cancelled task.</returns>
     private static Task<HttpResponseMessage> CreateCancelledTaskAsync(CancellationToken cancellationToken)
     {
-        var tcs = new TaskCompletionSource<HttpResponseMessage>();
+        var tcs = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
 #if NET5_0_OR_GREATER
         tcs.SetCanceled(cancellationToken);
 #else
@@ -200,12 +198,7 @@ internal sealed class InflightRequest(Action onFullyCancelled) : IDisposable
             }
         }
 
-        var clone = new HttpResponseMessage(response.StatusCode)
-        {
-            ReasonPhrase = response.ReasonPhrase,
-            RequestMessage = response.RequestMessage,
-            Version = response.Version,
-        };
+        var clone = new HttpResponseMessage(response.StatusCode) { ReasonPhrase = response.ReasonPhrase, RequestMessage = response.RequestMessage, Version = response.Version };
 
         CopyHeaders(response.Headers, clone.Headers);
 

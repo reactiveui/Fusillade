@@ -68,10 +68,7 @@ public static class IntegrationTestHelper
         var lines = headerText.Split('\n');
         var statusCode = (HttpStatusCode)int.Parse(lines[0].Split(' ')[1]);
         var bodyStart = bodyIndex + CrlfLength;
-        var ret = new HttpResponseMessage(statusCode)
-        {
-            Content = new ByteArrayContent(bytes, bodyStart, bytes.Length - bodyStart),
-        };
+        var ret = new HttpResponseMessage(statusCode) { Content = new ByteArrayContent(bytes, bodyStart, bytes.Length - bodyStart) };
 
         for (var i = 1; i < lines.Length; i++)
         {

@@ -35,6 +35,6 @@
     <PackageVersion Include="Punchclock.Reactive" Version="7.1.0" />
     <PackageVersion Include="Splat" Version="21.0.0" />
     <PackageVersion Include="System.Net.Http" Version="4.3.4" />
-    <PackageVersion Include="Akavache.SystemTextJson" Version="12.1.1" />
+    <PackageVersion Include="Akavache.SystemTextJson" Version="13.0.0" />
   </ItemGroup>
 </Project>

@@ -25,7 +25,7 @@
   <ItemGroup>
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.9.0" />
-    <PackageVersion Include="TUnit" Version="1.61.38" />
+    <PackageVersion Include="TUnit" Version="1.63.0" />
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
   </ItemGroup>
   
@@ -33,7 +33,7 @@
     <!-- Central package versions -->
     <PackageVersion Include="punchclock" Version="7.1.0" />
     <PackageVersion Include="Punchclock.Reactive" Version="7.1.0" />
-    <PackageVersion Include="Splat" Version="20.2.0" />
+    <PackageVersion Include="Splat" Version="21.0.0" />
     <PackageVersion Include="System.Net.Http" Version="4.3.4" />
     <PackageVersion Include="Akavache.SystemTextJson" Version="12.1.1" />
   </ItemGroup>

@@ -18,9 +18,9 @@ namespace System.Diagnostics.CodeAnalysis;
 [ExcludeFromCodeCoverage]
 [DebuggerNonUserCode]
 [AttributeUsage(
-    validOn: Targets.Method |
-             Targets.Constructor |
-             Targets.Class,
+    validOn: Targets.Method
+        | Targets.Constructor
+        | Targets.Class,
     Inherited = false)]
 internal sealed class RequiresDynamicCodeAttribute :
     Attribute
@@ -31,16 +31,16 @@ internal sealed class RequiresDynamicCodeAttribute :
         Message = message;
 
     /// <summary>Gets or sets a value indicating whether the annotation should not apply to static members.</summary>
-    public bool ExcludeStatics { get; set; }
+    internal bool ExcludeStatics { get; set; }
 
     /// <summary>Gets a message that contains information about the usage of dynamic code.</summary>
-    public string Message { get; }
+    internal string Message { get; }
 
     /// <summary>
     /// Gets or sets an optional URL that contains more information about the method,
     /// why it requires dynamic code, and what options a consumer has to deal with it.
     /// </summary>
-    public string? Url { get; set; }
+    internal string? Url { get; set; }
 }
 #else
 

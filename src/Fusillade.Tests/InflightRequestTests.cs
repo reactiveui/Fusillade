@@ -21,7 +21,7 @@ public class InflightRequestTests
     {
         using var response = new HttpResponseMessage(HttpStatusCode.Accepted);
         using var ignoredResponse = new HttpResponseMessage(HttpStatusCode.OK);
-        using var request = new InflightRequest(() => { });
+        using var request = new InflightRequest(static () => { });
         var responseTask = request.Response.ToTask(CancellationToken.None);
 
         using (Assert.Multiple())
@@ -39,7 +39,7 @@ public class InflightRequestTests
     [Test]
     public async Task ResponseShouldPublishExceptionOnceAsync()
     {
-        using var request = new InflightRequest(() => { });
+        using var request = new InflightRequest(static () => { });
         var responseTask = request.WaitAsync(CancellationToken.None);
 
         using (Assert.Multiple())
@@ -57,7 +57,7 @@ public class InflightRequestTests
     public async Task ResponseShouldPublishCancellationAsync()
     {
         using var cts = new CancellationTokenSource();
-        using var request = new InflightRequest(() => { });
+        using var request = new InflightRequest(static () => { });
         var responseTask = request.WaitAsync(CancellationToken.None);
 
         await Assert.That(request.TrySetCanceled(cts.Token)).IsTrue();
@@ -125,7 +125,7 @@ public class InflightRequestTests
     {
         using var response = new HttpResponseMessage(HttpStatusCode.OK);
         using var cts = new CancellationTokenSource();
-        using var request = new InflightRequest(() => { });
+        using var request = new InflightRequest(static () => { });
         request.AddRef();
 
         var cancelledTask = request.WaitAsync(cts.Token);
@@ -149,7 +149,7 @@ public class InflightRequestTests
     {
         using var response = new HttpResponseMessage(HttpStatusCode.OK);
         using var cts = new CancellationTokenSource();
-        using var request = new InflightRequest(() => { });
+        using var request = new InflightRequest(static () => { });
 
         var responseTask = request.WaitAsync(cts.Token);
 

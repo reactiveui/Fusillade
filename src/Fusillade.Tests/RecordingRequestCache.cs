@@ -11,20 +11,24 @@ namespace Fusillade.Tests;
 /// <summary>Request cache implementation that records calls for tests.</summary>
 internal sealed class RecordingRequestCache : IRequestCache
 {
-    /// <summary>Gets or sets the bytes returned by <see cref="FetchAsync"/>.</summary>
-    public byte[]? FetchedBytes { get; set; }
+    /// <summary>The bytes returned by <see cref="IRequestCache.FetchAsync(HttpRequestMessage, string, CancellationToken)"/>.</summary>
+    private byte[]? _fetchedBytes;
 
     /// <summary>Gets the number of save calls.</summary>
-    public int SaveCount { get; private set; }
+    internal int SaveCount { get; private set; }
 
     /// <summary>Gets the key passed to the last save call.</summary>
-    public string? SavedKey { get; private set; }
+    internal string? SavedKey { get; private set; }
 
     /// <summary>Gets the bytes passed to the last save call.</summary>
-    public byte[]? SavedBytes { get; private set; }
+    internal byte[]? SavedBytes { get; private set; }
+
+    /// <summary>Sets the bytes that <see cref="IRequestCache.FetchAsync(HttpRequestMessage, string, CancellationToken)"/> returns.</summary>
+    /// <param name="fetchedBytes">The bytes to return, or <see langword="null"/> for a cache miss.</param>
+    internal void SetFetchedBytes(byte[]? fetchedBytes) => _fetchedBytes = fetchedBytes;
 
     /// <inheritdoc />
-    public async Task SaveAsync(HttpRequestMessage request, HttpResponseMessage response, string key, CancellationToken ct)
+    async Task IRequestCache.SaveAsync(HttpRequestMessage request, HttpResponseMessage response, string key, CancellationToken ct)
     {
         _ = request;
         SaveCount++;
@@ -33,11 +37,11 @@ internal sealed class RecordingRequestCache : IRequestCache
     }
 
     /// <inheritdoc />
-    public Task<byte[]?> FetchAsync(HttpRequestMessage request, string key, CancellationToken ct)
+    Task<byte[]?> IRequestCache.FetchAsync(HttpRequestMessage request, string key, CancellationToken ct)
     {
         _ = request;
         _ = key;
         _ = ct;
-        return Task.FromResult(FetchedBytes);
+        return Task.FromResult(_fetchedBytes);
     }
 }

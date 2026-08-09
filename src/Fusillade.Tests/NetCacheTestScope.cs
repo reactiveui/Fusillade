@@ -2,8 +2,6 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using Splat;
 
 #if REACTIVE_SHIM
@@ -13,109 +11,236 @@ namespace Fusillade.Tests;
 #endif
 
 /// <summary>Restores NetCache and mode-detector static state around tests that intentionally touch it.</summary>
-[SuppressMessage(
-    "Major Code Smell",
-    "S3011:Reflection should not be used to increase accessibility of classes, methods, or fields",
-    Justification = "Tests need to restore private static singleton state without adding production reset APIs.")]
 internal sealed class NetCacheTestScope : IDisposable
 {
-    /// <summary>The current mode detector backing field.</summary>
-    private static readonly FieldInfo? ModeDetectorCurrentField =
-        typeof(ModeDetector).GetField("<Current>k__BackingField", BindingFlags.NonPublic | BindingFlags.Static);
+    /// <summary>The mode-detector result captured when this scope overrides the detector.</summary>
+    private readonly bool? _modeDetectorResult;
 
-    /// <summary>The cached unit-test result backing field.</summary>
-    private static readonly FieldInfo? ModeDetectorCacheField =
-        typeof(ModeDetector).GetField("_cachedInUnitTestRunnerResult", BindingFlags.NonPublic | BindingFlags.Static);
+    /// <summary>The NetCache state captured at construction time.</summary>
+    private readonly NetCacheState _netCacheState;
 
-    /// <summary>The NetCache fields restored when the scope is disposed.</summary>
-    private static readonly FieldInfo?[] TrackedFields =
-    [
-        GetField("_speculative"),
-        GetField("_unitTestSpeculative"),
-        GetField("_userInitiated"),
-        GetField("_unitTestUserInitiated"),
-        GetField("_background"),
-        GetField("_unitTestBackground"),
-        GetField("_offline"),
-        GetField("_unitTestOffline"),
-        GetField("_operationQueue"),
-        GetField("_unitTestOperationQueue"),
-        GetField("_requestCache"),
-        GetField("_unitTestRequestCache"),
-        GetField("_current"),
-    ];
-
-    /// <summary>The NetCache field values captured at construction time.</summary>
-    private readonly Dictionary<FieldInfo, object?> _fieldValues;
-
-    /// <summary>The mode-detector state captured at construction time.</summary>
-    private readonly IModeDetector? _modeDetector;
-
-    /// <summary>The cached unit-test detection result captured at construction time.</summary>
-    private readonly bool? _cachedInUnitTestRunnerResult;
+    /// <summary>Whether this scope replaced the mode detector and must restore its observed result.</summary>
+    private readonly bool _restoreModeDetector;
 
     /// <summary>Initializes a new instance of the <see cref="NetCacheTestScope"/> class.</summary>
     /// <param name="inUnitTestRunner">Optional mode-detector result to force for the scope.</param>
     public NetCacheTestScope(bool? inUnitTestRunner = null)
     {
-        _modeDetector = (IModeDetector?)ModeDetectorCurrentField?.GetValue(null);
-        _cachedInUnitTestRunnerResult = (bool?)ModeDetectorCacheField?.GetValue(null);
-        _fieldValues = [];
-        foreach (var field in TrackedFields)
-        {
-            if (field is not null)
-            {
-                _fieldValues[field] = field.GetValue(null);
-            }
-        }
+        _netCacheState = NetCacheState.Capture();
+        NetCacheState.ClearThreadOverrides();
 
-        ClearThreadStaticOverrides();
-
-        if (inUnitTestRunner is null)
+        if (inUnitTestRunner is not { } result)
         {
             return;
         }
 
-        ModeDetector.OverrideModeDetector(new FixedModeDetector(inUnitTestRunner.Value));
+        _modeDetectorResult = ModeDetector.InUnitTestRunner();
+        _restoreModeDetector = true;
+        ModeDetector.OverrideModeDetector(new FixedModeDetector(result));
     }
 
     /// <inheritdoc />
     public void Dispose()
     {
-        foreach (var (field, value) in _fieldValues)
+        _netCacheState.Restore();
+
+        if (!_restoreModeDetector)
         {
-            field.SetValue(null, value);
+            return;
         }
 
-        ModeDetectorCurrentField?.SetValue(null, _modeDetector);
-        ModeDetectorCacheField?.SetValue(null, _cachedInUnitTestRunnerResult);
+        ModeDetector.OverrideModeDetector(new FixedModeDetector(_modeDetectorResult));
     }
 
-    /// <summary>Sets a tracked private NetCache field.</summary>
-    /// <param name="name">The field name.</param>
-    /// <param name="value">The value to set.</param>
-    private static void SetNetCacheField(string name, object? value) => GetField(name)?.SetValue(null, value);
-
-    /// <summary>Clears the thread-static NetCache test overrides.</summary>
-    private static void ClearThreadStaticOverrides()
+    /// <summary>A snapshot of all NetCache process-wide and current-thread state touched by tests.</summary>
+    private sealed class NetCacheState
     {
-        SetNetCacheField("_unitTestSpeculative", null);
-        SetNetCacheField("_unitTestUserInitiated", null);
-        SetNetCacheField("_unitTestBackground", null);
-        SetNetCacheField("_unitTestOffline", null);
-        SetNetCacheField("_unitTestOperationQueue", null);
-        SetNetCacheField("_unitTestRequestCache", null);
-    }
+        /// <summary>The captured process-wide state.</summary>
+        private readonly GlobalState _globalState;
 
-    /// <summary>Gets a private static NetCache field.</summary>
-    /// <param name="name">The field name.</param>
-    /// <returns>The matching field.</returns>
-    private static FieldInfo? GetField(string name) =>
-        typeof(NetCache).GetField(name, BindingFlags.NonPublic | BindingFlags.Static);
+        /// <summary>The captured current-thread state.</summary>
+        private readonly ThreadState _threadState;
+
+        /// <summary>Initializes a new instance of the <see cref="NetCacheState"/> class.</summary>
+        /// <param name="globalState">The captured process-wide state.</param>
+        /// <param name="threadState">The captured current-thread state.</param>
+        private NetCacheState(GlobalState globalState, ThreadState threadState)
+        {
+            _globalState = globalState;
+            _threadState = threadState;
+        }
+
+        /// <summary>Captures all NetCache process-wide and current-thread state.</summary>
+        /// <returns>The captured state.</returns>
+        public static NetCacheState Capture() => new(GlobalState.Capture(), ThreadState.Capture());
+
+        /// <summary>Clears current-thread NetCache overrides so a test starts with process-wide state.</summary>
+        public static void ClearThreadOverrides() => ThreadState.Clear();
+
+        /// <summary>Restores all NetCache process-wide and current-thread state.</summary>
+        public void Restore()
+        {
+            _globalState.Restore();
+            _threadState.Restore();
+        }
+
+        /// <summary>A snapshot of process-wide NetCache state.</summary>
+        private sealed class GlobalState
+        {
+            /// <summary>The captured speculative handler.</summary>
+            private readonly LimitingHttpMessageHandler _speculative;
+
+            /// <summary>The captured user-initiated handler.</summary>
+            private readonly HttpMessageHandler _userInitiated;
+
+            /// <summary>The captured background handler.</summary>
+            private readonly HttpMessageHandler _background;
+
+            /// <summary>The captured offline handler.</summary>
+            private readonly HttpMessageHandler _offline;
+
+            /// <summary>The captured operation queue.</summary>
+            private readonly OperationQueue _operationQueue;
+
+            /// <summary>The captured request cache.</summary>
+            private readonly IRequestCache? _requestCache;
+
+            /// <summary>The captured dependency resolver.</summary>
+            private readonly IReadonlyDependencyResolver? _current;
+
+            /// <summary>Initializes a new instance of the <see cref="GlobalState"/> class.</summary>
+            /// <param name="speculative">The speculative handler.</param>
+            /// <param name="userInitiated">The user-initiated handler.</param>
+            /// <param name="background">The background handler.</param>
+            /// <param name="offline">The offline handler.</param>
+            /// <param name="operationQueue">The operation queue.</param>
+            /// <param name="requestCache">The request cache.</param>
+            /// <param name="current">The dependency resolver.</param>
+            private GlobalState(
+                LimitingHttpMessageHandler speculative,
+                HttpMessageHandler userInitiated,
+                HttpMessageHandler background,
+                HttpMessageHandler offline,
+                OperationQueue operationQueue,
+                IRequestCache? requestCache,
+                IReadonlyDependencyResolver? current)
+            {
+                _speculative = speculative;
+                _userInitiated = userInitiated;
+                _background = background;
+                _offline = offline;
+                _operationQueue = operationQueue;
+                _requestCache = requestCache;
+                _current = current;
+            }
+
+            /// <summary>Captures process-wide NetCache state.</summary>
+            /// <returns>The captured state.</returns>
+            internal static GlobalState Capture() =>
+                new(
+                    NetCache.SpeculativeState,
+                    NetCache.UserInitiatedState,
+                    NetCache.BackgroundState,
+                    NetCache.OfflineState,
+                    NetCache.OperationQueueState,
+                    NetCache.RequestCacheState,
+                    NetCache.CurrentState);
+
+            /// <summary>Restores process-wide NetCache state.</summary>
+            internal void Restore()
+            {
+                NetCache.SpeculativeState = _speculative;
+                NetCache.UserInitiatedState = _userInitiated;
+                NetCache.BackgroundState = _background;
+                NetCache.OfflineState = _offline;
+                NetCache.OperationQueueState = _operationQueue;
+                NetCache.RequestCacheState = _requestCache;
+                NetCache.CurrentState = _current;
+            }
+        }
+
+        /// <summary>A snapshot of current-thread NetCache overrides.</summary>
+        private sealed class ThreadState
+        {
+            /// <summary>The captured speculative handler override.</summary>
+            private readonly LimitingHttpMessageHandler? _speculative;
+
+            /// <summary>The captured user-initiated handler override.</summary>
+            private readonly HttpMessageHandler? _userInitiated;
+
+            /// <summary>The captured background handler override.</summary>
+            private readonly HttpMessageHandler? _background;
+
+            /// <summary>The captured offline handler override.</summary>
+            private readonly HttpMessageHandler? _offline;
+
+            /// <summary>The captured operation queue override.</summary>
+            private readonly OperationQueue? _operationQueue;
+
+            /// <summary>The captured request cache override.</summary>
+            private readonly IRequestCache? _requestCache;
+
+            /// <summary>Initializes a new instance of the <see cref="ThreadState"/> class.</summary>
+            /// <param name="speculative">The speculative handler override.</param>
+            /// <param name="userInitiated">The user-initiated handler override.</param>
+            /// <param name="background">The background handler override.</param>
+            /// <param name="offline">The offline handler override.</param>
+            /// <param name="operationQueue">The operation queue override.</param>
+            /// <param name="requestCache">The request cache override.</param>
+            private ThreadState(
+                LimitingHttpMessageHandler? speculative,
+                HttpMessageHandler? userInitiated,
+                HttpMessageHandler? background,
+                HttpMessageHandler? offline,
+                OperationQueue? operationQueue,
+                IRequestCache? requestCache)
+            {
+                _speculative = speculative;
+                _userInitiated = userInitiated;
+                _background = background;
+                _offline = offline;
+                _operationQueue = operationQueue;
+                _requestCache = requestCache;
+            }
+
+            /// <summary>Captures current-thread NetCache overrides.</summary>
+            /// <returns>The captured state.</returns>
+            internal static ThreadState Capture() =>
+                new(
+                    NetCache.UnitTestSpeculativeState,
+                    NetCache.UnitTestUserInitiatedState,
+                    NetCache.UnitTestBackgroundState,
+                    NetCache.UnitTestOfflineState,
+                    NetCache.UnitTestOperationQueueState,
+                    NetCache.UnitTestRequestCacheState);
+
+            /// <summary>Clears current-thread NetCache overrides.</summary>
+            internal static void Clear()
+            {
+                NetCache.UnitTestSpeculativeState = null;
+                NetCache.UnitTestUserInitiatedState = null;
+                NetCache.UnitTestBackgroundState = null;
+                NetCache.UnitTestOfflineState = null;
+                NetCache.UnitTestOperationQueueState = null;
+                NetCache.UnitTestRequestCacheState = null;
+            }
+
+            /// <summary>Restores current-thread NetCache overrides.</summary>
+            internal void Restore()
+            {
+                NetCache.UnitTestSpeculativeState = _speculative;
+                NetCache.UnitTestUserInitiatedState = _userInitiated;
+                NetCache.UnitTestBackgroundState = _background;
+                NetCache.UnitTestOfflineState = _offline;
+                NetCache.UnitTestOperationQueueState = _operationQueue;
+                NetCache.UnitTestRequestCacheState = _requestCache;
+            }
+        }
+    }
 
     /// <summary>Mode detector with a fixed unit-test result.</summary>
     /// <param name="result">The result returned by <see cref="IModeDetector.InUnitTestRunner"/>.</param>
-    private sealed class FixedModeDetector(bool result) : IModeDetector
+    private sealed class FixedModeDetector(bool? result) : IModeDetector
     {
         /// <inheritdoc />
         public bool? InUnitTestRunner() => result;

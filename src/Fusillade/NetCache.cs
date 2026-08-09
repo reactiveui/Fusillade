@@ -209,6 +209,45 @@ public static class NetCache
         }
     }
 
+    /// <summary>Gets or sets the process-wide speculative handler state for tests.</summary>
+    internal static LimitingHttpMessageHandler SpeculativeState { get => _speculative; set => _speculative = value; }
+
+    /// <summary>Gets or sets the process-wide user-initiated handler state for tests.</summary>
+    internal static HttpMessageHandler UserInitiatedState { get => _userInitiated; set => _userInitiated = value; }
+
+    /// <summary>Gets or sets the process-wide background handler state for tests.</summary>
+    internal static HttpMessageHandler BackgroundState { get => _background; set => _background = value; }
+
+    /// <summary>Gets or sets the process-wide offline handler state for tests.</summary>
+    internal static HttpMessageHandler OfflineState { get => _offline; set => _offline = value; }
+
+    /// <summary>Gets or sets the process-wide operation queue state for tests.</summary>
+    internal static OperationQueue OperationQueueState { get => _operationQueue; set => _operationQueue = value; }
+
+    /// <summary>Gets or sets the process-wide request cache state for tests.</summary>
+    internal static IRequestCache? RequestCacheState { get => _requestCache; set => _requestCache = value; }
+
+    /// <summary>Gets or sets the dependency resolver state for tests.</summary>
+    internal static IReadonlyDependencyResolver? CurrentState { get => _current; set => _current = value; }
+
+    /// <summary>Gets or sets the current-thread speculative handler override for tests.</summary>
+    internal static LimitingHttpMessageHandler? UnitTestSpeculativeState { get => _unitTestSpeculative; set => _unitTestSpeculative = value; }
+
+    /// <summary>Gets or sets the current-thread user-initiated handler override for tests.</summary>
+    internal static HttpMessageHandler? UnitTestUserInitiatedState { get => _unitTestUserInitiated; set => _unitTestUserInitiated = value; }
+
+    /// <summary>Gets or sets the current-thread background handler override for tests.</summary>
+    internal static HttpMessageHandler? UnitTestBackgroundState { get => _unitTestBackground; set => _unitTestBackground = value; }
+
+    /// <summary>Gets or sets the current-thread offline handler override for tests.</summary>
+    internal static HttpMessageHandler? UnitTestOfflineState { get => _unitTestOffline; set => _unitTestOffline = value; }
+
+    /// <summary>Gets or sets the current-thread operation queue override for tests.</summary>
+    internal static OperationQueue? UnitTestOperationQueueState { get => _unitTestOperationQueue; set => _unitTestOperationQueue = value; }
+
+    /// <summary>Gets or sets the current-thread request cache override for tests.</summary>
+    internal static IRequestCache? UnitTestRequestCacheState { get => _unitTestRequestCache; set => _unitTestRequestCache = value; }
+
     /// <summary>Creates the default instances. This method is just here to force the static constructor to run.</summary>
     /// <param name="current">The current.</param>
     internal static void CreateDefaultInstances(IReadonlyDependencyResolver? current) => _current = current;

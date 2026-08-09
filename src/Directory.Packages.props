@@ -31,7 +31,7 @@
   
   <ItemGroup>
     <!-- Central package versions -->
-    <PackageVersion Include="punchclock" Version="7.1.0" />
+    <PackageVersion Include="punchclock" Version="7.2.0" />
     <PackageVersion Include="Punchclock.Reactive" Version="7.1.0" />
     <PackageVersion Include="Splat" Version="21.0.0" />
     <PackageVersion Include="System.Net.Http" Version="4.3.4" />

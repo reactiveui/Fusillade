@@ -94,6 +94,56 @@ public class NetCacheTests
         }
     }
 
+    /// <summary>Verifies that nested scopes isolate thread overrides without replacing an unmodified mode detector.</summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task NestedScopeShouldRestoreModeDetectorAndThreadOverridesAsync()
+    {
+        using var outerScope = new NetCacheTestScope(false);
+        using var speculative = new TestLimitingHttpMessageHandler(null);
+        using var userInitiated = new HttpClientHandler();
+        using var background = new HttpClientHandler();
+        using var offline = new HttpClientHandler();
+        var operationQueue = new OperationQueue();
+        var requestCache = new RecordingRequestCache();
+
+        NetCache.UnitTestSpeculativeState = speculative;
+        NetCache.UnitTestUserInitiatedState = userInitiated;
+        NetCache.UnitTestBackgroundState = background;
+        NetCache.UnitTestOfflineState = offline;
+        NetCache.UnitTestOperationQueueState = operationQueue;
+        NetCache.UnitTestRequestCacheState = requestCache;
+
+        var modeDetector = new CountingModeDetector(false);
+        ModeDetector.OverrideModeDetector(modeDetector);
+        {
+            using var innerScope = new NetCacheTestScope();
+            using (Assert.Multiple())
+            {
+                await Assert.That(modeDetector.CallCount).IsEqualTo(0);
+                await Assert.That(NetCache.UnitTestSpeculativeState).IsNull();
+                await Assert.That(NetCache.UnitTestUserInitiatedState).IsNull();
+                await Assert.That(NetCache.UnitTestBackgroundState).IsNull();
+                await Assert.That(NetCache.UnitTestOfflineState).IsNull();
+                await Assert.That(NetCache.UnitTestOperationQueueState).IsNull();
+                await Assert.That(NetCache.UnitTestRequestCacheState).IsNull();
+            }
+        }
+
+        var restoredMode = ModeDetector.InUnitTestRunner();
+        using (Assert.Multiple())
+        {
+            await Assert.That(restoredMode).IsFalse();
+            await Assert.That(modeDetector.CallCount).IsEqualTo(1);
+            await Assert.That(ReferenceEquals(NetCache.UnitTestSpeculativeState, speculative)).IsTrue();
+            await Assert.That(ReferenceEquals(NetCache.UnitTestUserInitiatedState, userInitiated)).IsTrue();
+            await Assert.That(ReferenceEquals(NetCache.UnitTestBackgroundState, background)).IsTrue();
+            await Assert.That(ReferenceEquals(NetCache.UnitTestOfflineState, offline)).IsTrue();
+            await Assert.That(ReferenceEquals(NetCache.UnitTestOperationQueueState, operationQueue)).IsTrue();
+            await Assert.That(ReferenceEquals(NetCache.UnitTestRequestCacheState, requestCache)).IsTrue();
+        }
+    }
+
     /// <summary>Verifies that process mode updates the shared instances.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
@@ -176,5 +226,20 @@ public class NetCacheTests
     {
         /// <inheritdoc />
         public override void ResetLimit(long? maxBytesToRead) => _ = maxBytesToRead;
+    }
+
+    /// <summary>Mode detector that records how often its result is requested.</summary>
+    /// <param name="result">The result returned by <see cref="IModeDetector.InUnitTestRunner"/>.</param>
+    private sealed class CountingModeDetector(bool result) : IModeDetector
+    {
+        /// <summary>Gets the number of calls made to <see cref="InUnitTestRunner"/>.</summary>
+        public int CallCount { get; private set; }
+
+        /// <inheritdoc />
+        public bool? InUnitTestRunner()
+        {
+            CallCount++;
+            return result;
+        }
     }
 }

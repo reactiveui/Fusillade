@@ -170,14 +170,12 @@ public class RateLimitedHttpMessageHandler(
             }
         }
 
-        if (realToken is null)
+        if (realToken is not null)
         {
-            return ret.WaitAsync(cancellationToken);
+            var queue = operationQueue ?? NetCache.OperationQueue;
+
+            _ = CompleteInflightRequestAsync(queue, ret, request, key, realToken, cacheResult);
         }
-
-        var queue = operationQueue ?? NetCache.OperationQueue;
-
-        _ = CompleteInflightRequestAsync(queue, ret, request, key, realToken, cacheResult);
 
         return ret.WaitAsync(cancellationToken);
     }

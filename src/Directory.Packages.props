@@ -9,7 +9,7 @@
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.400" />
   </ItemGroup>
   <ItemGroup>
-    <PackageVersion Include="MinVer" Version="7.0.0" />
+    <PackageVersion Include="MinVer" Version="8.0.0" />
     <PackageVersion Include="StyleSharp.Analyzers" Version="3.46.1" />
     <PackageVersion Include="PerformanceSharp.Analyzers" Version="3.46.1" />
     <PackageVersion Include="SecuritySharp.Analyzers" Version="3.46.1" />

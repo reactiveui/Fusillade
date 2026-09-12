@@ -10,13 +10,13 @@
   </ItemGroup>
   <ItemGroup>
     <PackageVersion Include="MinVer" Version="8.0.0" />
-    <PackageVersion Include="StyleSharp.Analyzers" Version="3.46.1" />
-    <PackageVersion Include="PerformanceSharp.Analyzers" Version="3.46.1" />
-    <PackageVersion Include="SecuritySharp.Analyzers" Version="3.46.1" />
+    <PackageVersion Include="StyleSharp.Analyzers" Version="3.46.2" />
+    <PackageVersion Include="PerformanceSharp.Analyzers" Version="3.46.2" />
+    <PackageVersion Include="SecuritySharp.Analyzers" Version="3.46.2" />
     <PackageVersion Include="Roslynator.Analyzers" Version="5.0.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" />
-    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.33.0.1635" />
+    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.34.0.3385" />
     <PackageVersion Include="ReactiveUI.Primitives" Version="7.3.0" />
     <PackageVersion Include="ReactiveUI.Primitives.Reactive" Version="7.3.0" />
   </ItemGroup>

@@ -17,7 +17,7 @@ Fusillade helps you write efficient, resilient networked apps by composing `Http
 
 Design inspirations include Android's Volley and Picasso.
 
-Supported targets: `net8.0`, `net9.0`, `net10.0`, `net11.0`, `net462`, `net472`, `net48`, and `net481`.
+Supported targets: `net8.0`, `net9.0`, `net10.0`, `net11.0`, `net472`, `net48`, and `net481`.
 
 ## V6.0.x Breaking Changes
 

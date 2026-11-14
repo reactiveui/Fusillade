@@ -37,16 +37,3 @@ static Fusillade.Reactive.NetCache.UserInitiated.get -> System.Net.Http.HttpMess
 static Fusillade.Reactive.NetCache.UserInitiated.set -> void
 static Fusillade.Reactive.RateLimitedHttpMessageHandler.UniqueKeyForRequest(System.Net.Http.HttpRequestMessage! request) -> string!
 static Splat.Builder.FusilladeSplatBuilderExtensions.CreateFusilladeNetCache(this Splat.Builder.IAppInstance! builder) -> Splat.Builder.IAppInstance!
-System.Diagnostics.CodeAnalysis.RequiresDynamicCodeAttribute (forwarded, contained in System.Runtime)
-System.Diagnostics.CodeAnalysis.RequiresDynamicCodeAttribute.Message.get -> string! (forwarded, contained in System.Runtime)
-System.Diagnostics.CodeAnalysis.RequiresDynamicCodeAttribute.RequiresDynamicCodeAttribute(string! message) -> void (forwarded, contained in System.Runtime)
-System.Diagnostics.CodeAnalysis.RequiresDynamicCodeAttribute.Url.get -> string? (forwarded, contained in System.Runtime)
-System.Diagnostics.CodeAnalysis.RequiresDynamicCodeAttribute.Url.set -> void (forwarded, contained in System.Runtime)
-System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute (forwarded, contained in System.Runtime)
-System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute.Message.get -> string! (forwarded, contained in System.Runtime)
-System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute.RequiresUnreferencedCodeAttribute(string! message) -> void (forwarded, contained in System.Runtime)
-System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute.Url.get -> string? (forwarded, contained in System.Runtime)
-System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute.Url.set -> void (forwarded, contained in System.Runtime)
-System.Runtime.CompilerServices.CallerArgumentExpressionAttribute (forwarded, contained in System.Runtime)
-System.Runtime.CompilerServices.CallerArgumentExpressionAttribute.CallerArgumentExpressionAttribute(string! parameterName) -> void (forwarded, contained in System.Runtime)
-System.Runtime.CompilerServices.CallerArgumentExpressionAttribute.ParameterName.get -> string! (forwarded, contained in System.Runtime)

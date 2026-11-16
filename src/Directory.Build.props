@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
   <PropertyGroup>
-    <Authors>ReactiveUI Association Inc</Authors>
-    <Company>ReactiveUI Association Inc</Company>
-    <Copyright>Copyright (c) ReactiveUI Association Inc $([System.DateTime]::Now.ToString('yyyy'))</Copyright>
+    <Authors>ReactiveUI and Contributors</Authors>
+    <Company>ReactiveUI</Company>
+    <Copyright>Copyright (c) ReactiveUI and Contributors $([System.DateTime]::Now.ToString('yyyy'))</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/reactiveui/fusillade/</PackageProjectUrl>
+    <Description>HTTP request prioritization, de-duplication, bounded concurrency and optional response caching for ReactiveUI applications.</Description>
+    <PackageTags>reactiveui;http;httpclient;networking;priority;concurrency;caching;reactive</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>main.png</PackageIcon>
-    <Owners>glennawatson;rlittlesii;chrispulman</Owners>
     <PackageReleaseNotes>https://github.com/reactiveui/fusillade/releases</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/reactiveui/fusillade</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -45,6 +46,10 @@
     <SonarQubeExclude>true</SonarQubeExclude>
     <ExcludeFromCodeCoverage>true</ExcludeFromCodeCoverage>
     <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -108,7 +113,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)../images/main.png" Pack="true" PackagePath="/"/>
+    <None Include="$(MSBuildThisFileDirectory)../Images/main.png" Pack="true" PackagePath="/"/>
     <None Include="$(MSBuildThisFileDirectory)../LICENSE" Pack="true" PackagePath="LICENSE" />
     <None Include="$(MSBuildThisFileDirectory)../README.md" Pack="true" PackagePath="/" />
   </ItemGroup>

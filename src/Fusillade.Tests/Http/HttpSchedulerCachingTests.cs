@@ -154,51 +154,51 @@ public class HttpSchedulerCachingTests
         await Assert.That(commentKey == productKey).IsFalse();
     }
 
-    /// <summary>Does a round trip integration test.</summary>
+    /// <summary>Verifies that an HTTP response cached in Akavache can be replayed offline.</summary>
+    /// <param name="cancellationToken">Cancels the cache and HTTP operations.</param>
     /// <returns>A task to monitor the progress.</returns>
     [Test]
-    [Skip("Requires updated Akavache version to work properly")]
-    public async Task RoundTripIntegrationTestAsync()
+    public async Task RoundTripIntegrationTestAsync(CancellationToken cancellationToken)
     {
-        var aka = CacheDatabase.CreateBuilder("Fusillade.Tests").WithSerializerSystemTextJson().Build();
-        var cache = new InMemoryBlobCache(aka.Serializer!);
+        using var cache = new InMemoryBlobCache(new SystemJsonSerializer());
+        using var operationQueue = new OperationQueue();
+        var innerHandler = new TestHttpMessageHandler(static _ =>
+            Signal.Emit(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(FooContent, Encoding.UTF8) }));
 
-        var cachingHandler = new RateLimitedHttpMessageHandler(new HttpClientHandler(), Priority.UserInitiated, cacheResultFunc: async (_, resp, key, ct) =>
+        var cachingHandler = new RateLimitedHttpMessageHandler(innerHandler, Priority.UserInitiated, operationQueue: operationQueue, cacheResultFunc: async (_, resp, key, ct) =>
         {
             var data = await resp.Content.ReadAsByteArrayAsync(ct);
-            await cache.Insert(key, data);
+            await cache.Insert(key, data).ToTask(ct);
         });
 
         using var client = new HttpMessageInvoker(cachingHandler);
-        var origData = await GetStringAsync(client, "https://httpbin.org/get");
+        using var originalRequest = new HttpRequestMessage(HttpMethod.Get, TestBarUrl);
+        using var originalResponse = await client.SendAsync(originalRequest, cancellationToken);
+        var origData = await originalResponse.Content.ReadAsStringAsync(cancellationToken);
 
-        await Assert.That(origData).Contains("origin");
+        await Assert.That(origData).IsEqualTo(FooContent);
 
-        var singleKey = await cache.GetAllKeys();
+        var singleKey = await cache.GetAllKeys().ToTask(cancellationToken);
         using (Assert.Multiple())
         {
             await Assert.That(string.IsNullOrEmpty(singleKey)).IsFalse();
             await Assert.That(singleKey.StartsWith(CacheKeyPrefix, StringComparison.Ordinal)).IsTrue();
         }
 
-        var offlineHandler = new OfflineHttpMessageHandler(async (_, key, _) => await cache.Get(key));
+        var offlineHandler = new OfflineHttpMessageHandler(async (_, key, ct) => await cache.Get(key).ToTask(ct));
 
         using var offlineClient = new HttpMessageInvoker(offlineHandler);
-        var newData = await GetStringAsync(offlineClient, "https://httpbin.org/get");
+        using var offlineRequest = new HttpRequestMessage(HttpMethod.Get, TestBarUrl);
+        using var offlineResponse = await offlineClient.SendAsync(offlineRequest, cancellationToken);
+        var newData = await offlineResponse.Content.ReadAsStringAsync(cancellationToken);
 
         await Assert.That(origData).IsEqualTo(newData);
 
-        var shouldDie = true;
-        try
+        using var uncachedRequest = new HttpRequestMessage(HttpMethod.Get, UniqueKeyTestUrl);
+        await Assert.That(async () =>
         {
-            await GetStringAsync(offlineClient, "https://httpbin.org/gzip");
-        }
-        catch (Exception)
-        {
-            shouldDie = false;
-        }
-
-        await Assert.That(shouldDie).IsFalse();
+            using var response = await offlineClient.SendAsync(uncachedRequest, cancellationToken);
+        }).Throws<KeyNotFoundException>();
     }
 
     /// <summary>Checks that only relevant http methods are cached.</summary>

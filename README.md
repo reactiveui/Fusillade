@@ -2,7 +2,7 @@
 
 <br />
 <a href="https://github.com/reactiveui/fusillade">
-  <img width="120" height="120" src="https://raw.githubusercontent.com/reactiveui/styleguide/master/logo_fusillade/main.png">
+  <img width="120" height="120" src="https://raw.githubusercontent.com/reactiveui/Fusillade/main/Images/main.png" alt="Fusillade">
 </a>
 
 ## Fusillade: An opinionated HTTP library for .NET apps
@@ -17,7 +17,7 @@ Fusillade helps you write efficient, resilient networked apps by composing `Http
 
 Design inspirations include Android's Volley and Picasso.
 
-Supported targets: `net8.0`, `net9.0`, `net10.0`, `net11.0`, `net472`, `net48`, and `net481`.
+Supported targets: `net10.0`, `net11.0`, `net47`, `net471`, `net472`, `net48`, and `net481`.
 
 ## V6.0.x Breaking Changes
 

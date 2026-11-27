@@ -30,6 +30,12 @@ public class HttpSchedulerCachingTests
     /// <summary>The cache-key prefix used by the scheduler.</summary>
     private const string CacheKeyPrefix = "HttpSchedulerCache_";
 
+    /// <summary>The key for a plain GET of <see cref="UniqueKeyTestUrl"/>.</summary>
+    /// <remarks>
+    /// The SHA-256 of "https://example/foo\nGET\n\n\nhttp://example/\n\n\n\n\n\n\n", which is the key text for that request.
+    /// </remarks>
+    private const string StableUniqueKey = "HttpSchedulerCache_8da2197fdc2ad0077f04eeb4408b26402a2e63626b447b54fac8409bda828c67";
+
     /// <summary>The byte length of the "foo" test payload.</summary>
     private const int FooContentLength = 3;
 
@@ -152,6 +158,41 @@ public class HttpSchedulerCachingTests
         var commentKey = RateLimitedHttpMessageHandler.UniqueKeyForRequest(commentRequest);
 
         await Assert.That(commentKey == productKey).IsFalse();
+    }
+
+    /// <summary>Checks that conditional request headers affect request identity.</summary>
+    /// <returns>A task to monitor the progress.</returns>
+    [Test]
+    public async Task UniqueKeyForRequestShouldIncludeConditionalHeadersAsync()
+    {
+        using var plainRequest = new HttpRequestMessage(HttpMethod.Get, UniqueKeyTestUrl);
+        using var entityTagRequest = new HttpRequestMessage(HttpMethod.Get, UniqueKeyTestUrl);
+        using var modifiedSinceRequest = new HttpRequestMessage(HttpMethod.Get, UniqueKeyTestUrl);
+        entityTagRequest.Headers.IfNoneMatch.ParseAdd(FooEntityTag);
+        modifiedSinceRequest.Headers.IfModifiedSince = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
+
+        var plainKey = RateLimitedHttpMessageHandler.UniqueKeyForRequest(plainRequest);
+        var ifNoneMatchKey = RateLimitedHttpMessageHandler.UniqueKeyForRequest(entityTagRequest);
+        var modifiedSinceKey = RateLimitedHttpMessageHandler.UniqueKeyForRequest(modifiedSinceRequest);
+
+        using (Assert.Multiple())
+        {
+            await Assert.That(ifNoneMatchKey == plainKey).IsFalse();
+            await Assert.That(modifiedSinceKey == plainKey).IsFalse();
+            await Assert.That(modifiedSinceKey == ifNoneMatchKey).IsFalse();
+        }
+    }
+
+    /// <summary>Checks that the key is a fixed SHA-256 value, so a cache saved by one process is found by the next.</summary>
+    /// <returns>A task to monitor the progress.</returns>
+    [Test]
+    public async Task UniqueKeyForRequestShouldBeStableAcrossProcessesAsync()
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, UniqueKeyTestUrl);
+
+        var key = RateLimitedHttpMessageHandler.UniqueKeyForRequest(request);
+
+        await Assert.That(key).IsEqualTo(StableUniqueKey);
     }
 
     /// <summary>Verifies that an HTTP response cached in Akavache can be replayed offline.</summary>

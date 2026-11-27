@@ -80,32 +80,43 @@ public class RateLimitedHttpMessageHandler(
 
     /// <summary>Generates a unique key for a <see cref="HttpRequestMessage"/>.</summary>
     /// <param name="request">The request to generate a unique key for.</param>
-    /// <returns>The unique key.</returns>
+    /// <returns>The unique key. The same request gives the same key in every process.</returns>
     public static string UniqueKeyForRequest(HttpRequestMessage request)
     {
         ArgumentExceptionHelper.ThrowIfNull(request);
 
+        var headers = request.Headers;
         var keyParts = new[]
         {
             request.RequestUri?.ToString(),
             request.Method.Method,
-            request.Headers.Accept.ConcatenateAll(static x => x.CharSet + x.MediaType),
-            request.Headers.AcceptEncoding.ConcatenateAll(static x => x.Value),
-            (request.Headers.Referrer ?? new Uri("http://example")).AbsoluteUri,
-            request.Headers.UserAgent.ConcatenateAll(static x => x.Product is not null ? x.Product.ToString() : x.Comment!),
+            headers.Accept.ConcatenateAll(static x => x.CharSet + x.MediaType),
+            headers.AcceptEncoding.ConcatenateAll(static x => x.Value),
+            (headers.Referrer ?? new Uri("http://example")).AbsoluteUri,
+            headers.UserAgent.ConcatenateAll(static x => x.Product is not null ? x.Product.ToString() : x.Comment!),
+
+            // Conditional requests can get a different response for the same URL, so they must not share a key.
+            headers.IfNoneMatch.ConcatenateAll(static x => x.ToString()),
+            headers.IfMatch.ConcatenateAll(static x => x.ToString()),
+            headers.IfModifiedSince?.ToString("R", CultureInfo.InvariantCulture),
+            headers.IfUnmodifiedSince?.ToString("R", CultureInfo.InvariantCulture),
+            headers.IfRange?.ToString(),
         };
+
+        // A fixed '\n' separator keeps the key the same on every OS; AppendLine would use the platform line ending.
         var ret = new StringBuilder();
         foreach (var keyPart in keyParts)
         {
-            _ = ret.AppendLine(keyPart);
+            _ = ret.Append(keyPart).Append('\n');
         }
 
-        if (request.Headers.Authorization is not null)
+        if (headers.Authorization is not null)
         {
-            _ = ret.Append(request.Headers.Authorization.Parameter).AppendLine(request.Headers.Authorization.Scheme);
+            _ = ret.Append(headers.Authorization.Parameter).Append(headers.Authorization.Scheme).Append('\n');
         }
 
-        return $"HttpSchedulerCache_{ret.ToString().GetHashCode().ToString("x", CultureInfo.InvariantCulture)}";
+        // string.GetHashCode is randomised per process on .NET Core, so it cannot key a cache that outlives the process.
+        return $"HttpSchedulerCache_{RequestKeyHash.ToLowerHex(ret.ToString())}";
     }
 
     /// <inheritdoc />

@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Fusillade/Fusillade.csproj" />
+    <ProjectReference Include="../examples/HttpCache/HttpCache.csproj" />
   </ItemGroup>
 
   <ItemGroup>

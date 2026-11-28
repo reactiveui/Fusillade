@@ -39,10 +39,8 @@ internal static class Program
         }
 
         string[] names = await Task.WhenAll(first, second);
-        if (transport.Sends != 1 || names[0] != names[1])
-        {
-            throw new InvalidOperationException("Both callers should share one download.");
-        }
+        RequireEqual(1, transport.Sends, "Both callers should share one download.");
+        RequireEqual(names[0], names[1], "Both callers should receive the same body.");
 
         using var offlineHandler = new OfflineHttpMessageHandler(cache.FetchAsync);
         NetCache.Offline = offlineHandler;
@@ -54,10 +52,7 @@ internal static class Program
         NetCache.Speculative = budget;
         using var prefetch = new HttpClient(NetCache.Speculative, disposeHandler: false);
         await LimitPrefetchAsync(prefetch, deadline.Token);
-        if (budget.ConfiguredBudget != 1)
-        {
-            throw new InvalidOperationException("The prefetch budget should report the limit set after resuming.");
-        }
+        RequireEqual(1L, budget.ConfiguredBudget, "The prefetch budget should report the limit set after resuming.");
 
         using var background = new RateLimitedHttpMessageHandler(
             new ProfileTransport(),
@@ -76,26 +71,23 @@ internal static class Program
     /// <param name="offline">The client that only reads saved bodies.</param>
     /// <param name="token">Cancels the cache reads.</param>
     /// <returns>Completion after the offline replies have been checked.</returns>
-    private static async Task ReadOfflineAsync(ProfileCache cache, HttpClient offline, CancellationToken token)
+    internal static async Task ReadOfflineAsync(ProfileCache cache, HttpClient offline, CancellationToken token)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, Profile);
         string key = RateLimitedHttpMessageHandler.UniqueKeyForRequest(request);
         byte[]? saved = await cache.FetchAsync(request, key, token);
         var name = await offline.GetStringAsync(Profile, token);
         using var miss = await offline.GetAsync(new Uri(Profile, "/unknown"), token);
-        if (saved is not null && name == "Ada" && miss.StatusCode == HttpStatusCode.ServiceUnavailable)
-        {
-            return;
-        }
-
-        throw new InvalidOperationException("Only the saved profile should be available offline.");
+        RequireEqual(true, saved is not null, "The foreground request should save the profile.");
+        RequireEqual("Ada", name, "The saved profile should be available offline.");
+        RequireEqual(HttpStatusCode.ServiceUnavailable, miss.StatusCode, "An unknown profile should be unavailable offline.");
     }
 
     /// <summary>Spends a speculative byte budget and replenishes it for another read.</summary>
     /// <param name="client">The client backed by the limited handler.</param>
     /// <param name="token">Cancels the local HTTP calls.</param>
     /// <returns>Completion after the budget is exhausted and reset.</returns>
-    private static async Task LimitPrefetchAsync(HttpClient client, CancellationToken token)
+    internal static async Task LimitPrefetchAsync(HttpClient client, CancellationToken token)
     {
         _ = await client.GetStringAsync(Profile, token);
         try
@@ -110,5 +102,21 @@ internal static class Program
 
         _ = await client.GetStringAsync(Profile, token);
         NetCache.Speculative.ResetLimit(1);
+    }
+
+    /// <summary>Checks the result of a cache operation and reports which expectation failed.</summary>
+    /// <typeparam name="T">The type of value being checked.</typeparam>
+    /// <param name="expected">The expected result.</param>
+    /// <param name="actual">The observed result.</param>
+    /// <param name="message">The expectation to report.</param>
+    /// <exception cref="InvalidOperationException">The values differ.</exception>
+    private static void RequireEqual<T>(T expected, T actual, string message)
+    {
+        if (EqualityComparer<T>.Default.Equals(expected, actual))
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(message);
     }
 }

@@ -5,6 +5,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="Fusillade.Tests" />
     <ProjectReference Include="../../Fusillade/Fusillade.csproj" />
     <Using Include="Fusillade" />
     <Using Include="Punchclock" />

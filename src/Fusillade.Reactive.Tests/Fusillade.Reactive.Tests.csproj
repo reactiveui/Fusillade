@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Fusillade.Reactive\Fusillade.Reactive.csproj" />
+    <ProjectReference Include="../examples/ReactiveHttpCache/ReactiveHttpCache.csproj" />
   </ItemGroup>
 
   <ItemGroup>

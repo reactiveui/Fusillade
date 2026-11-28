@@ -5,6 +5,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="Fusillade.Reactive.Tests" />
     <ProjectReference Include="../../Fusillade.Reactive/Fusillade.Reactive.csproj" />
     <Compile Include="../HttpCache/*.cs" Link="%(Filename)%(Extension)" />
     <Using Include="Fusillade.Reactive" />

@@ -16,7 +16,7 @@ internal static class Program
 
     /// <summary>Exercises the shared handlers with a local transport.</summary>
     /// <returns>Completion after the cached body and transfer budget have been checked.</returns>
-    private static async Task Main()
+    internal static async Task Main()
     {
         const int TimeoutSeconds = 30;
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(TimeoutSeconds));

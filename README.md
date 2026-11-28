@@ -9,7 +9,7 @@
 [![Downloads](https://img.shields.io/nuget/dt/Fusillade?label=downloads&logo=nuget&logoColor=white&color=004880)](https://www.nuget.org/packages/Fusillade)
 [![Coverage](https://img.shields.io/codecov/c/github/reactiveui/Fusillade?label=coverage&logo=codecov&logoColor=white)](https://codecov.io/gh/reactiveui/Fusillade)
 [![License](https://img.shields.io/github/license/reactiveui/Fusillade?color=blue)](https://github.com/reactiveui/Fusillade/blob/main/LICENSE)
-[![Discussions](https://img.shields.io/badge/discussions-ask%20a%20question-8A2BE2?logo=github&logoColor=white)](https://github.com/reactiveui/ReactiveUI/discussions)
+[![Discussions](https://img.shields.io/badge/discussions-ask%20a%20question-8A2BE2?logo=github&logoColor=white)](https://github.com/reactiveui/Fusillade/discussions)
 
 </div>
 
@@ -587,7 +587,7 @@ Use `new HttpClient(NetCache.UserInitiated, disposeHandler: false)` for shared `
 
 Fusillade is part of [ReactiveUI](https://github.com/reactiveui) and is released under the [MIT license](https://github.com/reactiveui/Fusillade/blob/main/LICENSE). We welcome contributions of every size, from bug reports and documentation to features and tests.
 
-- **Questions:** ask in [GitHub Discussions](https://github.com/reactiveui/ReactiveUI/discussions).
+- **Questions:** ask in [GitHub Discussions](https://github.com/reactiveui/Fusillade/discussions).
 - **Bugs and feature requests:** open a [GitHub issue](https://github.com/reactiveui/Fusillade/issues/new/choose).
 - **Larger changes:** open an issue or discussion first, so we can agree on the approach before you start.
 - **Contributor guide:** read [reactiveui.net/contribute](https://www.reactiveui.net/contribute/) for [building and testing](https://www.reactiveui.net/contribute/building-and-testing/) and [pull requests](https://www.reactiveui.net/contribute/pull-requests/).

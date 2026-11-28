@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Examples/">
+    <Project Path="examples/HttpCache/HttpCache.csproj" />
+    <Project Path="examples/ReactiveHttpCache/ReactiveHttpCache.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="../.editorconfig" />
     <File Path="../.gitattributes" />
